@@ -1,0 +1,21 @@
+# globs:
+syntax: glob
+
+*.elc
+*.pyc
+*.class
+*.log
+programming/**/.coverage
+*.PID
+*.ACCESSLOG
+*.ERRORLOG
+log/*
+tmp/*
+*~
+semantic.cache
+sandbox/*
+
+# regex:
+syntax: regexp
+
+
