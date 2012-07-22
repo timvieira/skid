@@ -7,6 +7,9 @@ TODO:
  - convert a query with the term #my-tag to tags:my-tag
 
  - update entry (instead of ignore with warning) existing paths in database
+
+ - should we redownload if file is already cached?
+
 """
 
 import os
@@ -23,7 +26,6 @@ from debug import ip
 import re
 from terminal import yellow, red, blue, green
 from fsutils import secure_filename
-from urllib2 import urlopen, URLError
 from pdfutils.conversion import pdftotext
 from iterextras import iterview
 from web.download import download
@@ -70,10 +72,7 @@ def search(q):
     print 'query:', q
     for hit in _search(q):
         print 'docnum:', hit.docnum
-        print 'title:', hit['title']
-        print 'path:', hit['path']
-        print 'tags:', hit['tags']
-        #print '\n'.join('%s: %s' % (k, hit[k]) for k in hit.fields() if k != 'parse')
+        print '\n'.join('%s: %s' % (k, hit[k]) for k in hit.fields() if k != 'text')
         print
     print
 
@@ -89,7 +88,7 @@ def import_document(location, tags, title='', description=''):
     if isinstance(tags, basestring):
         tags = tags.split()
 
-    # handle directories os.path.isdir
+    # handle directories
     # expand ~
     # source code: python, java, scala
     # plain text
@@ -111,16 +110,18 @@ def import_document(location, tags, title='', description=''):
         # cache file
         filename = os.path.join(CACHE, secure_filename(location))
 
-        if os.path.exists(filename):
-            warn('file %s already cached at %s.' % (location, filename))
-
         try:
             content = download(location, tries=3, usecache=True, cachedir='cache~')
+            if not content:
+                print 'Failed to download %s.' % location
+                tags.append('$failed-to-cache')
+
+        except (KeyboardInterrupt,):
+            tags.append('$failed-to-cache')
+
+        else:
             with file(filename, 'wb') as f:
                 f.write(content)
-        except (KeyboardInterrupt, URLError):
-            tags.append('$failed-to-cache')
-        else:
             tags.append('$cached')
 
     if filename.endswith('.pdf'):       # extract text from pdfs
@@ -137,8 +138,6 @@ def import_document(location, tags, title='', description=''):
 
         else:
             text = '-*- missing -*-'
-
-    # sha1 hash of text or content
 
     try:
         text = unicode(text.decode('utf8'))
