@@ -1,25 +1,13 @@
-"""
-TODO:
-
- - urls with a glob in them get expanded..
-   e.g.  http://web.archive.org/web/*/http://www.srcf.ucam.org/~hmw26/join-the-dots/
-
- - convert a query with the term #my-tag to tags:my-tag
-
- - update entry (instead of ignore with warning) existing paths in database
-
-"""
-
 import os
 from debug import ip
 from terminal import yellow, red, blue, green
-from fsutils import mkdir
+from fsutils import mkdir, filetype
 from pdfutils.conversion import pdftotext
 from web.download import download
 from text.utils import htmltotext, remove_ligatures, force_unicode
 
 
-CACHE = 'cache~'
+CACHE = '/home/timv/.tags/cache'
 
 
 def plaintext(filename):
@@ -63,8 +51,7 @@ def cache_url(url):
     except KeyboardInterrupt:
         return
 
-    else:
-        return cached
+    return cached
 
 
 def cache_document(source):
@@ -91,7 +78,7 @@ def import_document(source, tags, title='', description=''):
 
     print blue % 'adding %s' % source
 
-    assert ' ' not in source, 'no spaces allowed in document source...'
+    assert ' ' not in source
 
     if isinstance(tags, basestring):
         tags = tags.split()
@@ -103,6 +90,9 @@ def import_document(source, tags, title='', description=''):
         tags.append('$url')
 
     cached = cache_document(source)
+
+    print 'filetype:', filetype(cached)
+    tags.append('$filetype:' + filetype(cached))
 
     print cached
 
