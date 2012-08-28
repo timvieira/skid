@@ -1,3 +1,8 @@
+1"""
+Index skid-marks to support efficient search over attributes including
+full-text.
+"""
+
 import os
 from datetime import datetime
 from glob import glob
@@ -10,10 +15,12 @@ from whoosh.qparser.dateparse import DateParserPlugin
 from iterextras import iterview
 from debug import ip
 
+from skid.common import parse_notes
+from skid.config import ROOT, CACHE
+
 # globals
-DIRECTORY = '/home/timv/.tags/index'
+DIRECTORY = ROOT + '/index'
 NAME = 'index'
-from tags.pipeline import CACHE
 
 
 def create():
@@ -22,6 +29,7 @@ def create():
     os.system('rm -rf %s' % DIRECTORY)
     os.mkdir(DIRECTORY)
     schema = Schema(source = ID(stored=True, unique=True),
+                    cached = ID(stored=True, unique=True),
                     title = TEXT(stored=True),
                     description = TEXT(stored=True),
                     text = TEXT(stored=True),
@@ -41,11 +49,22 @@ def _search(q):
 
 
 def search(q):
+    """
+    Search skid-marks for particular attributes.
+    """
     print
     print 'query:', q
     for hit in _search(q):
         print 'docnum:', hit.docnum
-        print '\n'.join('%s: %s' % (k, hit[k]) for k in hit.fields() if k != 'text')
+        #fields = list(hit.fields())
+        fields = ['title', 'cached', 'source', 'tags']
+        for k in fields:
+            val = hit[k].strip()
+            if val and k != 'text':
+                if k == 'cached':
+                    val = 'file://' + val
+                print '\033[31m%s\033[0m: %s' % (k, val.replace('\n', ' '))
+        #snippet(hit['cached'] + '.d/data/text', q)
         print
     print
 
@@ -72,14 +91,15 @@ def build():
 
         for d in iterview([d for d in glob(CACHE + '/*') if not d.endswith('.d')]):
 
-            def get(attr):
-                return unicode(file(d + '.d/' + attr).read().decode('utf8'))
+            text = file(d + '.d/data/text').read().decode('utf8')
+            meta = parse_notes(file(d + '.d/notes.org').read())
 
-            w.add_document(source = get('source'),
-                           title = get('title'),
-                           description = get('description'),
-                           text = get('text'),
-                           tags = get('tags'))
+            w.add_document(source = meta['source'],
+                           title = meta['title'],
+                           cached = unicode(d),
+                           description = meta['description'],
+                           text = text,
+                           tags = meta['tags'])
 
 
 def shell():
@@ -98,8 +118,3 @@ def lexicon(field):
     ix = open_dir(DIRECTORY, NAME)
     with ix.searcher() as s:
         return list(s.lexicon(field))
-
-
-if __name__ == '__main__':
-    from automain import automain
-    automain()
