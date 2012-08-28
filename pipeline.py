@@ -15,26 +15,25 @@ from text.utils import htmltotext, remove_ligatures, force_unicode
 from skid.config import CACHE
 from hashlib import sha1
 
+from skid.common import mergedict, unicodify_dict, dictsubset, parse_notes, \
+    whitespace_cleanup
+
 from pprint import pprint
 
 import pdfutils
+
 
 def cache_url(url):
     """
     Download url, write contents to file. Return filename of contents, None on
     failure to download.
     """
-
-    try:
-
-        # TODO: we should be telling download where to store stuff
-        # explicitly... right now we just both have the same convention.
-        cached = download(url, tries=1, pause=0.1, timeout=10, usecache=True, cachedir=CACHE)
-        if not cached:
-            print 'Failed to download %s.' % url
-            return
-
-    except KeyboardInterrupt:
+    # TODO: we should be telling download where to store stuff
+    # explicitly... right now we just both have the same convention.
+    cached = download(url, tries=1, pause=0.1, timeout=10, usecache=True,
+                      cachedir=CACHE)
+    if not cached:
+        print 'Failed to download %s.' % url
         return
 
     return cached
@@ -46,6 +45,10 @@ def cache_document(src):
     # TODO: maybe support omitting 'http://', just guess that if its not a file
     # name it must be a url.
 
+    # TODO:
+    #  - make sure we don't overwrite files
+    #  - cache to staging area first
+
     if src.startswith('http'):    # cache links
         return cache_url(src)
 
@@ -55,6 +58,7 @@ def cache_document(src):
 
         if os.path.exists(dest):
             print 'File %r already exists' % dest
+
             #raise Exception('File %r already exists' % dest)
             return dest
 
@@ -95,13 +99,9 @@ def add(source, tags='', title='', description='', interactive=True):
         tags = tags.split()
     tags = list(tags)
 
-    # todo: maybe we should put the file in a "sandbox" so it won't clobber
-    # anything.
-    try:
-        cached = cache_document(source)
-    except AssertionError as e:
-        print e
-        cached = None
+    # todo: maybe we should put the file in a staging area first so it won't
+    # clobber anything (notes, cached document, etc)
+    cached = cache_document(source)
 
     if not cached:  # failed to cache file
         print 'failed to cached file'
@@ -114,24 +114,31 @@ def add(source, tags='', title='', description='', interactive=True):
     d.hash_contents()
     d.extract_plaintext()
 
-    metadata = d.extract_metadata()
-    if title:
-        metadata['title'] = title
+    old = d.extract_metadata()
+
+    new = {
+        'description': description.strip(),
+        'title': title,
+        'source': source,
+        'cached': 'file://' + cached,
+    }
+
+    new = mergedict(old, new)
+
     if tags:
         # newtags will include all exisiting tags in the order the are listed in
         # document, concatenating new tags (ignoring duplicates; in order
         # listed).
-        newtags = metadata['tags'].strip().split()
+        newtags = old['tags'].strip().split()
         existingtags = set(newtags)
         for t in tags:
             if t not in existingtags:
                 newtags.append(t.strip())
-        metadata['tags'] = ' '.join(newtags)
+        new['tags'] = ' '.join(newtags)
 
-    metadata['source'] = source
-    metadata['cached'] = cached
 
-    newdata = template(**metadata)
+    new = unicodify_dict(new)
+    old = unicodify_dict(old)
 
     existing = d.cached + '.d/notes.org'
     if os.path.exists(existing):
@@ -139,19 +146,22 @@ def add(source, tags='', title='', description='', interactive=True):
     else:
         existingdata = None
 
-    # if new description is empty ignore this check.
+    newcontent = template(**new)
 
-    if not existingdata:
-        d.meta('notes.org', newdata)
+    if dictsubset(new, old):
+        d.meta('notes.org', newcontent, overwrite=True)
+
     else:
 
-        if newdata.strip() != existingdata.strip():
+        if newcontent.strip() != existingdata.strip():
             tmp = '/tmp/newmetadata.org'
-            file(tmp, 'wb').write(newdata)
+            file(tmp, 'wb').write(newcontent)
 
-            print yellow % '*************************'
-            pprint(metadata)
-            print yellow % '*************************'
+            print yellow % '** old ************************'
+            pprint(old)
+            print yellow % '-- new ------------------------'
+            pprint(new)
+            print yellow % '*******************************'
 
 #                raise AssertionError('Merging notes failed because existing notes '
 #                                     'do not match new notes. Your intervention '
@@ -176,11 +186,6 @@ def add(source, tags='', title='', description='', interactive=True):
         d.edit_notes()
 
 
-def edit(cached):
-    d = Document(cached)
-    d.edit_notes()
-
-
 class Document(object):
 
     def __init__(self, cached):
@@ -191,7 +196,7 @@ class Document(object):
         self.filetype = filetype(self.cached)
 
     def edit_notes(self):
-        os.system('emacs -nw {self.cached}.d/notes.org'.format(self=self))
+        os.system('/home/timv/projects/env/bin/visit {self.cached}.d/notes.org'.format(self=self))
 
     def open(self):
         os.system('gnome-open {self.cached} 2>/dev/null'.format(self=self))
@@ -224,7 +229,6 @@ class Document(object):
         else:
             return oldhash
 
-
     def extract_metadata(self):
 
         metadata = {'tags': '', 'title': '', 'description': ''}
@@ -243,12 +247,7 @@ class Document(object):
         existing = self.cached + '.d/notes.org'
         if os.path.exists(existing):
             notes = file(existing).read()
-
-            # merge by overwriting automatic stuff.
-            metadata.update(re.findall('^:(\w+?):[ ]*([^\n]*?)\s*$', notes, re.MULTILINE))
-
-            [d] = re.findall('\n[^:]([\w\W]*$)', notes)
-            metadata['description'] = d.strip()
+            metadata.update(parse_notes(notes))
 
         return metadata
 
@@ -275,15 +274,20 @@ class Document(object):
 
 
 def template(**kwargs):
-    newdata = TEMPLATE.format(**kwargs)
-    return force_unicode(newdata).encode('utf8')
-
+    others = set(kwargs) - set('title source cached tags description'.split())
+    attrs = '\n'.join(':%s: %s'.strip() for k in others).strip()
+    if attrs:
+        attrs += '\n'
+    newdata = TEMPLATE.format(attrs=attrs, **kwargs)
+    newdata = whitespace_cleanup(newdata)
+    return force_unicode(newdata).encode('utf8').strip() + '\n'
 
 TEMPLATE = u"""\
 :title: {title}
 :source: {source}
-:cached: file://{cached}
+:cached: {cached}
 :tags: {tags}
-
+{attrs}
 {description}
 """
+
