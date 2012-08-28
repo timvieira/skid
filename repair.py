@@ -1,6 +1,6 @@
 import re, os
 from glob import glob
-from collections import defaultdict, Counter
+from collections import defaultdict
 from skid.config import CACHE
 from debug import ip
 
@@ -39,14 +39,12 @@ def find_orphans():
 def hash_collisions():
     "Find hash collisions in corpus."
     d = defaultdict(list)
-    for x in glob(CACHE + '/*/hash'):
+    for x in glob(CACHE + '/*/data/hash'):
         d[file(x).read().strip()].append(x)
 
     for k,v in d.iteritems():
         if len(v) > 1:
             print k
             for z in v:
-                f = z[:-7]
+                f = z[:-12]
                 print '  ', 'file://' + f
-
-#            os.system('less ' + f + '.d/text')
