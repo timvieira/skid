@@ -1,0 +1,64 @@
+Simple, plaintext.
+
+Documents (or links to documents) go in cache.
+
+Each document has a directory either in a parallel directory or right next to
+it, which will hold metadata (just like Rexa). For example.
+
+    cache/
+        somefile.ext
+        somefile.ext.d/
+            bibtex
+            notes.org
+            data/
+                text
+                hash
+
+Now, we can write command-line scripts which will query this data set.
+
+Examples include:
+
+ - keyword search: over the plaintext content or descriptions. This might
+   require building an inverted index.
+
+ - metadata:
+   - notes:
+   - "machine-readable notes": title, tags, source, plaintext
+
+ - information displays: what do we know about a particular file. E.g. print
+   bibtex entries, tags, and comments for research papers.
+
+================================================================================
+Adding a document
+
+  1. cache document (download links, copy pdfs)
+  2. create '.d' directory
+  3. create notes.org file (initialize content, e.g. title, tags)
+  4. merge with any existing notes.org
+  5. open description file in a text editor
+
+Merging
+
+ - anything automatically replaces null.
+ - conflict can be dealt with via kdiff3 or possibly some emacs extension.
+
+Keeping data safe
+
+ - staging area
+ - version control (maybe something like working, incoming, remote)
+
+================================================================================
+Example description file
+
+:title: Personal homepage of Tim Vieira
+:source: http://timvieira.github.com
+:tags: people nlp ml
+
+PhD student at Johns Hopkins University. Works on Dyna programming language and
+speeding-up inference algorithms using machine learning.
+
+================================================================================
+Outstanding issues
+
+ - What if I don't want to write notes about a specific single paper, but rather
+   on a topic or something ... for example the learn directories...
