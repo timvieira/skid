@@ -74,16 +74,23 @@ def cache_document(src):
 
 # TODO:
 #
-# - check if the directory already exists; maybe atomically write directory
+# - check if the directory already exists; "atomically" write directory to avoid
+#   issues with failures (staging).
 #
-# - dependencies between metadata to avoid recomputation; derived data versus
-#   input (e.g. tags inferred by the system v. provided by user).
+# - staging area: maybe we should put the file in a staging area first so it
+#   won't clobber anything (notes, cached document, etc)
 #
 # - if it's a pdf we should try to get a bibtex entry for it.
 #
-# - grab any metadata available from pyPdf see from pdfutils.metadata import metadata
+# - merge:
 #
-# - check document already exists
+#    - might want to handle most of this thru version control.
+#
+#    - check document already exists
+#
+#    - merges metadata
+#
+#    - merge document contents (pick old or new version)
 #
 def add(source, tags='', title='', description='', interactive=True):
     """
@@ -99,8 +106,6 @@ def add(source, tags='', title='', description='', interactive=True):
         tags = tags.split()
     tags = list(tags)
 
-    # todo: maybe we should put the file in a staging area first so it won't
-    # clobber anything (notes, cached document, etc)
     cached = cache_document(source)
 
     if not cached:  # failed to cache file
@@ -136,7 +141,6 @@ def add(source, tags='', title='', description='', interactive=True):
                 newtags.append(t.strip())
         new['tags'] = ' '.join(newtags)
 
-
     new = unicodify_dict(new)
     old = unicodify_dict(old)
 
@@ -162,12 +166,6 @@ def add(source, tags='', title='', description='', interactive=True):
             print yellow % '-- new ------------------------'
             pprint(new)
             print yellow % '*******************************'
-
-#                raise AssertionError('Merging notes failed because existing notes '
-#                                     'do not match new notes. Your intervention '
-#                                     'try adding the paper again in interactive '
-#                                     'mode.\n\n'
-#                                     'kdiff3 %s %s' % (existing, tmp))
 
             print red % 'Need to merge descriptions...'
             print yellow % '=================================='
@@ -231,6 +229,9 @@ class Document(object):
 
     def extract_metadata(self):
 
+        # TODO: extract <title> from html and possibly any metadata in the head
+        # (e.g., sometimes people include keywords)
+
         metadata = {'tags': '', 'title': '', 'description': ''}
         if self.filetype.endswith('pdf'):
 
@@ -275,7 +276,7 @@ class Document(object):
 
 def template(**kwargs):
     others = set(kwargs) - set('title source cached tags description'.split())
-    attrs = '\n'.join(':%s: %s'.strip() for k in others).strip()
+    attrs = '\n'.join((':%s: %s' % (k, kwargs[k])).strip() for k in others).strip()
     if attrs:
         attrs += '\n'
     newdata = TEMPLATE.format(attrs=attrs, **kwargs)
@@ -283,11 +284,10 @@ def template(**kwargs):
     return force_unicode(newdata).encode('utf8').strip() + '\n'
 
 TEMPLATE = u"""\
-:title: {title}
+#+title: {title}
 :source: {source}
 :cached: {cached}
 :tags: {tags}
 {attrs}
 {description}
 """
-
