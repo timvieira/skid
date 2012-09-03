@@ -12,7 +12,7 @@ from BeautifulSoup import BeautifulSoup
 from skid.pipeline import add, CACHE
 
 
-def delicious(xml='delicious_timvieira.xml'):
+def delicious(xml):
     "Import delicious (xml) export data."
     with file(xml) as f:
         soup = BeautifulSoup(f)
