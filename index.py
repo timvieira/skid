@@ -1,4 +1,4 @@
-1"""
+"""
 Index skid-marks to support efficient search over attributes including
 full-text.
 """
