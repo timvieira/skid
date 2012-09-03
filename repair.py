@@ -4,22 +4,6 @@ from collections import defaultdict
 from skid.config import CACHE
 from debug import ip
 
-def find_stuff_to_describe():
-    "Automatically find documents to write descriptions for."
-    for filename in glob(CACHE + '/*.pdf'):
-        print filename
-        assert os.path.exists(filename + '.d')
-
-        description = filename + '.d/description'
-
-        if file(description).read().strip():  # has description
-            continue
-
-        os.system('gnome-open ' + filename + ' 2>/dev/null &')
-
-        os.system('/home/timv/projects/env/bin/visit ' + description)
-        raw_input('hit enter for next')
-
 
 def find_orphans():
     "Cleanup: find stray directories or files in cache."
@@ -31,8 +15,6 @@ def find_orphans():
         else:
             xs.add(x)
     for x in ds.symmetric_difference(xs):
-        #assert x in ds
-        #os.system('rm -r ' + x + '.d')
         print x
 
 
