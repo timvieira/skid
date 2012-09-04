@@ -1,20 +1,24 @@
 import os, sys
 from debug import ip
 from automain import automain
-from skid import pipeline, index, data, repair
+from skid import index
+from skid import add as _add
 from functools import wraps
+from skid.config import CACHE, REMOTE
 
 def add(source):
     """
     Add document from source. Sources can be urls or filenames.
     """
-    return pipeline.add(source, interactive=True)
+    return _add.document(source, interactive=True)
+
 
 def search(*q):
     """
     Search collection for query
     """
     index.search(' '.join(q))
+
 
 # TODO: incremental indexing.
 def update():
@@ -23,16 +27,10 @@ def update():
     index.build()
 
 
-if __name__ == '__main__':
+def push():
+    "Use rsync to push data to remote machine."
+    os.system('rsync -a %s/. %s/marks/.' % (CACHE, REMOTE))
 
-    #try:
-    #    mod = sys.argv[1]
-    #    execfile(os.path.join(os.path.dirname(__file__), mod + '.py'))
-    #except IndexError:
-    #
-    #    automain(available=[pipeline, index, data, repair])
-    #except IOError:
-    #    print 'command %r not recognized.' % mod
-    #
-    #else:
+
+if __name__ == '__main__':
     automain()
