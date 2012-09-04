@@ -92,7 +92,7 @@ def cache_document(src):
 #
 #    - merge document contents (pick old or new version)
 #
-def add(source, tags='', title='', description='', interactive=True):
+def document(source, tags='', title='', description='', interactive=True):
     """
     Import document from ``source``. Procedure will download/cache the file,
     create a directory to store metadta.
@@ -101,6 +101,10 @@ def add(source, tags='', title='', description='', interactive=True):
     print blue % 'adding %s' % source
 
     assert ' ' not in source
+
+    # make sure we store the absolute path for local files.
+    if os.path.exists(source):
+        source = os.path.abspath(source)
 
     if isinstance(tags, basestring):
         tags = tags.split()
