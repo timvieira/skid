@@ -1,4 +1,19 @@
-Simple, plaintext.
+Simple, plaintext, filesystem
+
+
+Great post by GradHacker: [[http://www.gradhacker.org/2012/08/13/towards-better-pdf-management-with-the-filesystem/][Towards Better PDF Management with the Filesystem]]
+
+ - tools for organizating you pdfs are restrictive (and proprietary in the sense
+   that information is owned by the program).
+
+ - Article advocates
+   1. use filesystem: helps avoid the "proprietary data problem"
+   2. flat structure: keeping a single (flat) directory of all your papers
+   3. tags over folders: well-known problem we all faced before GMail.
+   4. conventions: naming conventions, tagging conventions
+   5. "simple scripts": they don't say it directly (must not a linux geek), but
+      they talk about using simple programs rather large monolithic programs.
+
 
 Documents (or links to documents) go in cache.
 
@@ -62,3 +77,5 @@ Outstanding issues
 
  - What if I don't want to write notes about a specific single paper, but rather
    on a topic or something ... for example the learn directories...
+
+================================================================================

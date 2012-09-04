@@ -9,20 +9,20 @@ import os
 from glob import glob
 from iterextras import iterview
 from BeautifulSoup import BeautifulSoup
-from skid.pipeline import add, CACHE
-
+from skid import add
+from skid.config import CACHE
 
 def delicious(xml):
-    "Import delicious (xml) export data."
+    "Import links from delicious xml export. E.g. the output of delicious_import.py"
     with file(xml) as f:
         soup = BeautifulSoup(f)
         for post in iterview(soup.findAll('post')):
             print
-            add(source = post['href'],
-                tags = post['tag'],
-                title = post['description'],
-                description = post['extended'],
-                interactive = False)
+            add.document(source = post['href'],
+                         tags = post['tag'],
+                         title = post['description'],
+                         description = post['extended'],
+                         interactive = False)
 
 
 def pdfs(pattern=CACHE + '/*.pdf'):
@@ -33,6 +33,6 @@ def pdfs(pattern=CACHE + '/*.pdf'):
             newsource = source.replace(' ', '_')
             os.rename(source, newsource)
             source = newsource
-        add(source = source,
-            tags = [],
-            interactive = False)
+        add.document(source = source,
+                     tags = [],
+                     interactive = False)
