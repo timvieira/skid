@@ -32,8 +32,7 @@ def parse_notes(notes):
     metadata = dict(re.findall('^(?:\#\+?|:)([^:\s]+):[ ]*([^\n]*?)\s*$', notes, re.MULTILINE))
 
 
-    msg = """Due to a bug, this features has been temporarily disabled.
-
+    msg = """\
 \033[31m<parse_notes>\033[0m
 \033[31m<data>\033[0m
 %s
