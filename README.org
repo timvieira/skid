@@ -1,4 +1,4 @@
-Simple, plaintext, filesystem
+Simple, plaintext, file system
 
 
 Great post by GradHacker: [[http://www.gradhacker.org/2012/08/13/towards-better-pdf-management-with-the-filesystem/][Towards Better PDF Management with the Filesystem]]
@@ -79,3 +79,26 @@ Outstanding issues
    on a topic or something ... for example the learn directories...
 
 ================================================================================
+Things I fumble about trying to do:
+
+ - looking up a paper's directory so that I could copy files into its folder
+
+ - jumping to ~/.skid directory (e.g. to check on hg)
+
+   * created alias 'skidd' (why can't python cd like a bash script)
+
+   * added 'skid hg ...' subcommand.
+
+ - narrowing search: keyword search returns too many results. I want to "pick"
+   one paper (pick can mean open, take notes, grab metadata).
+
+   Approaches (not mututally exclusive):
+
+   * ranking: give preference to certain fields like filename, author, title,
+     and notes before text.
+
+   * autocomplete/suggestion: (todo: could look at discriminating words between
+     results)
+
+   Both approaches should be combined. Autocomplete/suggestion might require an
+   interactive user interface.
