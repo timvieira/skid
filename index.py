@@ -30,43 +30,24 @@ def create():
     os.mkdir(DIRECTORY)
     schema = Schema(source = ID(stored=True, unique=True),
                     cached = ID(stored=True, unique=True),
-                    title = TEXT(stored=True),
+                    title = TEXT(stored=True, spelling=True),
                     description = TEXT(stored=True),
-                    text = TEXT(stored=True),
-                    tags = KEYWORD(stored=True))
+                    text = TEXT(stored=True, spelling=True),
+                    tags = KEYWORD(stored=True, spelling=True))
     create_in(DIRECTORY, schema, NAME)
 
 
-def _search(q):
-    q = unicode(q.decode('utf8'))
+def search(qstr):
+    qstr = unicode(qstr.decode('utf8'))
     ix = open_dir(DIRECTORY, NAME)
     with ix.searcher() as searcher:
         qp = QueryParser('text', schema=ix.schema)
         qp.add_plugin(DateParserPlugin(free=True, basedate=datetime.now()))
-        q = qp.parse(q)
+        q = qp.parse(qstr)
         for hit in searcher.search(q):
             yield hit
 
-
-def search(q):
-    """
-    Search skid-marks for particular attributes.
-    """
-    print
-    print 'query:', q
-    for hit in _search(q):
-        print 'docnum:', hit.docnum
-        #fields = list(hit.fields())
-        fields = ['title', 'cached', 'source', 'tags']
-        for k in fields:
-            val = hit[k].strip()
-            if val and k != 'text':
-                if k == 'cached':
-                    val = 'file://' + val
-                print '\033[31m%s\033[0m: %s' % (k, val.replace('\n', ' '))
-        #snippet(hit['cached'] + '.d/data/text', q)
-        print
-    print
+        #print searcher.correct_query(q, qstr, allfields=True)
 
 
 def drop():
