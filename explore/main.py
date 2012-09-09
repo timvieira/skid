@@ -6,22 +6,19 @@ from glob import glob
 from collections import defaultdict, Counter
 
 import numpy as np
-from numpy import dot, sqrt, zeros, log
+from numpy import sqrt, zeros, log
 
 import pylab as pl
-import matplotlib as mpl
-from pylab import show, scatter, ion, grid, subplot, imshow
+from pylab import show, scatter, ion
 from pandas import DataFrame
 
-#import matplotlib.image
-
-from viz import pointbrowser, lasso
+from viz.interact.lasso import LassoBrowser
 from iterextras import iterview
 from debug import ip
 from viz.mds import mds
 
 
-class Browser(lasso.LassoBrowser): #(pointbrowser.PointBrowser):
+class Browser(LassoBrowser):
 
     def __init__(self, X, **kwargs):
         self.circle = None
@@ -33,15 +30,14 @@ class Browser(lasso.LassoBrowser): #(pointbrowser.PointBrowser):
                 row = self.df.ix[idx]
                 obj = row['obj']
                 if event.key == 'f':
-                    pdf = obj.pdf_file
-                    os.system('evince %s 2>/dev/null &' % pdf)
+                    pdf = obj.cached
+                    os.system('gnome-open %s 2>/dev/null &' % pdf)
                 if event.key == 't':
                     os.system('gedit %s &' % obj.text_file)
                 if event.key == 'd':
+                    print '----'
+                    print file(obj.d + '/notes.org').read()
                     print
-                    print '----'
-                    print file(obj.outdir + '/notes.org').read()
-                    print '----'
 
         super(Browser, self).onpress(event)
 
@@ -61,8 +57,8 @@ class Document(object):
         self.filename = filename
 
         self.text_file = filename
-        self.pdf_file = filename.replace('.d/data/text', '')
-        self.outdir = filename.replace('/data/text', '')
+        self.cached = filename.replace('.d/data/text', '')
+        self.d = filename.replace('/data/text', '')
 
         self.words = [w.lower() for w in re.findall('[A-Za-z]+', file(filename).read()) if 3 < len(w) < 20]
         self.setofwords = set(self.words)
@@ -97,12 +93,11 @@ class Document(object):
         return 1 - d * 1.0 / (self.norm * other.norm)
 
 
-# TODO: use Whoosh to retrieve documents, use tf-idf score it has already
-# computed.
-def compute_similarities(documents, threshold=0.9):
+# TODO: use Whoosh's use tf-idf score so we don't have to load all documents.
+def compute_similarities(documents):
 
     N = len(documents)
-    print 'build tf and idf tables...',
+    print 'build tf and df tables...',
     # map from words to documents containing word
     index = defaultdict(set)
     for d in documents:
@@ -115,28 +110,27 @@ def compute_similarities(documents, threshold=0.9):
     print 'done.'
 
     # cached file to document object
-    z = {d.pdf_file: d for d in documents}
+    z = {d.cached: d for d in documents}
 
     seeds = documents
 
     dd = []
     ddocs = set()
 
-    print 'retrieval...'
     from skid.index import DIRECTORY, NAME, open_dir
     ix = open_dir(DIRECTORY, NAME)
     with ix.searcher() as searcher:
         for doc in iterview(seeds):
 
-            result = searcher.find('cached', unicode(doc.pdf_file))
+            result = searcher.find('cached', unicode(doc.cached))
 
             if not result:
                 print
-                print '[ERROR] document not found', doc.pdf_file
+                print '[ERROR] document not found', doc.cached
                 continue
 
             if len(result) > 1:
-                print '[WARN] multiple results cached in the same place', doc.pdf_file
+                print '[WARN] multiple results cached in the same place', doc.cached
 
             result = result[0]
 
@@ -146,20 +140,15 @@ def compute_similarities(documents, threshold=0.9):
                 try:
                     hitdoc = z[attrs['cached']]
                 except KeyError:
-                    print 'skip due to key error:', attrs['cached']
+                    print 'SKIP hit:', attrs['cached']
                     continue
                 else:
                     dd.append((doc, hitdoc))
                     ddocs.add(doc.id)
                     ddocs.add(hitdoc.id)
 
+    N = max(ddocs) + 1
 
-    print 'done.'
-
-    N = max(ddocs)
-    m = zeros((N,N))
-
-    toohigh = 0
     n_nans = 0
     m = zeros((N, N))
 
@@ -169,12 +158,9 @@ def compute_similarities(documents, threshold=0.9):
             if np.isnan(dist):
                 n_nans += 1
                 dist = 1     # max distance
-            if dist < threshold:
-                m[a.id, b.id] = m[b.id, a.id] = dist
-            else:
-                toohigh += 1
-    print 'too high: %s (NaNs: %s)' % (toohigh, n_nans)
-    print 'total', len(documents)*(len(documents)-1)/2
+            m[a.id, b.id] = m[b.id, a.id] = dist
+
+    print 'NaNs: %s; total: %s' % (n_nans, len(documents)*(len(documents)-1)/2)
 
     return m
 
@@ -182,7 +168,8 @@ def compute_similarities(documents, threshold=0.9):
 def main(documents):
     "Start interactive 2-dimensional representation of documents."
 
-    documents = [Document(i, f) for i, f in enumerate(documents)]
+    print 'loading data.'
+    documents = [Document(i, f) for i, f in enumerate(iterview(documents))]
     m = compute_similarities(documents)
     Y, _ = mds(m)
 
@@ -209,13 +196,12 @@ def main(documents):
     sct = scatter(X['x'], X['y'], s=20, c='b', marker='o', alpha=0.3)
 
     b = Browser(X, ax=sct.get_axes())
-#    b = PointBrowser(X, ax=sct.get_axes())
 
-#    b.ax.figure.set_facecolor('white')
-#    b.ax.set_axis_off()
+    #b.ax.figure.set_facecolor('white'); b.ax.set_axis_off()
 
+    ion()
     show()
-    #ip()
+    ip()
 
 
 if __name__ == '__main__':
