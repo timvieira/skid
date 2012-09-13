@@ -8,7 +8,7 @@ from datetime import datetime
 from glob import glob
 
 from whoosh.index import create_in, open_dir
-from whoosh.fields import Schema, TEXT, KEYWORD, ID
+from whoosh.fields import Schema, TEXT, KEYWORD, ID, DATETIME
 from whoosh.qparser import QueryParser
 from whoosh.qparser.dateparse import DateParserPlugin
 
@@ -33,6 +33,7 @@ def create():
                     title = TEXT(stored=True, spelling=True),
                     description = TEXT(stored=True),
                     text = TEXT(stored=True, spelling=True),
+                    mtime = DATETIME(stored=True),
                     tags = KEYWORD(stored=True, spelling=True))
     create_in(DIRECTORY, schema, NAME)
 
@@ -56,10 +57,8 @@ def drop():
     os.system('rm -rf ' + DIRECTORY)
 
 
-def build():
+def update():
     "Rebuild index from scratch."
-
-    assert not os.path.exists(DIRECTORY)
 
     # create index if it doesn't exist
     if not os.path.exists(DIRECTORY):
@@ -68,27 +67,58 @@ def build():
     # get handle to Whoosh index
     ix = open_dir(DIRECTORY, NAME)
 
-    with ix.writer() as w:
+    # TODO: quicker ways to find modified files (sort files by mtime; stop
+    # updating the index after the last modified file)
+    with ix.writer() as w, ix.searcher() as searcher:
 
-        for d in iterview([d for d in glob(CACHE + '/*') if not d.endswith('.d')]):
+        for cached in glob(CACHE + '/*'):
 
-            text = file(d + '.d/data/text').read().decode('utf8')
-            meta = parse_notes(file(d + '.d/notes.org').read())
+            if cached.endswith('.d'):   # only cached files, not the directories.
+                continue
 
-            w.add_document(source = meta['source'],
-                           title = meta['title'],
-                           cached = unicode(d),
-                           description = meta['description'],
-                           text = text,
-                           tags = meta['tags'])
+            # mtime of directory, no the cached file
+            mtime = datetime.fromtimestamp(os.path.getmtime(cached + '.d'))
 
 
-def shell():
-    ix = open_dir(DIRECTORY, NAME)
-    with ix.searcher() as searcher:
-        with ix.writer() as writer:
-            print 'use searcher and writer'
-            ip()
+            # lookup document mtime in the index; don't add our extract info if
+            # you don't need it.
+
+            result = searcher.find('cached', unicode(cached))
+
+
+            if len(result) > 1:
+                print '[ERROR] document indexed twice, but cached field should be unique.'
+                print 'cached:', cached
+                print 'results:', result
+                ip()
+                raise AssertionError
+
+
+            if not result:
+                print
+                print '[INFO] new document', cached
+
+            else:
+
+                # TODO: Can we avoid doing two queries (get mtime and update)?
+                result = result[0]
+                if mtime <= result['mtime']:   # skip if document hasn't changed
+                    continue
+
+                print
+                print '[INFO] update to existing document:', cached
+
+
+            text = file(cached + '.d/data/text').read().decode('utf8')
+            meta = parse_notes(file(cached + '.d/notes.org').read())
+
+            w.update_document(source = meta['source'],
+                              title = meta['title'],
+                              cached = unicode(cached),
+                              description = meta['description'],
+                              text = text,
+                              mtime = mtime,
+                              tags = meta['tags'])
 
 
 def lexicon(field):
