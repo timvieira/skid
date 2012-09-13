@@ -6,10 +6,12 @@ from skid import add as _add
 from skid.config import ROOT, CACHE, REMOTE
 from fsutils import cd
 from subprocess import Popen, PIPE
+from terminal import red, cyan
 
 def web():
     from skid.serve import run
-    run()
+    with cd('/home/timv/projects/skid'):
+        run()
 
 
 def add(source):
@@ -32,18 +34,30 @@ def search(*q):
         for k in fields:
             val = hit[k].strip()
             if val and k != 'text':
+
+                if k in ('source', 'cached'):
+                    # add file:// prefix if file, http other wise
+                    if not val.startswith('http') and not val.startswith('file://'):
+                        val = 'file://' + val
+
                 if k == 'cached':
-                    val = 'file://' + val
-                print '\033[31m%s\033[0m: %s' % (k, val.replace('\n', ' '))
+                    # also print a 'link' to the notes file.
+                    print '%s: %s' % (red % 'notes', cyan % (val + '.d/notes.org'))
+                    print '%s: %s' % (red % 'd', cyan % (val + '.d/'))
+
+
+                if k in ('cached', 'source'):
+                    val = cyan % val   # color 'links'
+
+
+                print '%s: %s' % (red % k, val.replace('\n', ' '))
         print
     print
 
 
-# TODO: incremental indexing.
 def update():
     """ Update index. """
-    index.drop()
-    index.build()
+    index.update()
 
 
 def push():
