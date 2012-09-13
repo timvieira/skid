@@ -1,6 +1,8 @@
 Simple, plaintext, file system
 
 
+* Motivation
+
 Great post by GradHacker: [[http://www.gradhacker.org/2012/08/13/towards-better-pdf-management-with-the-filesystem/][Towards Better PDF Management with the Filesystem]]
 
  - tools for organizating you pdfs are restrictive (and proprietary in the sense
@@ -14,6 +16,9 @@ Great post by GradHacker: [[http://www.gradhacker.org/2012/08/13/towards-better-
    5. "simple scripts": they don't say it directly (must not a linux geek), but
       they talk about using simple programs rather large monolithic programs.
 
+* Explanation
+
+** How is data stored?
 
 Documents (or links to documents) go in cache.
 
@@ -43,8 +48,8 @@ Examples include:
  - information displays: what do we know about a particular file. E.g. print
    bibtex entries, tags, and comments for research papers.
 
-================================================================================
-Adding a document
+
+** Adding a document
 
   1. cache document (download links, copy pdfs)
   2. create '.d' directory
@@ -72,33 +77,95 @@ Example description file
 PhD student at Johns Hopkins University. Works on Dyna programming language and
 speeding-up inference algorithms using machine learning.
 
-================================================================================
-Outstanding issues
 
- - What if I don't want to write notes about a specific single paper, but rather
-   on a topic or something ... for example the learn directories...
-
-================================================================================
-Things I fumble about trying to do:
+* Things I fumble about trying to do
 
  - looking up a paper's directory so that I could copy files into its folder
 
+   - TODO: what about ``skid attach <doc> [files+]``?
+
+   - proposed solution: add links to .d and notes.org; a nice terminal will
+     makes these clickable links.
+
+
  - jumping to ~/.skid directory (e.g. to check on hg)
 
-   * created alias 'skidd' (why can't python cd like a bash script)
+   * created alias 'skidd' (why can't python cd like a bash script?)
 
    * added 'skid hg ...' subcommand.
 
  - narrowing search: keyword search returns too many results. I want to "pick"
    one paper (pick can mean open, take notes, grab metadata).
 
-   Approaches (not mututally exclusive):
+   Approaches (not mutually exclusive):
 
-   * ranking: give preference to certain fields like filename, author, title,
+   * ranking: give preference to certain fields like file name, author, title,
      and notes before text.
 
-   * autocomplete/suggestion: (todo: could look at discriminating words between
+   * auto-complete/suggestion: (todo: could look at discriminating words between
      results)
 
-   Both approaches should be combined. Autocomplete/suggestion might require an
-   interactive user interface.
+   Both approaches should be combined. Auto-complete/suggestion might require an
+   interactive command-line interface (or possibly a web app, not sure how I
+   feel about a web app).
+
+* Outstanding issues
+
+ - What if I don't want to write notes about a specific single paper, but rather
+   on a topic or something ... for example the learn directories...
+
+ - Reference structure:
+   - It might be nice to leverage/standardize the way documents /cite/, at least
+     in the notes.org file. (I'm pretty sure we want to avoid automatic citation
+     extraction)
+
+ - Attachments:
+   - maybe single documents is too flat...
+   - Should attachments be indexed?
+
+* Thinking out loud
+
+# TODO: import from ~/projects/learn
+# $ find /home/timv/projects/learn/ -name '*.pdf' |grep -v '/IDEAS/' |grep -v mcmc-course |linepy 'print ["learn"] + line.replace("/home/timv/projects/learn/", "").split("/")'
+
+I'm a big fan of the /central directory/ with all my papers in it, but there is
+a potential problem that it might cause it to /get out of hand/.
+
+ - I should probably be encouraged to remove duplicates and documents which are
+   "useless".
+
+   Version control conventions for deletion might make it very easy to safely
+   delete things. For example, if we story the files-hash in a commit message we
+   can later grep vc logs for file-hash if we try to add the same document again
+   -- allowing us to prompt the user "do you want to resurrect your notes?".
+
+
+The learn projects is something that I'm have a bit of trouble getting rid of
+for a few reasons (1) it's nice to think of these things as "topics" I'd like to
+learn about (for the most part hierarchical structures isn't too much of an
+issue because topics are pretty flat. There is the occasional: "is this BP or
+autodiff?" type of question).
+
+ - I like that learn has references, code, and notes kept together in a single
+   directory. This way relevant files are brought to my attention (things which
+   I want to /refer to constantly/ and things which are only in my /peripheral/,
+   document which have /potential/.
+
+ - TODO: Can we get exactly this same effect by actually USING skid? For
+   example, if I want to see files relevant to 'learn/topic' I can simply look
+   for documents tagged something like 'learn' and 'topic'. Dumping things in
+   skid marks has to disadvantage of 'add' overhead (this can be remedied by
+   non-interactive mode; I could even tag documents with system tag like
+   '$unsorted' or something like that to indicate that this is potentially just
+   some crap I downloaded and want indexed so I can find it later).
+
+   skid-explore could make personalized recommendations, which go beyond the
+   learn tagging scheme, and will go beyond the hierarchical folder structure.
+
+   So this means -- papers will not live in learn, but notes and code still will
+   for now.
+
+
+* TODO:
+
+ - export metadata to org-mode buffer for quick browsing and editing..
