@@ -28,8 +28,8 @@ def cache_url(url):
     Download url, write contents to file. Return filename of contents, None on
     failure to download.
     """
-    # TODO: we should be telling download where to store stuff
-    # explicitly... right now we just both have the same convention.
+    # TODO: we should tell download where to store stuff explicitly... right now
+    # we just both have the same convention.
     cached = download(url, tries=1, pause=0.1, timeout=10, usecache=True,
                       cachedir=CACHE)
     if not cached:
@@ -66,7 +66,7 @@ def cache_document(src):
 
         print 'copy:', src, '->', dest
 
-        # TODO: What if the .d directory exists near the file already?
+        # TODO: What if a .d directory exists near the file already?
         return dest
 
     assert False
