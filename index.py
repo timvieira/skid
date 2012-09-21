@@ -12,7 +12,6 @@ from whoosh.fields import Schema, TEXT, KEYWORD, ID, DATETIME
 from whoosh.qparser import QueryParser
 from whoosh.qparser.dateparse import DateParserPlugin
 
-from iterextras import iterview
 from debug import ip
 
 from skid.common import parse_notes
@@ -56,6 +55,9 @@ def drop():
     assert os.path.exists(DIRECTORY)
     os.system('rm -rf ' + DIRECTORY)
 
+
+# TODO: find files which might have been deleted they might still be living in
+# the index
 
 def update():
     "Rebuild index from scratch."
