@@ -129,7 +129,7 @@ def document(source, tags='', title='', description='', interactive=True):
         'description': description.strip(),
         'title': title,
         'source': source,
-        'cached': 'file://' + cached,
+        'cached': cached,
     }
 
     new = mergedict(old, new)
