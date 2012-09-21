@@ -21,6 +21,23 @@ def add(source):
     return _add.document(source, interactive=True)
 
 
+def ack(*x):
+    """
+    Search notes for pattern.
+
+    TODO: not sure if this is any better than ``search``..
+           - simple program; no need to update indexes
+
+           - matches patterns: instead of keywords for more precise queries
+             (lower recall), but does have some issues with multi-line.
+
+           - Is this generally slower than equivalent keyword search?
+
+    TODO: might want to ack text, not just notes.
+    """
+    os.system('find %s -name notes.org |xargs ack %s' % (CACHE, ' '.join(x)))
+
+
 def search(*q):
     """
     Search skid-marks for particular attributes.
@@ -69,6 +86,11 @@ def hg(*args):
     "Ask mercurial some questions"
     with cd(ROOT):
         os.system(' '.join(['hg'] + list(args)))
+
+def st(*args):
+    "Ask mercurial some questions"
+    with cd(ROOT):
+        os.system(' '.join(['hg st'] + list(args)))
 
 
 def recent():
