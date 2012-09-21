@@ -18,6 +18,7 @@ def find_orphans():
         print x
 
 
+# TODO: how should we merge these documents?
 def hash_collisions():
     "Find hash collisions in corpus."
     d = defaultdict(list)
