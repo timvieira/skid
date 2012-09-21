@@ -166,6 +166,18 @@ autodiff?" type of question).
    for now.
 
 
-* TODO:
+
+* Automatic metadata extration
+
+I've got some half-baked ideas in ~/projects/shelf/textmill/other/semimarkov
+
+  - visualize: feature extraction output by output html
+
+todo:
+ - train author and title classifiers
+ - interface/workflow for quickly checking output.
+
+
+* TODO
 
  - export metadata to org-mode buffer for quick browsing and editing..
