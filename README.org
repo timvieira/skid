@@ -180,4 +180,17 @@ todo:
 
 * TODO
 
- - export metadata to org-mode buffer for quick browsing and editing..
+- export metadata to org-mode buffer for quick browsing and editing..
+
+- pstotext, pdftotext, pdftothtml, pdfminer
+
+- archive a webpage, e.g. for offline reading.
+
+  Sometimes we only get a useless homepage with little or no content.
+
+  For example, the 'learn you a haskell for great good!' tutorial, is something
+  you might want to read offline or index beyond the homepage.
+
+  This might be a tought problem... We can try to keep it to really simple wget
+  options. I've done a few times to download course webpages... Maybe this is
+  just hoarding...
