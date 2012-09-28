@@ -145,6 +145,7 @@ def document(source, tags='', title='', description='', interactive=True):
                 newtags.append(t.strip())
         new['tags'] = ' '.join(newtags)
 
+
     new = unicodify_dict(new)
     old = unicodify_dict(old)
 
@@ -247,12 +248,22 @@ class Document(object):
                 if pdfmeta.get('author', None):
                     metadata['author'] = pdfmeta.get('author').strip()
 
+            if not pdfmeta or not pdfmeta.get('title', None):
+                from pdfhacks.pdfmill import extract_title
+                metadata['title'] = extract_title(self.cached)
+
+#            ip()
+
         # override anything automatic with user's notes file.
 
         existing = self.cached + '.d/notes.org'
         if os.path.exists(existing):
             notes = file(existing).read()
-            metadata.update(parse_notes(notes))
+            parse = parse_notes(notes)
+#            metadata.update()
+
+            from common import mergedict
+            metadata = mergedict(metadata, parse)
 
         return metadata
 
