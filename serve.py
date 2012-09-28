@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import bottle
 
 from skid.index import search as _search
@@ -87,7 +88,7 @@ function ajax(url, params, obj) {
 function search(q) { ajax('/search?', {q:q}); }
 function parse(q) { ajax('/parse?', {q:q}); }
 function onload() {
-   //search(); 
+   //search();
 }
 
 </script>
