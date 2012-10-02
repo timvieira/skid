@@ -31,3 +31,8 @@ def hash_collisions():
             for z in v:
                 f = z[:-12]
                 print '  ', 'file://' + f
+
+
+if __name__ == '__main__':
+    from automain import automain
+    automain()
