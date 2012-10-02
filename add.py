@@ -15,6 +15,8 @@ from text.utils import htmltotext, remove_ligatures, force_unicode
 from skid.config import CACHE
 from hashlib import sha1
 
+from pdfhacks.pdfmill import extract_title
+
 from skid.common import mergedict, unicodify_dict, dictsubset, parse_notes, \
     whitespace_cleanup
 
@@ -59,8 +61,8 @@ def cache_document(src):
         if os.path.exists(dest):
             print 'File %r already exists' % dest
 
-            #raise Exception('File %r already exists' % dest)
-            return dest
+            raise Exception('File %r already exists' % dest)
+            #return dest
 
         shutil.copy2(src, dest)
 
@@ -125,6 +127,13 @@ def document(source, tags='', title='', description='', interactive=True):
 
     old = d.extract_metadata()
 
+    # re-adding existing documents. Sometimes we want to 'update' something by
+    # running it through the add pipeline, but we don't want the source to
+    # change. Maybe this should be a separate method... This is something that
+    # is already in the CACHE
+    if source.startswith(CACHE):
+        source = old['source']
+
     new = {
         'description': description.strip(),
         'title': title,
@@ -144,7 +153,6 @@ def document(source, tags='', title='', description='', interactive=True):
             if t not in existingtags:
                 newtags.append(t.strip())
         new['tags'] = ' '.join(newtags)
-
 
     new = unicodify_dict(new)
     old = unicodify_dict(old)
@@ -249,7 +257,6 @@ class Document(object):
                     metadata['author'] = pdfmeta.get('author').strip()
 
             if not pdfmeta or not pdfmeta.get('title', None):
-                from pdfhacks.pdfmill import extract_title
                 metadata['title'] = extract_title(self.cached)
 
 #            ip()
