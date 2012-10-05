@@ -261,15 +261,18 @@ class Document(object):
 
 #            ip()
 
-        # override anything automatic with user's notes file.
+        else:
+            # assume it's HTML
+            x = re.findall('<title>(.*?)</title>', file(self.cached).read(), re.I)
+            if x:
+                metadata['title'] = x[0].strip()  # take the first
 
+        # override anything automatic with user's notes file.
         existing = self.cached + '.d/notes.org'
         if os.path.exists(existing):
             notes = file(existing).read()
             parse = parse_notes(notes)
 #            metadata.update()
-
-            from common import mergedict
             metadata = mergedict(metadata, parse)
 
         return metadata
