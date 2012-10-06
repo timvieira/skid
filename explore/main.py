@@ -16,7 +16,7 @@ from viz.interact.lasso import LassoBrowser
 from iterextras import iterview
 from debug import ip
 from viz.mds import mds
-
+from skid.common import parse_notes
 
 class Browser(LassoBrowser):
 
@@ -70,6 +70,8 @@ class Document(object):
         self.tf = {w: tf[w]/z for w in tf}
 
         self.tfidf = self.norm = None
+
+        self.tags = parse_notes(file(self.d + '/notes.org').read())['tags'].split()
 
     def jaccard(self, other):
         "Jaccard distance"

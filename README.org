@@ -5,16 +5,16 @@ Simple, plaintext, file system
 
 Great post by GradHacker: [[http://www.gradhacker.org/2012/08/13/towards-better-pdf-management-with-the-filesystem/][Towards Better PDF Management with the Filesystem]]
 
- - tools for organizating you pdfs are restrictive (and proprietary in the sense
-   that information is owned by the program).
+tools for organizating you pdfs are restrictive (and proprietary in the sense
+that information is owned by the program).
 
- - Article advocates
-   1. use filesystem: helps avoid the "proprietary data problem"
-   2. flat structure: keeping a single (flat) directory of all your papers
-   3. tags over folders: well-known problem we all faced before GMail.
-   4. conventions: naming conventions, tagging conventions
-   5. "simple scripts": they don't say it directly (must not a linux geek), but
-      they talk about using simple programs rather large monolithic programs.
+Article advocates
+ 1. use filesystem: helps avoid the "proprietary data problem"
+ 2. flat structure: keeping a single (flat) directory of all your papers
+ 3. tags over folders: well-known problem we all faced before GMail.
+ 4. conventions: naming conventions, tagging conventions
+ 5. "simple scripts": they don't say it directly (must not a linux geek), but
+    they talk about using simple programs rather large monolithic programs.
 
 * Explanation
 
@@ -41,9 +41,9 @@ Examples include:
  - keyword search: over the plaintext content or descriptions. This might
    require building an inverted index.
 
- - metadata:
-   - notes:
-   - "machine-readable notes": title, tags, source, plaintext
+ - metadata: light markup for metadata title, tags, source
+
+ - plaintext: for searching with grep, ack, or whoosh index.
 
  - information displays: what do we know about a particular file. E.g. print
    bibtex entries, tags, and comments for research papers.
@@ -64,19 +64,18 @@ Merging
 
 Keeping data safe
 
- - staging area
+ - TODO: staging area
  - version control (maybe something like working, incoming, remote)
 
-================================================================================
+
 Example description file
 
-:title: Personal homepage of Tim Vieira
-:source: http://timvieira.github.com
-:tags: people nlp ml
-
-PhD student at Johns Hopkins University. Works on Dyna programming language and
-speeding-up inference algorithms using machine learning.
-
+: :title: Personal homepage of Tim Vieira
+: :source: http://timvieira.github.com
+: :tags: people nlp ml
+:
+: PhD student at Johns Hopkins University. Works on Dyna programming language and
+: speeding-up inference algorithms using machine learning.
 
 * Things I fumble about trying to do
 
@@ -86,7 +85,6 @@ speeding-up inference algorithms using machine learning.
 
    - proposed solution: add links to .d and notes.org; a nice terminal will
      makes these clickable links.
-
 
  - jumping to ~/.skid directory (e.g. to check on hg)
 
