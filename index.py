@@ -41,6 +41,10 @@ def search(qstr):
     qstr = unicode(qstr.decode('utf8'))
     ix = open_dir(DIRECTORY, NAME)
     with ix.searcher() as searcher:
+        # TODO: it would be nice to search other fields as well. In some cases
+        # the text field id empty or even garbage, in which case if would be
+        # nice to search the title as well. Idealy even we'd give things with
+        # title match higher ranking.
         qp = QueryParser('text', schema=ix.schema)
         qp.add_plugin(DateParserPlugin(free=True, basedate=datetime.now()))
         q = qp.parse(qstr)

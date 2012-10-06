@@ -242,24 +242,9 @@ class Document(object):
 
     def extract_metadata(self):
 
-        # TODO: extract <title> from html and possibly any metadata in the head
-        # (e.g., sometimes people include keywords)
-
         metadata = {'tags': '', 'title': '', 'description': ''}
         if self.filetype.endswith('pdf'):
-
-            # use pdfutils metadata extractor.
-            pdfmeta = pdfutils.metadata(self.cached)
-            if pdfmeta:
-                if pdfmeta.get('title', None):
-                    metadata['title'] = pdfmeta.get('title').strip()
-                if pdfmeta.get('author', None):
-                    metadata['author'] = pdfmeta.get('author').strip()
-
-            if not pdfmeta or not pdfmeta.get('title', None):
-                metadata['title'] = extract_title(self.cached)
-
-#            ip()
+            metadata['title'] = extract_title(self.cached)
 
         else:
             # assume it's HTML
@@ -267,12 +252,11 @@ class Document(object):
             if x:
                 metadata['title'] = x[0].strip()  # take the first
 
-        # override anything automatic with user's notes file.
+        # user notes trumps anything automatic
         existing = self.cached + '.d/notes.org'
         if os.path.exists(existing):
             notes = file(existing).read()
             parse = parse_notes(notes)
-#            metadata.update()
             metadata = mergedict(metadata, parse)
 
         return metadata
@@ -280,10 +264,7 @@ class Document(object):
     def extract_plaintext(self):
         "Extract plaintext from filename. Returns text, might cache."
 
-        # TODO: doesn't work on my urls e.g. "http://google.com" b/c there's no ext.
-        ext = os.path.splitext(self.cached)[1][1:]  # remove the dot
-
-        if ext == 'pdf':
+        if self.cached.endswith('.pdf'):
             # extract text from pdfs
             text = pdfutils.pdftotext(self.cached, verbose=True, usecached=True)
 
@@ -291,8 +272,7 @@ class Document(object):
             with file(self.cached, 'r') as f:
                 text = f.read()
             text = force_unicode(text)
-            # clean up html
-            text = htmltotext(text)
+            text = htmltotext(text)      # clean up html
 
         text = remove_ligatures(text)
 
@@ -300,7 +280,7 @@ class Document(object):
 
 
 def template(**kwargs):
-    others = set(kwargs) - set('title source cached tags description'.split())
+    others = set(kwargs) - set('title author source cached tags description'.split())
     attrs = '\n'.join((':%s: %s' % (k, kwargs[k])).strip() for k in others).strip()
     if attrs:
         attrs += '\n'
@@ -310,6 +290,7 @@ def template(**kwargs):
 
 TEMPLATE = u"""\
 #+title: {title}
+:author: {author}
 :source: {source}
 :cached: {cached}
 :tags: {tags}

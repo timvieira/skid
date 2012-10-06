@@ -16,8 +16,8 @@ def parse_notes(notes):
 
     :PROPERTIES:
       :title: Meta-Syntactic Variables
-      :Author: Foo B. Baz
-      :Year: 2012
+      :author: Foo B. Baz
+      :year: 2012
     :END:
 
     =======================================
@@ -31,41 +31,24 @@ def parse_notes(notes):
     # need to support multiple write to same key.
     metadata = dict(re.findall('^(?:\#\+?|:)([^:\s]+):[ ]*([^\n]*?)\s*$', notes, re.MULTILINE))
 
-
-    msg = """\
-\033[31m<parse_notes>\033[0m
-\033[31m<data>\033[0m
-%s
-\033[31m</data>\033[0m
-
-\033[31m</data>\033[0m
-
-\033[31m<metdata>\033[0m
-%s
-\033[31m</metadata>\033[0m
-\033[31m</parsedata>\033[0m
-""" % (yellow % notes, pformat(metadata))
-
-    print msg
-
-#    raise NotImplementedError(msg)
-
-    # :somethingnospaces: are keywords
-
+    ##     msg = """\
+    ## \033[31m<parse_notes>\033[0m
+    ## \033[31m<data>\033[0m
+    ## %s
+    ## \033[31m</data>\033[0m
+    ##
+    ## \033[31m<metdata>\033[0m
+    ## %s
+    ## \033[31m</metadata>\033[0m
+    ## \033[31m</parsedata>\033[0m
+    ## """ % (yellow % notes, pformat(metadata))
+    ##     print msg
 
     [d] = re.findall('\n([^:#][\w\W]*$|$)', notes)
     metadata['description'] = d.strip()
 
-
-    # TODO: we need to use a real metadata mini-language with a fast parser and
+    # TODO: we need to use a real metadata markup language with a fast parser and
     # easy greping
-    #y = re.split(':([^:\s]+):', notes)[1:]
-    #assert len(y) % 2 == 0
-    #for i in xrange(0, len(y), 2):
-    #    [k,v] = y[i:i+2]
-    #    print blue % k, v.strip()
-    #    if '\n\n' in v:
-    #        [v, description] = v.split('\n\n')
 
     return unicodify_dict(metadata)
 
