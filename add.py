@@ -15,14 +15,12 @@ from text.utils import htmltotext, remove_ligatures, force_unicode
 from skid.config import CACHE
 from hashlib import sha1
 
-from pdfhacks.pdfmill import extract_title
+from pdfhacks import pdftotext, extract_title
 
 from skid.common import mergedict, unicodify_dict, dictsubset, parse_notes, \
     whitespace_cleanup
 
 from pprint import pprint
-
-import pdfutils
 
 
 def cache_url(url):
@@ -242,7 +240,7 @@ class Document(object):
 
     def extract_metadata(self):
 
-        metadata = {'tags': '', 'title': '', 'description': ''}
+        metadata = {'tags': '', 'title': '', 'description': '', 'author': ''}
         if self.filetype.endswith('pdf'):
             metadata['title'] = extract_title(self.cached)
 
@@ -266,7 +264,7 @@ class Document(object):
 
         if self.cached.endswith('.pdf'):
             # extract text from pdfs
-            text = pdfutils.pdftotext(self.cached, verbose=True, usecached=True)
+            text = pdftotext(self.cached, verbose=True, usecached=True)
 
         else:
             with file(self.cached, 'r') as f:
