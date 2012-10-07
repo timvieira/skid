@@ -9,9 +9,8 @@ from subprocess import Popen, PIPE
 from terminal import red, cyan
 
 def web():
-    from skid.serve import run
-    with cd('/home/timv/projects/skid'):
-        run()
+    from skid.sandbox.web.serve import run
+    run()
 
 
 def add(source):

@@ -48,7 +48,8 @@ def search(qstr):
         qp = QueryParser('text', schema=ix.schema)
         qp.add_plugin(DateParserPlugin(free=True, basedate=datetime.now()))
         q = qp.parse(qstr)
-        for hit in searcher.search(q):
+
+        for hit in searcher.search(q, limit=50):
             yield hit
 
         #print searcher.correct_query(q, qstr, allfields=True)
@@ -85,12 +86,10 @@ def update():
             # mtime of directory, no the cached file
             mtime = datetime.fromtimestamp(os.path.getmtime(cached + '.d'))
 
-
             # lookup document mtime in the index; don't add our extract info if
             # you don't need it.
 
             result = searcher.find('cached', unicode(cached))
-
 
             if len(result) > 1:
                 print '[ERROR] document indexed twice, but cached field should be unique.'
@@ -98,7 +97,6 @@ def update():
                 print 'results:', result
                 ip()
                 raise AssertionError
-
 
             if not result:
                 print
@@ -113,7 +111,6 @@ def update():
 
                 print
                 print '[INFO] update to existing document:', cached
-
 
             text = file(cached + '.d/data/text').read().decode('utf8')
             meta = parse_notes(file(cached + '.d/notes.org').read())
