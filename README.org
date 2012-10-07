@@ -22,42 +22,44 @@ Article advocates
 
 Documents (or links to documents) go in cache.
 
-Each document has a directory either in a parallel directory or right next to
-it, which will hold metadata (just like Rexa). For example.
+Each document has a directory right next to it, which will hold metadata. For
+example.
 
-    cache/
-        somefile.ext
-        somefile.ext.d/
-            bibtex
-            notes.org
-            data/
-                text
-                hash
+: cache/
+:     somefile.ext
+:     somefile.ext.d/
+:         bibtex
+:         notes.org
+:         data/
+:             text
+:             hash
 
 Now, we can write command-line scripts which will query this data set.
 
 Examples include:
 
  - keyword search: over the plaintext content or descriptions. This might
-   require building an inverted index.
+   require building an inverted index (only to be super efficient). Grep (or
+   preferably [[http://betterthangrep.com/][ack]]) works surprisingly fast and get you most of the way there.
 
  - metadata: light markup for metadata title, tags, source
 
  - plaintext: for searching with grep, ack, or whoosh index.
 
- - information displays: what do we know about a particular file. E.g. print
-   bibtex entries, tags, and comments for research papers.
+ - information displays: Show we know about a particular file. E.g. title,
+   bibtex data, tags, and comments for research papers.
 
 
 ** Adding a document
 
-  1. cache document (download links, copy pdfs)
+  1. cache document (download links - it will be cached locally, copy local
+     files into ~/.skid/marks directory)
   2. create '.d' directory
-  3. create notes.org file (initialize content, e.g. title, tags)
+  3. create `notes.org` file (initialize content, e.g. title, tags)
   4. merge with any existing notes.org
   5. open description file in a text editor
 
-Merging
+Merging - what if the document has already been added?
 
  - anything automatically replaces null.
  - conflict can be dealt with via kdiff3 or possibly some emacs extension.
@@ -65,8 +67,7 @@ Merging
 Keeping data safe
 
  - TODO: staging area
- - version control (maybe something like working, incoming, remote)
-
+ - version control
 
 Example description file
 
@@ -121,10 +122,58 @@ Example description file
    - maybe single documents is too flat...
    - Should attachments be indexed?
 
-* Thinking out loud
+* Markup language
 
-# TODO: import from ~/projects/learn
-# $ find /home/timv/projects/learn/ -name '*.pdf' |grep -v '/IDEAS/' |grep -v mcmc-course |linepy 'print ["learn"] + line.replace("/home/timv/projects/learn/", "").split("/")'
+Need to evaluate alternatives here.
+
+org-mode seems to want something like the following for 'proper' metadata
+
+: #+title: Meta-Syntactic Variables
+:
+: :PROPERTIES:
+:   :title: Meta-Syntactic Variables
+:   :author: Foo B. Baz
+:   :year: 2012
+: :END:
+
+This is pretty ugly.. Why do you have to be so 90s org-mode? I love that
+org-mode works so well in emacs, but the syntax is not as nice as other markup
+languages.
+
+
+* Ideas for future work
+
+** Misc
+
+- too many tools for messing around with pdfs {pstotext, pdftotext, pdftothtml,
+  pdfminer}
+
+- export metadata to org-mode buffer for quick browsing and editing..
+
+** archive/crawl entire webpages, for offline reading and indexing
+
+Sometimes we only get a useless homepage with little or no content.
+
+For example, the 'learn you a haskell for great good!' tutorial, is something
+you might want to read offline or index beyond the homepage.
+
+This might be a tought problem... We can try to keep it to really simple wget
+options. I've done a few times to download course webpages... Maybe this is just
+hoarding...
+
+** Automatic metadata extration
+
+ - author and title classifiers
+
+ - interface/workflow for quickly checking and correcting classifier output.
+
+** Simple heuristics for finding duplicates
+
+** Recommendation
+
+find related stuff, suggest tags
+
+* Thinking out loud
 
 I'm a big fan of the /central directory/ with all my papers in it, but there is
 a potential problem that it might cause it to /get out of hand/.
@@ -133,10 +182,9 @@ a potential problem that it might cause it to /get out of hand/.
    "useless".
 
    Version control conventions for deletion might make it very easy to safely
-   delete things. For example, if we story the files-hash in a commit message we
+   delete things. For example, if we store the files-hash in a commit message we
    can later grep vc logs for file-hash if we try to add the same document again
    -- allowing us to prompt the user "do you want to resurrect your notes?".
-
 
 The learn projects is something that I'm have a bit of trouble getting rid of
 for a few reasons (1) it's nice to think of these things as "topics" I'd like to
@@ -162,33 +210,3 @@ autodiff?" type of question).
 
    So this means -- papers will not live in learn, but notes and code still will
    for now.
-
-
-
-* Automatic metadata extration
-
-I've got some half-baked ideas in ~/projects/shelf/textmill/other/semimarkov
-
-  - visualize: feature extraction output by output html
-
-todo:
- - train author and title classifiers
- - interface/workflow for quickly checking output.
-
-
-* TODO
-
-- export metadata to org-mode buffer for quick browsing and editing..
-
-- pstotext, pdftotext, pdftothtml, pdfminer
-
-- archive a webpage, e.g. for offline reading.
-
-  Sometimes we only get a useless homepage with little or no content.
-
-  For example, the 'learn you a haskell for great good!' tutorial, is something
-  you might want to read offline or index beyond the homepage.
-
-  This might be a tought problem... We can try to keep it to really simple wget
-  options. I've done a few times to download course webpages... Maybe this is
-  just hoarding...

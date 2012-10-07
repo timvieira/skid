@@ -5,57 +5,18 @@ from pprint import pformat
 
 
 def parse_notes(notes):
-    """
-
-    Need to evaluate alternatives here.
-
-    ========================================
-    org-mode seems to want something like:
-
-    #+title: Meta-Syntactic Variables
-
-    :PROPERTIES:
-      :title: Meta-Syntactic Variables
-      :author: Foo B. Baz
-      :year: 2012
-    :END:
-
-    =======================================
-
-    I love that org-mode super developed for emacs, but some of the syntax
-    really needs revisiting... It's also pretty difficult for me to extend
-    because I'm terrible with elisp.
-
-    """
+    "Extract metadata from notes.org."
 
     # need to support multiple write to same key.
     metadata = dict(re.findall('^(?:\#\+?|:)([^:\s]+):[ ]*([^\n]*?)\s*$', notes, re.MULTILINE))
 
-    ##     msg = """\
-    ## \033[31m<parse_notes>\033[0m
-    ## \033[31m<data>\033[0m
-    ## %s
-    ## \033[31m</data>\033[0m
-    ##
-    ## \033[31m<metdata>\033[0m
-    ## %s
-    ## \033[31m</metadata>\033[0m
-    ## \033[31m</parsedata>\033[0m
-    ## """ % (yellow % notes, pformat(metadata))
-    ##     print msg
-
     [d] = re.findall('\n([^:#][\w\W]*$|$)', notes)
     metadata['description'] = d.strip()
 
-    # TODO: we need to use a real metadata markup language with a fast parser and
-    # easy greping
+    # TODO: we need to use a real metadata markup language with a fast parser
+    # and easy greping
 
     return unicodify_dict(metadata)
-
-
-def test_parse_notes(filename):
-    "parse file, ``filename``."
-    return parse_notes(file(filename).read())
 
 
 def mergedict(A, B):
