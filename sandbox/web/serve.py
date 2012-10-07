@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import bottle
 
-from skid.index import search as _search
+import skid.index as ix
 
 def get(x):
     return bottle.request.GET.get(x, '').strip()
@@ -33,15 +33,11 @@ def route(*args, **kw):
 def search():
     q = get('q') or '*'
     print 'query:', q, '<br/>'*2
-    for hit in _search(q):
+
+    for hit in ix.search(q):
         print '<div class="item">'
-        print '<div style="float:right; border:thin solid #ccc; padding:2px;">'
-        print '<a onclick="del(%s, this.parentNode.parentNode)">X</a>' % hit.docnum
-        print '</div>'
-
-        print '<br/>'.join('%s: %s' % (k, hit[k]) for k in hit.fields() if k not in ('text', 'tags'))
-
-        print '<br/>'
+        print '<b>', hit['title'].strip(), '</b></br>'
+        print hit['cached'].strip(), '</br>'
         print ' '.join("""
 <a href="Javascript:var q='tags:%s'; search(q); $('query').value=q;">%s</a>""" % (t,t) for t in hit['tags'].split())
         print '</div>'
@@ -58,8 +54,8 @@ def index():
 <html>
 <title>TODO</title>
 <head>
-<script type="text/javascript" src="/?file=web/prototype.js"></script>
-<link rel="stylesheet" type="text/css" href="/?file=web/style.css"/>
+<script type="text/javascript" src="/?file=prototype.js"></script>
+<link rel="stylesheet" type="text/css" href="/?file=style.css"/>
 
 <script type="text/javascript" language="javascript">
 
@@ -117,9 +113,15 @@ function onload() {
 
 
 def run():
+    import fsutils, os
     import webbrowser; webbrowser.open('http://localhost:8080')
     bottle.debug(True)
-    bottle.run(reloader=True)
+
+    print __file__
+    print os.path.dirname(__file__)
+
+    with fsutils.cd(os.path.dirname(__file__)):
+        bottle.run(reloader=True)
 
 if __name__ == '__main__':
     run()
