@@ -5,16 +5,17 @@ Simple, plaintext, file system
 
 Great post by GradHacker: [[http://www.gradhacker.org/2012/08/13/towards-better-pdf-management-with-the-filesystem/][Towards Better PDF Management with the Filesystem]]
 
-tools for organizating you pdfs are restrictive (and proprietary in the sense
-that information is owned by the program).
+Tools for organizing your pdfs are restrictive (and proprietary in the sense
+that information is kept hostage inside the software).
 
 Article advocates
- 1. use filesystem: helps avoid the "proprietary data problem"
+ 1. use file system: helps avoid the "proprietary data problem"
  2. flat structure: keeping a single (flat) directory of all your papers
- 3. tags over folders: well-known problem we all faced before GMail.
+ 3. tags over folders: well-known problem we all faced before gmail.
  4. conventions: naming conventions, tagging conventions
- 5. "simple scripts": they don't say it directly (must not a linux geek), but
-    they talk about using simple programs rather large monolithic programs.
+ 5. "simple scripts": they don't say it directly (author is a mac user, not a
+    linux geek), but they talk about using simple programs rather large
+    monolithic programs.
 
 * Explanation
 
