@@ -12,8 +12,6 @@ from whoosh.fields import Schema, TEXT, KEYWORD, ID, DATETIME
 from whoosh.qparser import QueryParser
 from whoosh.qparser.dateparse import DateParserPlugin
 
-from debug import ip
-
 from skid.common import parse_notes
 from skid.config import ROOT, CACHE
 
@@ -62,7 +60,7 @@ def drop():
 
 
 # TODO: find files which might have been deleted they might still be living in
-# the index
+# the index. Currently, the only way to do this is by droping the index.
 
 def update():
     "Rebuild index from scratch."
@@ -74,8 +72,8 @@ def update():
     # get handle to Whoosh index
     ix = open_dir(DIRECTORY, NAME)
 
-    # TODO: quicker ways to find modified files (sort files by mtime; stop
-    # updating the index after the last modified file)
+    # TODO: quicker ways to update modified files: sort files by mtime; stop
+    # updating at the first unchanged file.
     with ix.writer() as w, ix.searcher() as searcher:
 
         for cached in glob(CACHE + '/*'):
@@ -83,33 +81,22 @@ def update():
             if cached.endswith('.d'):   # only cached files, not the directories.
                 continue
 
-            # mtime of directory, no the cached file
+            # mtime of directory, not the cached file
             mtime = datetime.fromtimestamp(os.path.getmtime(cached + '.d'))
 
             # lookup document mtime in the index; don't add our extract info if
             # you don't need it.
-
             result = searcher.find('cached', unicode(cached))
 
-            if len(result) > 1:
-                print '[ERROR] document indexed twice, but cached field should be unique.'
-                print 'cached:', cached
-                print 'results:', result
-                ip()
-                raise AssertionError
-
             if not result:
-                print
                 print '[INFO] new document', cached
 
             else:
-
-                # TODO: Can we avoid doing two queries (get mtime and update)?
+                assert len(result) == 1, 'cached field should be unique.'
                 result = result[0]
                 if mtime <= result['mtime']:   # skip if document hasn't changed
                     continue
 
-                print
                 print '[INFO] update to existing document:', cached
 
             text = file(cached + '.d/data/text').read().decode('utf8')
