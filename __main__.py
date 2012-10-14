@@ -8,7 +8,11 @@ from fsutils import cd
 from subprocess import Popen, PIPE
 from terminal import red, cyan
 
-def web():
+
+def serve():
+    """
+    Fire-up web interface.
+    """
     from skid.sandbox.web.serve import run
     run()
 
@@ -61,10 +65,8 @@ def search(*q):
                     print '%s: %s' % (red % 'notes', cyan % (val + '.d/notes.org'))
                     print '%s: %s' % (red % 'd', cyan % (val + '.d/'))
 
-
                 if k in ('cached', 'source'):
                     val = cyan % val   # color 'links'
-
 
                 print '%s: %s' % (red % k, val.replace('\n', ' '))
         print
@@ -86,12 +88,15 @@ def hg(*args):
     with cd(ROOT):
         os.system(' '.join(['hg'] + list(args)))
 
+
 def st(*args):
     "Ask mercurial some questions"
     with cd(ROOT):
         os.system(' '.join(['hg st'] + list(args)))
 
 
+# todo: what I really want is something like "hg log" which lists a summary of
+# everything I've done.
 def recent():
     "List recently modified files."
     (out, err) = Popen(['ls', '-1t', CACHE], stdout=PIPE, stderr=PIPE).communicate()
