@@ -80,7 +80,7 @@ def update():
 
 def push():
     "Use rsync to push data to remote machine."
-    os.system('rsync -a %s/. %s/marks/.' % (CACHE, REMOTE))
+    os.system('rsync --progress -a %s/. %s/marks/.' % (CACHE, REMOTE))
 
 
 def hg(*args):
