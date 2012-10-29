@@ -33,8 +33,7 @@ def cache_url(url):
     cached = download(url, tries=1, pause=0.1, timeout=10, usecache=True,
                       cachedir=CACHE)
     if not cached:
-        print 'Failed to download %s.' % url
-        return
+        raise Exception('Failed to download %s.' % url)
 
     return cached
 
@@ -57,10 +56,7 @@ def cache_document(src):
         dest = os.path.join(CACHE, os.path.basename(src))
 
         if os.path.exists(dest):
-            print 'File %r already exists' % dest
-
             raise Exception('File %r already exists' % dest)
-            #return dest
 
         shutil.copy2(src, dest)
 
@@ -106,15 +102,7 @@ def document(source, tags='', title='', description='', interactive=True):
     if os.path.exists(source):
         source = os.path.abspath(source)
 
-    if isinstance(tags, basestring):
-        tags = tags.split()
-    tags = list(tags)
-
     cached = cache_document(source)
-
-    if not cached:  # failed to cache file
-        print 'failed to cached file'
-        return
 
     print cached
 
@@ -142,6 +130,7 @@ def document(source, tags='', title='', description='', interactive=True):
     new = mergedict(old, new)
 
     if tags:
+        tags = tags.split() if isinstance(tags, basestring) else list(tags)
         # newtags will include all exisiting tags in the order the are listed in
         # document, concatenating new tags (ignoring duplicates; in order
         # listed).
@@ -167,32 +156,35 @@ def document(source, tags='', title='', description='', interactive=True):
         d.meta('notes.org', newcontent, overwrite=True)
 
     else:
-
         if newcontent.strip() != existingdata.strip():
-            tmp = '/tmp/newmetadata.org'
-            file(tmp, 'wb').write(newcontent)
-
             print yellow % '** old ************************'
             pprint(old)
             print yellow % '-- new ------------------------'
             pprint(new)
             print yellow % '*******************************'
-
-            print red % 'Need to merge descriptions...'
-            print yellow % '=================================='
-            if 0 != os.system('kdiff3 --merge %s %s --output %s' % (existing, tmp, existing)):
-                print red % 'merge aborted. keeping original, other temporarily saved to %s' % tmp
-
-                # todo: should probably delete any junk we might have done. This
-                # is probably easier to do if we work in a staging area (we
-                # might not even care to clean up after ourselves in that case).
-                raise AssertionError('merging notes failed. aborting')
-            else:
-                print yellow % 'merge successful.'
-                os.remove(existing + '.orig')  # remove kdiff's temporary file.
+            merge_kdiff3(newcontent, existing)
 
     if interactive:
         d.edit_notes()
+
+
+def merge_kdiff3(newcontent, existing):
+    tmp = '/tmp/newmetadata.org'
+    with file(tmp, 'wb') as f:
+        f.write(newcontent)
+
+    print red % 'Need to merge descriptions...'
+    print yellow % '=================================='
+    if 0 != os.system('kdiff3 --merge %s %s --output %s' % (existing, tmp, existing)):
+        print red % 'merge aborted. keeping original, other temporarily saved to %s' % tmp
+
+        # todo: should probably delete any junk we might have done. This
+        # is probably easier to do if we work in a staging area (we
+        # might not even care to clean up after ourselves in that case).
+        raise AssertionError('merging notes failed. aborting')
+    else:
+        print yellow % 'merge successful.'
+        os.remove(existing + '.orig')  # remove kdiff's temporary file.
 
 
 class Document(object):
