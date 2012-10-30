@@ -68,7 +68,7 @@ def search(*q):
                 if k in ('cached', 'source'):
                     val = cyan % val   # color 'links'
 
-                print '%s: %s' % (red % k, val.replace('\n', ' '))
+                print (u'%s: %s' % (red % k, val.replace('\n', ' '))).encode('utf8')
         print
     print
 
