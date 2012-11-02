@@ -90,7 +90,7 @@ Example description file
 
  - jumping to ~/.skid directory (e.g. to check on hg)
 
-   * created alias 'skidd' (why can't python cd like a bash script?)
+   * created alias 'skid-dir' (why can't python cd like a bash script?)
 
    * added 'skid hg ...' subcommand.
 
