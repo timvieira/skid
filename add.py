@@ -7,20 +7,20 @@ TODO:
 
 """
 import re, os, shutil
+from pprint import pprint
+from hashlib import sha1
+
 from debug import ip
 from terminal import yellow, red, blue, green
 from fsutils import mkdir, filetype
 from web.download import download
 from text.utils import htmltotext, remove_ligatures, force_unicode
 from skid.config import CACHE
-from hashlib import sha1
 
 from pdfhacks import pdftotext, extract_title
 
 from skid.common import mergedict, unicodify_dict, dictsubset, parse_notes, \
     whitespace_cleanup
-
-from pprint import pprint
 
 
 def cache_url(url):
