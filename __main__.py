@@ -50,7 +50,7 @@ def search(*q):
     print 'query:', q
     for hit in index.search(q):
         print 'docnum:', hit.docnum
-        fields = ['title', 'cached', 'source', 'tags']
+        fields = ['title', 'author', 'cached', 'source', 'tags']
         for k in fields:
             val = hit[k].strip()
             if val and k != 'text':
@@ -68,15 +68,63 @@ def search(*q):
                 if k in ('cached', 'source'):
                     val = cyan % val   # color 'links'
 
-                print (u'%s: %s' % (red % k, val.replace('\n', ' '))).encode('utf8')
+                print ('%s: %s' % (red % k, val.replace('\n', ' '))).encode('utf8')
         print
     print
+
+
+'''
+def search1(*q):
+    "same as search, but with out the color output.."
+    import re, sys
+    from arsenal.misc import ctx_redirect_io
+    from text.utils import force_unicode
+    sys.stdout = f = file('/tmp/foo','wb')
+    search(*q)
+    sys.stdout = sys.__stdout__
+    f.close()
+
+    io = force_unicode(file('/tmp/foo').read().decode('utf8'))
+
+    print re.compile(u'\033\[.*?m', flags=re.UNICODE).sub(u'', io).encode('utf8')
+'''
+
+
+def search1(*q):
+    """
+    Search skid-marks for particular attributes. Output org-mode friendly
+    output.
+
+    Example usage:
+
+      $ skid search1 machine learning > /tmp/foo && emacs -nw /tmp/foo -e 'org-mode'
+
+    """
+    q = ' '.join(q)
+    print
+    print '#+title: Search result for query %r' % q
+    for hit in index.search(q):
+        source = hit['source']
+        cached = hit['cached']
+        d = cached + '.d'
+        notes = d + '/notes.org'
+        print ('\n+ %s' % hit['title']).encode('utf8')
+        if hit['author']:
+            print ('  ' + ' '.join('[[skid:author:"{0}"][{0}]]'.format(x.strip()) for x in hit['author'].split(';'))).encode('utf8')
+        print ('  [[%s][directory]] [[%s][source]] [[%s][cache]] [[%s][notes]]' % (d, source, cached, notes)).encode('utf8')
+        if hit['tags']:
+            print ' ', ' '.join('[[skid:tags:%s][%s]]' % (x,x) for x in hit['tags'].split()).encode('utf8').strip()
 
 
 def update():
     """ Update index. """
     index.update()
 
+
+def drop():
+    "Drop index. Don't worry you can always make another one."
+    index.drop()
+    
 
 def push():
     "Use rsync to push data to remote machine."
