@@ -21,7 +21,7 @@ def delicious(xml):
             add.document(source = post['href'],
                          tags = post['tag'],
                          title = post['description'],
-                         description = post['extended'],
+                         notes = post['extended'],
                          interactive = False)
 
 
