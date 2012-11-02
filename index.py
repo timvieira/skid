@@ -28,10 +28,11 @@ def create():
     schema = Schema(source = ID(stored=True, unique=True),
                     cached = ID(stored=True, unique=True),
                     title = TEXT(stored=True, spelling=True),
-                    description = TEXT(stored=True),
+                    author = TEXT(stored=True, spelling=True),
+                    notes = TEXT(stored=True, spelling=True),
                     text = TEXT(stored=True, spelling=True),
-                    mtime = DATETIME(stored=True),
-                    tags = KEYWORD(stored=True, spelling=True))
+                    tags = KEYWORD(stored=True, spelling=True),
+                    mtime = DATETIME(stored=True))
     create_in(DIRECTORY, schema, NAME)
 
 
@@ -57,6 +58,7 @@ def drop():
     "Drop existing index."
     assert os.path.exists(DIRECTORY)
     os.system('rm -rf ' + DIRECTORY)
+    print 'dropped index', DIRECTORY
 
 
 # TODO: find files which might have been deleted they might still be living in
@@ -104,8 +106,9 @@ def update():
 
             w.update_document(source = meta['source'],
                               title = meta['title'],
+                              author = meta.get('author',u''),
                               cached = unicode(cached),
-                              description = meta['description'],
+                              notes = meta['notes'],
                               text = text,
                               mtime = mtime,
                               tags = meta['tags'])
