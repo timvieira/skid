@@ -11,7 +11,7 @@ def parse_notes(notes):
     metadata = dict(re.findall('^(?:\#\+?|:)([^:\s]+):[ ]*([^\n]*?)\s*$', notes, re.MULTILINE))
 
     [d] = re.findall('\n([^:#][\w\W]*$|$)', notes)
-    metadata['description'] = d.strip()
+    metadata['notes'] = d.strip()
 
     # TODO: we need to use a real metadata markup language with a fast parser
     # and easy greping
