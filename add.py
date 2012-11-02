@@ -88,7 +88,7 @@ def cache_document(src):
 #
 #    - merge document contents (pick old or new version)
 #
-def document(source, tags='', title='', description='', interactive=True):
+def document(source, tags='', title='', notes='', interactive=True):
     """
     Import document from ``source``. Procedure will download/cache the file,
     create a directory to store metadta.
@@ -121,7 +121,7 @@ def document(source, tags='', title='', description='', interactive=True):
         source = old['source']
 
     new = {
-        'description': description.strip(),
+        'notes': notes.strip(),
         'title': title,
         'source': source,
         'cached': cached,
@@ -173,7 +173,7 @@ def merge_kdiff3(newcontent, existing):
     with file(tmp, 'wb') as f:
         f.write(newcontent)
 
-    print red % 'Need to merge descriptions...'
+    print red % 'Need to merge notes...'
     print yellow % '=================================='
     if 0 != os.system('kdiff3 --merge %s %s --output %s' % (existing, tmp, existing)):
         print red % 'merge aborted. keeping original, other temporarily saved to %s' % tmp
@@ -232,7 +232,7 @@ class Document(object):
 
     def extract_metadata(self):
 
-        metadata = {'tags': '', 'title': '', 'description': '', 'author': ''}
+        metadata = {'tags': '', 'title': '', 'notes': '', 'author': ''}
         if self.filetype.endswith('pdf'):
             metadata['title'] = extract_title(self.cached)
 
@@ -270,7 +270,7 @@ class Document(object):
 
 
 def template(**kwargs):
-    others = set(kwargs) - set('title author source cached tags description'.split())
+    others = set(kwargs) - set('title author source cached tags notes'.split())
     attrs = '\n'.join((':%s: %s' % (k, kwargs[k])).strip() for k in others).strip()
     if attrs:
         attrs += '\n'
@@ -285,5 +285,5 @@ TEMPLATE = u"""\
 :cached: {cached}
 :tags: {tags}
 {attrs}
-{description}
+{notes}
 """
