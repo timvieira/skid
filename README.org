@@ -3,7 +3,7 @@ Simple, plaintext, file system
 
 * Motivation
 
-Great post by GradHacker: [[http://www.gradhacker.org/2012/08/13/towards-better-pdf-management-with-the-filesystem/][Towards Better PDF Management with the Filesystem]]
+Great post by GradHacker: [[http://www.gradhacker.org/2012/08/13/towards-better-pdf-management-with-the-filesystem/][Towards Better PDF Management with the Filesystem]].
 
 Tools for organizing your pdfs are restrictive (and proprietary in the sense
 that information is kept hostage inside the software).
@@ -54,10 +54,10 @@ Examples include:
 ** Adding a document
 
   1. cache document (download links - it will be cached locally, copy local
-     files into ~/.skid/marks directory)
-  2. create '.d' directory
-  3. create `notes.org` file (initialize content, e.g. title, tags)
-  4. merge with any existing notes.org
+     files into =~/.skid/marks= directory)
+  2. create =.d= directory
+  3. create =notes.org= file (initialize content, e.g. title, tags)
+  4. merge with any existing =notes.org=
   5. open description file in a text editor
 
 Merging - what if the document has already been added?
@@ -83,16 +83,16 @@ Example description file
 
  - looking up a paper's directory so that I could copy files into its folder
 
-   - TODO: what about ``skid attach <doc> [files+]``?
+   - TODO: what about =skid attach <doc> [files+]=?
 
    - proposed solution: add links to .d and notes.org; a nice terminal will
      makes these clickable links.
 
- - jumping to ~/.skid directory (e.g. to check on hg)
+ - jumping to =~/.skid= directory (e.g. to check on hg)
 
-   * created alias 'skid-dir' (why can't python cd like a bash script?)
+   * created alias =skid-dir= (why can't python cd like a bash script?)
 
-   * added 'skid hg ...' subcommand.
+   * added =skid hg ...= subcommand.
 
  - narrowing search: keyword search returns too many results. I want to "pick"
    one paper (pick can mean open, take notes, grab metadata).
@@ -211,3 +211,13 @@ autodiff?" type of question).
 
    So this means -- papers will not live in learn, but notes and code still will
    for now.
+
+* Extensions
+
+- more data :: I believe =skid= is prepared to index more types of text-like
+               data including arbitrary notes and emails. The big difference
+               this files frequently change, unlike most pdfs.
+
+- information extraction :: I'd like to extract authors and avoid repeatedly
+     making the same types of mistakes. The ideal setup will include automated
+     tests and online learning (e.g. a simple perceptron learner).
