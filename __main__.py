@@ -43,7 +43,7 @@ def ack(*x):
 
 def search(*q):
     """
-    Search skid-marks for particular attributes.
+    Search skid-marks plain-text or metadata.
     """
     q = ' '.join(q)
     print
@@ -72,15 +72,10 @@ def search(*q):
     print
 
 
-def search1(*q):
+def search_org(*q):
     """
     Search skid-marks for particular attributes. Output org-mode friendly
     output.
-
-    Example usage:
-
-      $ skid search1 machine learning > /tmp/foo && emacs -nw /tmp/foo -e 'org-mode'
-
     """
     q = ' '.join(q)
     print
@@ -98,9 +93,9 @@ def search1(*q):
             print ' ', ' '.join('[[skid:tags:%s][%s]]' % (x,x) for x in hit['tags'].split()).encode('utf8').strip()
 
 
-def search2(*q):
+def search1(*q):
     sys.stdout = f = file('/tmp/foo', 'wb')
-    search1(*q)
+    search_org(*q)
     os.system("emacs -nw /tmp/foo -e 'org-mode'")
     sys.stdout = sys.__stdout__
 
