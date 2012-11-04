@@ -49,7 +49,6 @@ def search(*q):
     print
     print 'query:', q
     for hit in index.search(q):
-        print 'docnum:', hit.docnum
         fields = ['title', 'author', 'cached', 'source', 'tags']
         for k in fields:
             val = hit[k].strip()
