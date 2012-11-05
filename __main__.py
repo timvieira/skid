@@ -38,7 +38,7 @@ def ack(*x):
 
     TODO: might want to ack text, not just notes.
     """
-    os.system('find %s -name notes.org |xargs ack %s' % (CACHE, ' '.join(x)))
+    os.system("find %s -name notes.org |xargs ack '%s'" % (CACHE, ' '.join(x)))
 
 
 def search(*q):
