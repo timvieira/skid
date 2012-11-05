@@ -30,7 +30,7 @@ def cache_url(url):
     """
     # TODO: we should tell download where to store stuff explicitly... right now
     # we just both have the same convention.
-    cached = download(url, tries=1, pause=0.1, timeout=10, usecache=True,
+    cached = download(url, tries=1, pause=0.1, timeout=60, usecache=True,
                       cachedir=CACHE)
     if not cached:
         raise Exception('Failed to download %s.' % url)
