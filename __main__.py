@@ -9,6 +9,11 @@ from subprocess import Popen, PIPE
 from terminal import red, cyan
 
 
+# TODO: I'd like to quickly check if I've added a paper before. Not sure hash
+# equality is enough, but it's a start. Should have a quick way to do this at
+# the prompt "skid similar doc.pdf" and "skid hash doc.pdf" checks for hash
+# equality (do we want to download the paper and all that?).
+
 def serve():
     """
     Fire-up web interface.
@@ -41,6 +46,10 @@ def ack(*x):
     os.system("find %s -name notes.org |xargs ack '%s'" % (CACHE, ' '.join(x)))
 
 
+# TODO: I think dumping everything to the screen isn't the best idea. We should
+# have some command-line options (-v: verbose; -s: sources; -d: directory, -n:
+# notes, etc). By default we should list the preferred link type (for pdfs this
+# should be the cached document; links and notes should be the source).
 def search(*q):
     """
     Search skid-marks plain-text or metadata.
@@ -48,25 +57,22 @@ def search(*q):
     q = ' '.join(q)
     print
     print 'query:', q
+
     for hit in index.search(q):
         fields = ['title', 'author', 'cached', 'source', 'tags']
         for k in fields:
             val = hit[k].strip()
             if val and k != 'text':
-
                 if k in ('source', 'cached'):
                     # add file:// prefix if file, http other wise
                     if not val.startswith('http') and not val.startswith('file://'):
                         val = 'file://' + val
-
                 if k == 'cached':
                     # also print a 'link' to the notes file.
                     print '%s: %s' % (red % 'notes', cyan % (val + '.d/notes.org'))
                     print '%s: %s' % (red % 'd', cyan % (val + '.d/'))
-
                 if k in ('cached', 'source'):
                     val = cyan % val   # color 'links'
-
                 print ('%s: %s' % (red % k, val.replace('\n', ' '))).encode('utf8')
         print
     print
@@ -127,6 +133,11 @@ def st(*args):
         os.system(' '.join(['hg st'] + list(args)))
 
 
+def checkpoint():
+    with cd(ROOT):
+        os.system("hg addremove && hg ci -m '()'")
+
+
 # todo: what I really want is something like "hg log" which lists a summary of
 # everything I've done.
 def recent():
@@ -136,5 +147,39 @@ def recent():
     return lines
 
 
+cmds = [k for k,v in list(globals().iteritems()) if hasattr(v, '__call__')]
+
+def main():
+    from os import environ, listdir
+    if 'COMP_WORDS' in environ:                       # TODO: add filename completions (the bash default)
+        cwords = environ['COMP_WORDS'].split()
+        cline = environ['COMP_LINE']
+        cpoint = int(environ['COMP_POINT'])
+        cword = int(environ['COMP_CWORD'])
+
+        if cword >= len(cwords):
+            currword = None
+        else:
+            currword = cwords[cword]
+
+        if cword < 2:
+            possible = cmds
+
+        elif 'skid add' in cline:
+            possible = listdir('.')
+
+        else:
+            possible = index.lexicon('author') + index.lexicon('title')
+
+        if currword:
+            possible = [x for x in possible if x.startswith(currword) and len(x) >= len(currword)]
+
+        print ' '.join(possible).encode('utf8')
+
+        sys.exit(1)
+
+    import skid.__main__
+    automain(mod=skid.__main__)
+
 if __name__ == '__main__':
-    automain()
+    main()
