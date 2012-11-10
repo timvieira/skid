@@ -254,6 +254,9 @@ class Document(object):
     def extract_plaintext(self):
         "Extract plaintext from filename. Returns text, might cache."
 
+        # TODO: convert 'ppt' and 'odf' to pdf
+        # libreoffice --headless --invisible --convert-to pdf
+
         if self.cached.endswith('.pdf'):
             # extract text from pdfs
             text = pdftotext(self.cached, verbose=True, usecached=True)
