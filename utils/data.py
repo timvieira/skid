@@ -2,9 +2,6 @@
 Import data from a few different sources.
 """
 
-# find /home/timv/Desktop/ -name *.pdf -exec cp {} ~/.skid/marks/ \;
-# find /home/timv/projects/read/ -name '*.pdf' -exec cp {} ~/.skid/marks/ \;
-
 import os
 from glob import glob
 from iterextras import iterview
