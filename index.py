@@ -51,7 +51,16 @@ def search(qstr):
         for hit in searcher.search(q, limit=50):
             yield hit
 
-        #print searcher.correct_query(q, qstr, allfields=True)
+
+
+def correct(qstr):
+    qstr = unicode(qstr.decode('utf8'))
+    ix = open_dir(DIRECTORY, NAME)
+    with ix.searcher() as searcher:
+        qp = QueryParser('text', schema=ix.schema)
+        qp.add_plugin(DateParserPlugin(free=True, basedate=datetime.now()))
+        q = qp.parse(qstr)
+        return searcher.correct_query(q, qstr, allfields=True)
 
 
 def drop():
@@ -122,3 +131,8 @@ def lexicon(field):
     ix = open_dir(DIRECTORY, NAME)
     with ix.searcher() as s:
         return list(s.lexicon(field))
+
+
+if __name__ == '__main__':
+    from automain import automain
+    automain()
