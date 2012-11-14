@@ -52,7 +52,6 @@ def search(qstr):
             yield hit
 
 
-
 def correct(qstr):
     qstr = unicode(qstr.decode('utf8'))
     ix = open_dir(DIRECTORY, NAME)
