@@ -181,5 +181,6 @@ def main():
     import skid.__main__
     automain(mod=skid.__main__)
 
+
 if __name__ == '__main__':
     main()
