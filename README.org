@@ -214,10 +214,15 @@ autodiff?" type of question).
 
 * Extensions
 
-- more data :: I believe =skid= is prepared to index more types of text-like
-               data including arbitrary notes and emails. The big difference
-               this files frequently change, unlike most pdfs.
+- more data: I believe =skid= is prepared to index more types of text-like data
+  including arbitrary notes and emails. The big difference this files frequently
+  change, unlike most pdfs.
 
-- information extraction :: I'd like to extract authors and avoid repeatedly
-     making the same types of mistakes. The ideal setup will include automated
-     tests and online learning (e.g. a simple perceptron learner).
+- information extraction: I'd like to extract authors and avoid repeatedly
+  making the same types of mistakes. The ideal setup will include automated
+  tests and online learning (e.g. a simple perceptron learner).
+
+* TODO
+
+- utils/gscholar.py looks like a very clever little script! See if we ant to
+  plug it into our pipeline.
