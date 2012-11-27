@@ -212,7 +212,7 @@ autodiff?" type of question).
    So this means -- papers will not live in learn, but notes and code still will
    for now.
 
-* Extensions
+* TODO
 
 - more data: I believe =skid= is prepared to index more types of text-like data
   including arbitrary notes and emails. The big difference this files frequently
@@ -222,7 +222,28 @@ autodiff?" type of question).
   making the same types of mistakes. The ideal setup will include automated
   tests and online learning (e.g. a simple perceptron learner).
 
-* TODO
+- utils/gscholar.py: clever little script! We might want to plug it into our
+  default pipeline. We can use it to retrieve BibTeX and validate against.
 
-- utils/gscholar.py looks like a very clever little script! See if we ant to
-  plug it into our pipeline.
+- recommendation:
+   - find most similar documents.
+   - retrieve notes.
+   - Probably want to modify ranking function
+
+- better ranking function: preference for title, author, and notes
+
+- auto-completion:
+
+  - smarter: look at string so far see if there is a "title:" or "author:"
+    preceding the current word.
+
+  - faster: cache lexicon to file so we don't have to ask Whoosh.
+
+* Fun
+
+- citation analysis: grab the text following a line "References" or
+  "Bibliography" try to link segments against our database. (For efficiently and
+  precision, We can prune segments so that they only occur at punctuation).
+
+- document exploration: multidimensional scaling scatter plot. Might want to
+  play around with ClusterLDA and vanilla LDA.
