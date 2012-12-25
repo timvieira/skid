@@ -214,9 +214,24 @@ autodiff?" type of question).
 
 * TODO
 
+- deleting document: is clunky, currently don't be removing directory (simple
+  command-line interface can fix this) then droping the index and rebuilding it
+  from scratch (this isn't the worst thing but it's inefficient).
+
+- results pagination: piping results thru less is not ideal, navigating results
+  is also less than ideal -- it's in the terminal, I shouldn't have to click on
+  stuff.
+
+  - a curses or emacs interface might work well. I'd like to have keyboard
+    shortcuts to move up and down in the results list and to open source, cache,
+    directory, notes, etc.
+
 - more data: I believe =skid= is prepared to index more types of text-like data
   including arbitrary notes and emails. The big difference this files frequently
   change, unlike most pdfs.
+
+  - probably need to mark documents as "volatile" so that skid can cache and
+    index the latest version.
 
 - information extraction: I'd like to extract authors and avoid repeatedly
   making the same types of mistakes. The ideal setup will include automated
@@ -238,6 +253,13 @@ autodiff?" type of question).
     preceding the current word.
 
   - faster: cache lexicon to file so we don't have to ask Whoosh.
+
+- look into Andrej Karpathy's "research pooler"
+  https://sites.google.com/site/researchpooler/
+
+  - he also has a NIPS paper browser
+    http://cs.stanford.edu/~karpathy/nipspreview/
+    https://github.com/karpathy/nipspreview
 
 * Fun
 
