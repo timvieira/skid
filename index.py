@@ -7,9 +7,11 @@ import os
 from datetime import datetime
 from glob import glob
 
+from os.path import getmtime
+
 from whoosh.index import create_in, open_dir
 from whoosh.fields import Schema, TEXT, KEYWORD, ID, DATETIME
-from whoosh.qparser import QueryParser
+from whoosh.qparser import MultifieldParser
 from whoosh.qparser.dateparse import DateParserPlugin
 
 from skid.common import parse_notes
@@ -40,26 +42,27 @@ def search(qstr):
     qstr = unicode(qstr.decode('utf8'))
     ix = open_dir(DIRECTORY, NAME)
     with ix.searcher() as searcher:
-        # TODO: it would be nice to search other fields as well. In some cases
-        # the text field id empty or even garbage, in which case if would be
-        # nice to search the title as well. Idealy even we'd give things with
-        # title match higher ranking.
-        qp = QueryParser('text', schema=ix.schema)
+        qp = MultifieldParser(fieldnames=['title', 'author', 'tags', 'notes', 'text'],
+                              fieldboosts={'title': 5,
+                                           'author': 5,
+                                           'tags': 3,
+                                           'notes': 2,
+                                           'text': 1},
+                              schema=ix.schema)
         qp.add_plugin(DateParserPlugin(free=True, basedate=datetime.now()))
         q = qp.parse(qstr)
-
         for hit in searcher.search(q, limit=50):
             yield hit
 
 
-def correct(qstr):
-    qstr = unicode(qstr.decode('utf8'))
-    ix = open_dir(DIRECTORY, NAME)
-    with ix.searcher() as searcher:
-        qp = QueryParser('text', schema=ix.schema)
-        qp.add_plugin(DateParserPlugin(free=True, basedate=datetime.now()))
-        q = qp.parse(qstr)
-        return searcher.correct_query(q, qstr, allfields=True)
+#def correct(qstr):
+#    qstr = unicode(qstr.decode('utf8'))
+#    ix = open_dir(DIRECTORY, NAME)
+#    with ix.searcher() as searcher:
+#        qp = QueryParser('text', schema=ix.schema)
+#        qp.add_plugin(DateParserPlugin(free=True, basedate=datetime.now()))
+#        q = qp.parse(qstr)
+#        return searcher.correct_query(q, qstr, allfields=True)
 
 
 def drop():
@@ -92,7 +95,7 @@ def update():
                 continue
 
             # mtime of directory, not the cached file
-            mtime = datetime.fromtimestamp(os.path.getmtime(cached + '.d'))
+            mtime = datetime.fromtimestamp(getmtime(cached + '.d'))
 
             # lookup document mtime in the index; don't add our extract info if
             # you don't need it.
