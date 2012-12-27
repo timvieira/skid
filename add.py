@@ -214,21 +214,15 @@ class Document(object):
 
     def hash_contents(self):
         h = self.cached + '.d/data/hash'
-
         newhash = sha1(file(self.cached).read()).hexdigest()
-
-        if os.path.exists(h):
-            oldhash = file(h).read().strip()
-        else:
-            oldhash = newhash
-
+        oldhash = file(h).read().strip() if os.path.exists(h) else None
         if newhash != oldhash:
+            print 'new hash:', self.cached
             with file(h, 'wb') as f:
                 f.write(newhash)
                 f.write('\n')
             return newhash
-        else:
-            return oldhash
+        return oldhash
 
     def extract_metadata(self):
 
