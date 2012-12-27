@@ -29,6 +29,7 @@ def create():
     os.mkdir(DIRECTORY)
     schema = Schema(source = ID(stored=True, unique=True),
                     cached = ID(stored=True, unique=True),
+                    hash = ID(stored=True, unique=True),
                     title = TEXT(stored=True, spelling=True),
                     author = TEXT(stored=True, spelling=True),
                     notes = TEXT(stored=True, spelling=True),
@@ -115,10 +116,17 @@ def update():
             text = file(cached + '.d/data/text').read().decode('utf8')
             meta = parse_notes(file(cached + '.d/notes.org').read())
 
+#            if not os.path.exists(cached + '.d/data/hash'):
+#                from skid.add import Document
+#                Document(cached).hash_contents()
+
+            h = file(cached + '.d/data/hash').read().decode('utf8')
+
             w.update_document(source = meta['source'],
+                              cached = unicode(cached),
+                              hash = unicode(h),
                               title = meta['title'],
                               author = meta.get('author',u''),
-                              cached = unicode(cached),
                               notes = meta['notes'],
                               text = text,
                               mtime = mtime,
