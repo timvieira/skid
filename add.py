@@ -98,7 +98,7 @@ def document(source, tags='', title='', notes='', interactive=True):
 
     assert ' ' not in source
 
-    # make sure we store the absolute path for local files.
+    # store the absolute path for local files.
     if os.path.exists(source):
         source = os.path.abspath(source)
 
