@@ -59,7 +59,10 @@ def search(*q):
     print 'query:', q
 
     for hit in index.search(q):
-        fields = ['title', 'author', 'cached', 'source', 'tags']
+        fields = ['title', 'author', 'cached',
+                  #'source',
+                  #'tags'
+                  ]
         for k in fields:
             val = hit[k].strip()
             if val and k != 'text':
@@ -68,9 +71,10 @@ def search(*q):
                     if not val.startswith('http') and not val.startswith('file://'):
                         val = 'file://' + val
                 if k == 'cached':
-                    # also print a 'link' to the notes file.
+                    # link to the notes file.
                     print '%s: %s' % (red % 'notes', cyan % (val + '.d/notes.org'))
-                    print '%s: %s' % (red % 'd', cyan % (val + '.d/'))
+                    # link to directory
+#                    print '%s: %s' % (red % 'd', cyan % (val + '.d/'))
                 if k in ('cached', 'source'):
                     val = cyan % val   # color 'links'
                 print ('%s: %s' % (red % k, val.replace('\n', ' '))).encode('utf8')
@@ -154,7 +158,7 @@ def main():
     if 'COMP_WORDS' in environ:                       # TODO: add filename completions (the bash default)
         cwords = environ['COMP_WORDS'].split()
         cline = environ['COMP_LINE']
-        cpoint = int(environ['COMP_POINT'])
+        #cpoint = int(environ['COMP_POINT'])
         cword = int(environ['COMP_CWORD'])
 
         if cword >= len(cwords):
