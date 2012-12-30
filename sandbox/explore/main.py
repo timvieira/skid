@@ -13,9 +13,10 @@ from pylab import show, scatter, ion
 from pandas import DataFrame
 
 from viz.interact.lasso import LassoBrowser
+from viz.mds import mds
+
 from iterextras import iterview
 from debug import ip
-from viz.mds import mds
 from skid.common import parse_notes
 
 class Browser(LassoBrowser):
@@ -171,7 +172,7 @@ def main(documents):
     "Start interactive 2-dimensional representation of documents."
 
     print 'loading data.'
-    documents = [Document(i, f) for i, f in enumerate(iterview(documents))]
+    documents = [Document(i, f) for i, f in enumerate(iterview(documents))][:25]
     m = compute_similarities(documents)
     Y, _ = mds(m)
 
