@@ -68,15 +68,15 @@ def cache_document(src):
     assert False
 
 
+# TODO: add file to Whoosh index.
+
 # TODO:
 #
-# - check if the directory already exists; "atomically" write directory to avoid
-#   issues with failures (staging).
+# - "atomically" write directory to avoid issues with failures. Do this by
+#   staging. This will help avoid clobbering existing stuff (notes, cached
+#   document, etc)
 #
-# - staging area: maybe we should put the file in a staging area first so it
-#   won't clobber anything (notes, cached document, etc)
-#
-# - if it's a pdf we should try to get a bibtex entry for it.
+# - If it's a pdf we should try to get a bibtex entry for it.
 #
 # - merge:
 #
@@ -178,9 +178,9 @@ def merge_kdiff3(newcontent, existing):
     if 0 != os.system('kdiff3 --merge %s %s --output %s' % (existing, tmp, existing)):
         print red % 'merge aborted. keeping original, other temporarily saved to %s' % tmp
 
-        # todo: should probably delete any junk we might have done. This
-        # is probably easier to do if we work in a staging area (we
-        # might not even care to clean up after ourselves in that case).
+        # TODO: should probably delete any mess we might have made. This is
+        # probably easier to do if we work in a staging area (we might not even
+        # care to clean up after ourselves in that case).
         raise AssertionError('merging notes failed. aborting')
     else:
         print yellow % 'merge successful.'
