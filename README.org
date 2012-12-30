@@ -85,29 +85,24 @@ Example description file
 
    - TODO: what about =skid attach <doc> [files+]=?
 
-   - proposed solution: add links to .d and notes.org; a nice terminal will
-     makes these clickable links.
-
- - jumping to =~/.skid= directory (e.g. to check on hg)
-
-   * created alias =skid-dir= (why can't python cd like a bash script?)
-
-   * added =skid hg ...= subcommand.
+   - proposed solution: add links to .d and notes.org; nice terminals make these
+     links clickable.
 
  - narrowing search: keyword search returns too many results. I want to "pick"
    one paper (pick can mean open, take notes, grab metadata).
 
-   Approaches (not mutually exclusive):
-
-   * ranking: give preference to certain fields like file name, author, title,
-     and notes before text.
-
    * auto-complete/suggestion: (todo: could look at discriminating words between
      results)
 
-   Both approaches should be combined. Auto-complete/suggestion might require an
-   interactive command-line interface (or possibly a web app, not sure how I
-   feel about a web app).
+   * Pagination of results.
+
+   * concise representation of hits; cmd-line options to control verbosity.
+
+   * Auto-complete/suggestion might require an interactive command-line
+     interface (or possibly a web app, not sure how I feel about a web app).
+
+     - interaction idea: drop-down list; use up and down arrow keys to select
+       options -- this is how google does it.
 
 * Outstanding issues
 
@@ -214,8 +209,11 @@ autodiff?" type of question).
 
 * TODO
 
+- top-5 most similar (use whoosh) when adding a new document; helps find
+  duplicates and related tags.
+
 - deleting document: is clunky, currently don't be removing directory (simple
-  command-line interface can fix this) then droping the index and rebuilding it
+  command-line interface can fix this) then dropping the index and rebuilding it
   from scratch (this isn't the worst thing but it's inefficient).
 
 - results pagination: piping results thru less is not ideal, navigating results
@@ -243,9 +241,6 @@ autodiff?" type of question).
 - recommendation:
    - find most similar documents.
    - retrieve notes.
-   - Probably want to modify ranking function
-
-- better ranking function: preference for title, author, and notes
 
 - auto-completion:
 
