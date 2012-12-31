@@ -29,12 +29,24 @@ def route(*args, **kw):
     return wrap
 
 
+from skid.index import open_dir, MultifieldParser, DIRECTORY, NAME
+
+ix = open_dir(DIRECTORY, NAME)
+searcher = ix.searcher()
+qp = MultifieldParser(fieldnames=['title', 'author', 'tags', 'notes', 'text'],
+                      fieldboosts={'title': 5,
+                                   'author': 5,
+                                   'tags': 3,
+                                   'notes': 2,
+                                   'text': 1},
+                      schema=ix.schema)
+
 @route('/search')
 def search():
     q = get('q') or '*'
     print 'query:', q, '<br/>'*2
 
-    for hit in ix.search(q):
+    for hit in searcher.search(qp.parse(unicode(q.decode('utf8'))), limit=50):
         print '<div class="item">'
         print '<b>', hit['title'].strip(), '</b></br>'
         print hit['cached'].strip(), '</br>'

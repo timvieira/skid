@@ -1,4 +1,4 @@
-from os.path import expanduser, join
-ROOT = expanduser('~/.skid')
-CACHE = join(ROOT, 'marks')
+from path import path
+ROOT = path('~/.skid').expand()    # feel free to use environment variables
+CACHE = ROOT / 'marks'
 REMOTE = 'login.clsp.jhu.edu:~/papers'

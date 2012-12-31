@@ -5,9 +5,6 @@ full-text.
 
 import os
 from datetime import datetime
-from glob import glob
-
-from os.path import getmtime
 
 from whoosh.index import create_in, open_dir
 from whoosh.fields import Schema, TEXT, KEYWORD, ID, DATETIME
@@ -68,7 +65,7 @@ def search(qstr):
 
 def drop():
     "Drop existing index."
-    assert os.path.exists(DIRECTORY)
+    assert DIRECTORY.exists()
     os.system('rm -rf ' + DIRECTORY)
     print 'dropped index', DIRECTORY
 
@@ -80,7 +77,7 @@ def update():
     "Rebuild index from scratch."
 
     # create index if it doesn't exist
-    if not os.path.exists(DIRECTORY):
+    if not DIRECTORY.exists():
         create()
 
     # get handle to Whoosh index
@@ -90,13 +87,10 @@ def update():
     # updating at the first unchanged file.
     with ix.writer() as w, ix.searcher() as searcher:
 
-        for cached in glob(CACHE + '/*'):
-
-            if cached.endswith('.d'):   # only cached files, not the directories.
-                continue
+        for cached in CACHE.files():
 
             # mtime of directory, not the cached file
-            mtime = datetime.fromtimestamp(getmtime(cached + '.d'))
+            mtime = datetime.fromtimestamp((cached + '.d').mtime)
 
             # lookup document mtime in the index; don't add our extract info if
             # you don't need it.
@@ -116,15 +110,12 @@ def update():
             text = file(cached + '.d/data/text').read().decode('utf8')
             meta = parse_notes(file(cached + '.d/notes.org').read())
 
-#            if not os.path.exists(cached + '.d/data/hash'):
-#                from skid.add import Document
-#                Document(cached).hash_contents()
-
-            h = file(cached + '.d/data/hash').read().decode('utf8')
+            with file(cached + '.d/data/hash') as h:
+                h = unicode(h.read().decode('utf8'))
 
             w.update_document(source = meta['source'],
                               cached = unicode(cached),
-                              hash = unicode(h),
+                              hash = h,
                               title = meta['title'],
                               author = meta.get('author',u''),
                               notes = meta['notes'],

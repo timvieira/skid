@@ -6,16 +6,17 @@ TODO:
   - pdftotext.txt should go in {cached}.d/data/
 
 """
-import re, os, shutil
-from pprint import pprint
-from hashlib import sha1
+import re, os, subprocess
 
 from debug import ip
 from terminal import yellow, red, blue, green
-from fsutils import mkdir, filetype
+from fsutils import filetype
 from web.download import download
 from text.utils import htmltotext, remove_ligatures, force_unicode
 from skid.config import CACHE
+
+from os import environ
+from path import path
 
 from pdfhacks import pdftotext, extract_title
 
@@ -23,6 +24,9 @@ from skid.common import mergedict, unicodify_dict, dictsubset, parse_notes, \
     whitespace_cleanup
 
 
+# TODO: use wget instead, it's more robust and has more bells and
+# whistles.. e.g. handling redirects, timeouts, and all sorts of silly things
+# that happen when downloading a file.
 def cache_url(url):
     """
     Download url, write contents to file. Return filename of contents, None on
@@ -48,17 +52,19 @@ def cache_document(src):
     #  - make sure we don't overwrite files
     #  - cache to staging area first
 
+    src = path(src)
+
     if src.startswith('http'):    # cache links
         return cache_url(src)
 
-    elif os.path.exists(src):   # is this something on disk?
+    elif src.exists():   # is this something on disk?
 
-        dest = os.path.join(CACHE, os.path.basename(src))
+        dest = CACHE / src.basename()
 
-        if os.path.exists(dest):
+        if dest.exists():
             raise Exception('File %r already exists' % dest)
 
-        shutil.copy2(src, dest)
+        src.copy2(dest)
 
         print 'copy:', src, '->', dest
 
@@ -94,13 +100,15 @@ def document(source, tags='', title='', notes='', interactive=True):
     create a directory to store metadta.
     """
 
-    print blue % 'adding %s' % source
-
     assert ' ' not in source
 
+    source = path(source)
+
+    print blue % 'adding %s' % source
+
     # store the absolute path for local files.
-    if os.path.exists(source):
-        source = os.path.abspath(source)
+    if source.exists():
+        source = source.abspath()
 
     cached = cache_document(source)
 
@@ -111,12 +119,22 @@ def document(source, tags='', title='', notes='', interactive=True):
     d.hash_contents()
     d.extract_plaintext()
 
+    update_existing(d, source, tags, title, notes)
+
+    if interactive:
+        d.edit_notes()
+
+
+
+def update_existing(d, source, tags='', title='', notes=''):
+
     old = d.extract_metadata()
 
-    # re-adding existing documents. Sometimes we want to 'update' something by
-    # running it through the add pipeline, but we don't want the source to
-    # change. Maybe this should be a separate method... This is something that
-    # is already in the CACHE
+    # Adding a document from the cache is typically a "refresh", e.g. updating
+    # the output of processing a file by pushing it through the pipeline. In
+    # such an event we almost never want the source to change to the location of
+    # the cached file. Thus, we handle the conflict automatically by using the
+    # old source.
     if source.startswith(CACHE):
         source = old['source']
 
@@ -124,7 +142,7 @@ def document(source, tags='', title='', notes='', interactive=True):
         'notes': notes.strip(),
         'title': title,
         'source': source,
-        'cached': cached,
+        'cached': d.cached,
     }
 
     new = mergedict(old, new)
@@ -144,9 +162,9 @@ def document(source, tags='', title='', notes='', interactive=True):
     new = unicodify_dict(new)
     old = unicodify_dict(old)
 
-    existing = d.cached + '.d/notes.org'
-    if os.path.exists(existing):
-        existingdata = file(existing).read()
+    existing = d.notes
+    if existing.exists():
+        existingdata = existing.text()
     else:
         existingdata = None
 
@@ -155,17 +173,9 @@ def document(source, tags='', title='', notes='', interactive=True):
     if dictsubset(new, old):
         d.meta('notes.org', newcontent, overwrite=True)
 
-    else:
-        if newcontent.strip() != existingdata.strip():
-            print yellow % '** old ************************'
-            pprint(old)
-            print yellow % '-- new ------------------------'
-            pprint(new)
-            print yellow % '*******************************'
-            merge_kdiff3(newcontent, existing)
+    elif newcontent.strip() != existingdata.strip():     # manual resolution
+        merge_kdiff3(newcontent, existing)
 
-    if interactive:
-        d.edit_notes()
 
 
 def merge_kdiff3(newcontent, existing):
@@ -190,21 +200,26 @@ def merge_kdiff3(newcontent, existing):
 class Document(object):
 
     def __init__(self, cached):
-        self.cached = cached
-        assert os.path.exists(cached)
-        mkdir(cached + '.d')
-        mkdir(cached + '.d/data')
+        self.cached = path(cached).expand().abspath()
+        assert self.cached.exists()
+        self.d = self.cached + '.d'
+
+        self.d.mkdir()
+        (self.d / 'data').mkdir()
+
         self.filetype = filetype(self.cached)
 
-    def edit_notes(self):
-        os.system('/home/timv/projects/env/bin/visit {self.cached}.d/notes.org'.format(self=self))
+        self.notes = self.d / 'notes.org'
 
-    def open(self):
-        os.system('gnome-open {self.cached} 2>/dev/null'.format(self=self))
+    def __repr__(self):
+        return 'Document("%s")' % self.cached
+
+    def edit_notes(self):
+        subprocess.call([environ.get('EDITOR', 'nano'), self.notes])
 
     def meta(self, name, content, overwrite=False):
-        t = self.cached + '.d/' + name
-        assert overwrite or not os.path.exists(t), name + ' already exists!'
+        t = self.d / name
+        assert overwrite or not t.exists(), name + ' already exists!'
         with file(t, 'wb') as f:
             content = force_unicode(content)
             content = content.encode('utf8')
@@ -213,16 +228,11 @@ class Document(object):
         return content
 
     def hash_contents(self):
-        h = self.cached + '.d/data/hash'
-        newhash = sha1(file(self.cached).read()).hexdigest()
-        oldhash = file(h).read().strip() if os.path.exists(h) else None
-        if newhash != oldhash:
-            print 'new hash:', self.cached
-            with file(h, 'wb') as f:
-                f.write(newhash)
-                f.write('\n')
-            return newhash
-        return oldhash
+        h = self.cached.read_hexhash('sha1')
+        with file(self.d / 'data' / 'hash', 'wb') as f:
+            f.write(h)
+            f.write('\n')
+        return h
 
     def extract_metadata(self):
 
@@ -232,15 +242,15 @@ class Document(object):
 
         else:
             # assume it's HTML
-            x = re.findall('<title>(.*?)</title>', file(self.cached).read(), re.I)
+            x = re.findall('<title>(.*?)</title>', self.cached.text(), re.I)
             if x:
-                metadata['title'] = x[0].strip()  # take the first
+                metadata['title'] = x[0].strip()  # take the first title
+            else:
+                pass   # TODO: maybe take first line of the file?
 
-        # user notes trumps anything automatic
-        existing = self.cached + '.d/notes.org'
-        if os.path.exists(existing):
-            notes = file(existing).read()
-            parse = parse_notes(notes)
+        # user notes trump anything automatic
+        if self.notes.exists():
+            parse = parse_notes(self.notes.text())
             metadata = mergedict(metadata, parse)
 
         return metadata
@@ -248,22 +258,45 @@ class Document(object):
     def extract_plaintext(self):
         "Extract plaintext from filename. Returns text, might cache."
 
-        # TODO: convert 'ppt' and 'odf' to pdf
-        # libreoffice --headless --invisible --convert-to pdf
-
         if self.cached.endswith('.pdf'):
             # extract text from pdfs
-            text = pdftotext(self.cached, verbose=True, usecached=True)
+            text = pdftotext(self.cached, output=self.d / 'data' / 'pdftotext.txt',
+                             verbose=True, usecached=True)
 
         else:
-            with file(self.cached, 'r') as f:
-                text = f.read()
+            text = self.cached.text()
             text = force_unicode(text)
             text = htmltotext(text)      # clean up html
 
         text = remove_ligatures(text)
 
         return self.meta('data/text', text, overwrite=True)
+
+
+# XXX: untested
+# TODO: use me....
+# TODO: use path.py
+def pdf_hammer(filename):
+
+    s = filename.split('.')
+    ext = s[-1]
+    base = '.'.join(s[:-1])
+
+    if ext in ('ppt', 'odf'):
+        # convert 'ppt' and 'odf' to pdf
+        assert 0 == os.system('libreoffice --headless --invisible --convert-to pdf %s' % filename)
+        return base + '.pdf'
+
+    elif ext in ('ps',):
+        # convert postscript to pdf
+        assert 0 == os.system('ps2pdf %s' % filename)
+        return base + '.pdf'
+
+    elif ext in ('ps.gz',):
+        # TODO: convert ps.gz to pdf
+        assert 0 == os.system('zcat %s > /tmp/tmp.ps' % filename)
+        return pdf_hammer('/tmp/tmp.ps')
+
 
 
 def template(**kwargs):
