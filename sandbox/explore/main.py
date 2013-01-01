@@ -17,7 +17,7 @@ from viz.mds import mds
 
 from iterextras import iterview
 from debug import ip
-from skid.common import parse_notes
+
 
 class Browser(LassoBrowser):
 
@@ -51,9 +51,15 @@ class Browser(LassoBrowser):
         print '***********************************'
 
 
-class Document(object):
+import skid.add
+
+class Document(skid.add.Document):
 
     def __init__(self, i, filename):
+        super(Document, self).__init__(filename)
+
+        raise NotImplementedError('TODO: cleanup use better version and take advantage of super class...')
+
         self.id = i
         self.filename = filename
 
@@ -72,6 +78,7 @@ class Document(object):
 
         self.tfidf = self.norm = None
 
+        # XXX: parse_notes does not exist anymore
         self.tags = parse_notes(file(self.d + '/notes.org').read())['tags'].split()
 
     def jaccard(self, other):

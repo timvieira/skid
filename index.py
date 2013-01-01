@@ -11,8 +11,8 @@ from whoosh.fields import Schema, TEXT, KEYWORD, ID, DATETIME
 from whoosh.qparser import MultifieldParser
 from whoosh.qparser.dateparse import DateParserPlugin
 
-from skid.common import parse_notes
 from skid.config import ROOT, CACHE
+from skid.add import Document
 
 # globals
 DIRECTORY = ROOT + '/index'
@@ -43,7 +43,7 @@ def search(qstr):
         qp = MultifieldParser(fieldnames=['title', 'author', 'tags', 'notes', 'text'],
                               fieldboosts={'title': 5,
                                            'author': 5,
-                                           'tags': 3,
+                                           'tags': 5,
                                            'notes': 2,
                                            'text': 1},
                               schema=ix.schema)
@@ -89,10 +89,12 @@ def update():
 
         for cached in CACHE.files():
 
-            # mtime of directory, not the cached file
-            mtime = datetime.fromtimestamp((cached + '.d').mtime)
+            d = Document(cached)
 
-            # lookup document mtime in the index; don't add our extract info if
+            # mtime of directory, not the cached file
+            mtime = datetime.fromtimestamp(d.d.mtime)
+
+            # lookup document mtime in the index; don't add or extract info if
             # you don't need it.
             result = searcher.find('cached', unicode(cached))
 
@@ -100,15 +102,16 @@ def update():
                 print '[INFO] new document', cached
 
             else:
-                assert len(result) == 1, 'cached field should be unique.'
+                assert len(result) == 1, 'cached should be unique.'
                 result = result[0]
                 if mtime <= result['mtime']:   # skip if document hasn't changed
                     continue
 
                 print '[INFO] update to existing document:', cached
 
-            text = file(cached + '.d/data/text').read().decode('utf8')
-            meta = parse_notes(file(cached + '.d/notes.org').read())
+            text = d.text()
+
+            meta = d.parse_notes()
 
             with file(cached + '.d/data/hash') as h:
                 h = unicode(h.read().decode('utf8'))
@@ -117,7 +120,7 @@ def update():
                               cached = unicode(cached),
                               hash = h,
                               title = meta['title'],
-                              author = meta.get('author',u''),
+                              author = meta.get('author', u''),
                               notes = meta['notes'],
                               text = text,
                               mtime = mtime,

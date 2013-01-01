@@ -1,10 +1,5 @@
 """
 Manage directory structure.
-
-TODO:
-
-  - pdftotext.txt should go in {cached}.d/data/
-
 """
 import re, os, subprocess
 
@@ -20,8 +15,7 @@ from path import path
 
 from pdfhacks import pdftotext, extract_title
 
-from skid.common import mergedict, unicodify_dict, dictsubset, parse_notes, \
-    whitespace_cleanup
+from skid.common import mergedict, unicodify_dict, dictsubset, whitespace_cleanup
 
 
 # TODO: use wget instead, it's more robust and has more bells and
@@ -55,6 +49,12 @@ def cache_document(src):
     src = path(src)
 
     if src.startswith('http'):    # cache links
+
+        # TODO: explicitly tell cache_url where to put file (write-to location)
+
+        # FIXME: check we haven't downloaded url already; check if the write-to
+        # location file exists.
+
         return cache_url(src)
 
     elif src.exists():   # is this something on disk?
@@ -85,13 +85,9 @@ def cache_document(src):
 # - If it's a pdf we should try to get a bibtex entry for it.
 #
 # - merge:
-#
 #    - might want to handle most of this thru version control.
-#
 #    - check document already exists
-#
 #    - merges metadata
-#
 #    - merge document contents (pick old or new version)
 #
 def document(source, tags='', title='', notes='', interactive=True):
@@ -116,14 +112,13 @@ def document(source, tags='', title='', notes='', interactive=True):
 
     d = Document(cached)
 
-    d.hash_contents()
+    d.write_hash()
     d.extract_plaintext()
 
     update_existing(d, source, tags, title, notes)
 
     if interactive:
         d.edit_notes()
-
 
 
 def update_existing(d, source, tags='', title='', notes=''):
@@ -162,23 +157,20 @@ def update_existing(d, source, tags='', title='', notes=''):
     new = unicodify_dict(new)
     old = unicodify_dict(old)
 
-    existing = d.notes
-    if existing.exists():
-        existingdata = existing.text()
-    else:
-        existingdata = None
+    existingdata = d.note_content()
 
-    newcontent = template(**new)
+    newcontent = d.note_template(new)
 
     if dictsubset(new, old):
         d.meta('notes.org', newcontent, overwrite=True)
 
     elif newcontent.strip() != existingdata.strip():     # manual resolution
-        merge_kdiff3(newcontent, existing)
-
+        merge_kdiff3(newcontent, d.d / 'notes.org')     # XXX: shouldn't hardcode path
 
 
 def merge_kdiff3(newcontent, existing):
+    "XXX: newcontent is a string; existing is a file."
+
     tmp = '/tmp/newmetadata.org'
     with file(tmp, 'wb') as f:
         f.write(newcontent)
@@ -197,6 +189,10 @@ def merge_kdiff3(newcontent, existing):
         os.remove(existing + '.orig')  # remove kdiff's temporary file.
 
 
+# XXX: attributes fall into categories
+# 1. backed by a file
+# 2. extracted from notes
+# 3. derived
 class Document(object):
 
     def __init__(self, cached):
@@ -204,18 +200,18 @@ class Document(object):
         assert self.cached.exists()
         self.d = self.cached + '.d'
 
-        self.d.mkdir()
-        (self.d / 'data').mkdir()
+        if not self.d.exists():
+            self.d.mkdir()
+            (self.d / 'data').mkdir()
 
-        self.filetype = filetype(self.cached)
-
-        self.notes = self.d / 'notes.org'
+#        self.filetype = filetype(self.cached)
 
     def __repr__(self):
         return 'Document("%s")' % self.cached
 
     def edit_notes(self):
-        subprocess.call([environ.get('EDITOR', 'nano'), self.notes])
+        subprocess.call([environ.get('EDITOR', 'nano'),
+                         self.d / 'notes.org'])
 
     def meta(self, name, content, overwrite=False):
         t = self.d / name
@@ -227,7 +223,7 @@ class Document(object):
             f.write('\n')    # new line at end of file
         return content
 
-    def hash_contents(self):
+    def write_hash(self):
         h = self.cached.read_hexhash('sha1')
         with file(self.d / 'data' / 'hash', 'wb') as f:
             f.write(h)
@@ -237,7 +233,8 @@ class Document(object):
     def extract_metadata(self):
 
         metadata = {'tags': '', 'title': '', 'notes': '', 'author': ''}
-        if self.filetype.endswith('pdf'):
+#        if self.filetype.endswith('pdf'):
+        if self.cached.endswith('.pdf'):
             metadata['title'] = extract_title(self.cached)
 
         else:
@@ -249,11 +246,14 @@ class Document(object):
                 pass   # TODO: maybe take first line of the file?
 
         # user notes trump anything automatic
-        if self.notes.exists():
-            parse = parse_notes(self.notes.text())
+        parse = self.parse_notes()
+        if parse:
             metadata = mergedict(metadata, parse)
 
         return metadata
+
+    def text(self):
+        return (self.d / 'data' / 'text').text().decode('utf8')
 
     def extract_plaintext(self):
         "Extract plaintext from filename. Returns text, might cache."
@@ -272,7 +272,54 @@ class Document(object):
 
         return self.meta('data/text', text, overwrite=True)
 
+    def note_template(self, x):
+        others = set(x) - set('title author source cached tags notes'.split())
+        attrs = '\n'.join((':%s: %s' % (k, x[k])).strip() for k in others).strip()
+        if attrs:
+            attrs += '\n'
+        newdata = TEMPLATE.format(attrs=attrs, **x)
+        newdata = whitespace_cleanup(newdata)
+        return force_unicode(newdata).encode('utf8').strip() + '\n'
 
+    # TODO: do not like...
+    def note_content(self):
+        f = self.d / 'notes.org'
+        if f.exists():
+            return f.text()
+
+    # TODO: use a lazy-loaded attribute?
+    def parse_notes(self):
+        "Extract metadata from notes.org."
+
+        content = self.note_content()
+        if not content:
+            return
+
+        # need to support multiple write to same key.
+        metadata = dict(re.findall('^(?:\#\+?|:)([^:\s]+):[ ]*([^\n]*?)\s*$',
+                                   content, re.MULTILINE))
+
+        [d] = re.findall('\n([^:#][\w\W]*$|$)', content)
+        metadata['notes'] = d.strip()
+
+        # TODO: we need to use a real metadata markup language with a fast parser
+        # and easy greping
+
+        return unicodify_dict(metadata)
+
+
+TEMPLATE = u"""\
+#+title: {title}
+:author: {author}
+:source: {source}
+:cached: {cached}
+:tags: {tags}
+{attrs}
+{notes}
+"""
+
+
+# TODO: move to pdfhacks
 # XXX: untested
 # TODO: use me....
 # TODO: use path.py
@@ -296,24 +343,3 @@ def pdf_hammer(filename):
         # TODO: convert ps.gz to pdf
         assert 0 == os.system('zcat %s > /tmp/tmp.ps' % filename)
         return pdf_hammer('/tmp/tmp.ps')
-
-
-
-def template(**kwargs):
-    others = set(kwargs) - set('title author source cached tags notes'.split())
-    attrs = '\n'.join((':%s: %s' % (k, kwargs[k])).strip() for k in others).strip()
-    if attrs:
-        attrs += '\n'
-    newdata = TEMPLATE.format(attrs=attrs, **kwargs)
-    newdata = whitespace_cleanup(newdata)
-    return force_unicode(newdata).encode('utf8').strip() + '\n'
-
-TEMPLATE = u"""\
-#+title: {title}
-:author: {author}
-:source: {source}
-:cached: {cached}
-:tags: {tags}
-{attrs}
-{notes}
-"""

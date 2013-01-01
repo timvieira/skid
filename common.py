@@ -4,21 +4,6 @@ from terminal import blue, yellow
 from pprint import pformat
 
 
-def parse_notes(notes):
-    "Extract metadata from notes.org."
-
-    # need to support multiple write to same key.
-    metadata = dict(re.findall('^(?:\#\+?|:)([^:\s]+):[ ]*([^\n]*?)\s*$', notes, re.MULTILINE))
-
-    [d] = re.findall('\n([^:#][\w\W]*$|$)', notes)
-    metadata['notes'] = d.strip()
-
-    # TODO: we need to use a real metadata markup language with a fast parser
-    # and easy greping
-
-    return unicodify_dict(metadata)
-
-
 def mergedict(A, B):
     "merge contents of A and B, taking B over A"
     c = {}
