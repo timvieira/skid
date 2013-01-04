@@ -62,13 +62,14 @@ def cache_document(src):
         dest = CACHE / src.basename()
 
         if dest.exists():
+            # TODO: check if hash is the same. Suggest update methods or
+            # renaming the file (possibly automatically, e.g. via hash).
             raise Exception('File %r already exists' % dest)
 
         src.copy2(dest)
 
         print 'copy:', src, '->', dest
 
-        # TODO: What if a .d directory exists near the file already?
         return dest
 
     assert False
@@ -189,6 +190,9 @@ def merge_kdiff3(newcontent, existing):
         os.remove(existing + '.orig')  # remove kdiff's temporary file.
 
 
+# TODO: everything pertaining to Document should appear here probably including
+# methods to: find most-similar documents, insert/delete/update index
+
 # XXX: attributes fall into categories
 # 1. backed by a file
 # 2. extracted from notes
@@ -288,6 +292,7 @@ class Document(object):
             return f.text()
 
     # TODO: use a lazy-loaded attribute?
+    # TODO: better markup language?
     def parse_notes(self):
         "Extract metadata from notes.org."
 
@@ -296,23 +301,28 @@ class Document(object):
             return
 
         # need to support multiple write to same key.
-        metadata = dict(re.findall('^(?:\#\+?|:)([^:\s]+):[ ]*([^\n]*?)\s*$',
-                                   content, re.MULTILINE))
+        metadata = re.findall('^(?:\#\+?|:)([^:\s]+):[ ]*([^\n]*?)\s*$',
+                              content, re.MULTILINE)
+
+        x = {}
+        for k, v in metadata:
+            v = v.strip()
+            if k in ('cached','source'):
+                # remove org-mode's link markup
+                v = re.sub('^\[\[(.*?)\]\]$', r'\1', v)
+            x[k] = v
 
         [d] = re.findall('\n([^:#][\w\W]*$|$)', content)
-        metadata['notes'] = d.strip()
+        x['notes'] = d.strip()
 
-        # TODO: we need to use a real metadata markup language with a fast parser
-        # and easy greping
+        return unicodify_dict(x)
 
-        return unicodify_dict(metadata)
-
-
+# write org-mode linkes in source and cached
 TEMPLATE = u"""\
 #+title: {title}
 :author: {author}
-:source: {source}
-:cached: {cached}
+:source: [[{source}]]
+:cached: [[{cached}]]
 :tags: {tags}
 {attrs}
 {notes}
