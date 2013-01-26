@@ -19,8 +19,8 @@ from skid.common import mergedict, unicodify_dict, dictsubset, whitespace_cleanu
 
 
 # TODO: use wget instead, it's more robust and has more bells and
-# whistles.. e.g. handling redirects, timeouts, and all sorts of silly things
-# that happen when downloading a file.
+# whistles.. e.g. handling redirects, ftp, timeouts, and all sorts of silly
+# things that happen when downloading a file.
 def cache_url(url):
     """
     Download url, write contents to file. Return filename of contents, None on
@@ -290,6 +290,7 @@ class Document(object):
         f = self.d / 'notes.org'
         if f.exists():
             return f.text()
+#            return unicode(file(f).read().decode('latin1'))
 
     # TODO: use a lazy-loaded attribute?
     # TODO: better markup language?
@@ -300,7 +301,7 @@ class Document(object):
         if not content:
             return
 
-        # need to support multiple write to same key.
+        # XXX: multiple value to same key.
         metadata = re.findall('^(?:\#\+?|:)([^:\s]+):[ ]*([^\n]*?)\s*$',
                               content, re.MULTILINE)
 
@@ -317,7 +318,9 @@ class Document(object):
 
         return unicodify_dict(x)
 
-# write org-mode linkes in source and cached
+
+# TODO: date added. (is there a way to hide/collapse certain data in org-mode?
+# should we just use file creation time?)
 TEMPLATE = u"""\
 #+title: {title}
 :author: {author}
