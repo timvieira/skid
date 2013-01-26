@@ -9,7 +9,7 @@ from datetime import datetime
 from whoosh.index import create_in, open_dir
 from whoosh.fields import Schema, TEXT, KEYWORD, ID, DATETIME
 from whoosh.qparser import MultifieldParser
-from whoosh.qparser.dateparse import DateParserPlugin
+from whoosh.analysis import StandardAnalyzer
 
 from skid.config import ROOT, CACHE
 from skid.add import Document
@@ -18,7 +18,7 @@ from skid.add import Document
 DIRECTORY = ROOT + '/index'
 NAME = 'index'
 
-
+# TODO: date added
 def create():
     """ Create a new Whoosh index.. """
     print 'creating new index in directory %s' % DIRECTORY
@@ -27,17 +27,17 @@ def create():
     schema = Schema(source = ID(stored=True, unique=True),
                     cached = ID(stored=True, unique=True),
                     hash = ID(stored=True, unique=True),
-                    title = TEXT(stored=True, spelling=True),
+                    title = TEXT(stored=True),
                     author = TEXT(stored=True, spelling=True),
-                    notes = TEXT(stored=True, spelling=True),
-                    text = TEXT(stored=True, spelling=True),
-                    tags = KEYWORD(stored=True, spelling=True),
+                    notes = TEXT(stored=True),
+                    text = TEXT(stored=True),
+                    tags = KEYWORD(stored=True),
                     mtime = DATETIME(stored=True))
     create_in(DIRECTORY, schema, NAME)
 
 
-def search(qstr):
-    qstr = unicode(qstr.decode('utf8'))
+def search(q):
+    q = unicode(q.decode('utf8'))
     ix = open_dir(DIRECTORY, NAME)
     with ix.searcher() as searcher:
         qp = MultifieldParser(fieldnames=['title', 'author', 'tags', 'notes', 'text'],
@@ -47,9 +47,10 @@ def search(qstr):
                                            'notes': 2,
                                            'text': 1},
                               schema=ix.schema)
-        qp.add_plugin(DateParserPlugin(free=True, basedate=datetime.now()))
-        q = qp.parse(qstr)
-        for hit in searcher.search(q, limit=50):
+        # pass query thru standard analyzer or else Whoosh will choke on stopwords
+        q = u' '.join(tk.text for tk in StandardAnalyzer()(q))  
+        q = qp.parse(q)
+        for hit in searcher.search(q, limit=10):
             yield hit
 
 
@@ -58,7 +59,6 @@ def search(qstr):
 #    ix = open_dir(DIRECTORY, NAME)
 #    with ix.searcher() as searcher:
 #        qp = QueryParser('text', schema=ix.schema)
-#        qp.add_plugin(DateParserPlugin(free=True, basedate=datetime.now()))
 #        q = qp.parse(qstr)
 #        return searcher.correct_query(q, qstr, allfields=True)
 
