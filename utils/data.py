@@ -4,8 +4,8 @@ Import data from a few different sources.
 
 import os
 from glob import glob
-from iterextras import iterview
 from BeautifulSoup import BeautifulSoup
+from arsenal.iterextras import iterview
 from skid import add
 from skid.config import CACHE
 

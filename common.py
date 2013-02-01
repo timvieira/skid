@@ -1,8 +1,4 @@
-import re
-from text.utils import force_unicode
-from terminal import blue, yellow
-from pprint import pformat
-
+from arsenal.text.utils import force_unicode
 
 def mergedict(A, B):
     "merge contents of A and B, taking B over A"
@@ -29,6 +25,3 @@ def dictsubset(a, b):
     return True
 
 
-_whitespace_cleanup = re.compile('[ ]*\n', re.MULTILINE)
-def whitespace_cleanup(x):
-    return _whitespace_cleanup.sub('\n', x)

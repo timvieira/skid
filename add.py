@@ -2,20 +2,17 @@
 Manage directory structure.
 """
 import re, os, subprocess
-
-from debug import ip
-from terminal import yellow, red, blue, green
-from fsutils import filetype
-from web.download import download
-from text.utils import htmltotext, remove_ligatures, force_unicode
-from skid.config import CACHE
-
-from os import environ
 from path import path
 
-from pdfhacks import pdftotext, extract_title
+from skid.config import CACHE
+from skid.common import mergedict, unicodify_dict, dictsubset
 
-from skid.common import mergedict, unicodify_dict, dictsubset, whitespace_cleanup
+from arsenal.terminal import yellow, red, blue
+from arsenal.web.download import download
+from arsenal.text.utils import htmltotext, remove_ligatures, force_unicode, \
+    whitespace_cleanup
+
+from pdfhacks import pdftotext, extract_title
 
 
 # TODO: use wget instead, it's more robust and has more bells and
@@ -208,13 +205,11 @@ class Document(object):
             self.d.mkdir()
             (self.d / 'data').mkdir()
 
-#        self.filetype = filetype(self.cached)
-
     def __repr__(self):
         return 'Document("%s")' % self.cached
 
     def edit_notes(self):
-        subprocess.call([environ.get('EDITOR', 'nano'),
+        subprocess.call([os.environ.get('EDITOR', 'nano'),
                          self.d / 'notes.org'])
 
     def meta(self, name, content, overwrite=False):
@@ -237,7 +232,6 @@ class Document(object):
     def extract_metadata(self):
 
         metadata = {'tags': '', 'title': '', 'notes': '', 'author': ''}
-#        if self.filetype.endswith('pdf'):
         if self.cached.endswith('.pdf'):
             metadata['title'] = extract_title(self.cached)
 

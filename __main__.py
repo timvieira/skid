@@ -1,13 +1,13 @@
 import os, sys
-from debug import ip
-from automain import automain
+from subprocess import Popen, PIPE
+
 from skid import index
 from skid import add as _add
 from skid.config import ROOT, CACHE, REMOTE
-from fsutils import cd
-from subprocess import Popen, PIPE
-from terminal import red, cyan, yellow, magenta
 
+from arsenal.fsutils import cd
+from arsenal.automain import automain
+from arsenal.terminal import cyan, yellow, magenta
 
 # TODO: I'd like to quickly check if I've added a paper before. Not sure hash
 # equality is enough, but it's a start. Should have a quick way to do this at

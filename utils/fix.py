@@ -1,8 +1,6 @@
-import re, os
 from glob import glob
 from collections import defaultdict
 from skid.config import CACHE
-from debug import ip
 
 
 def find_orphans():
