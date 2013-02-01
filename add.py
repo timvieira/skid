@@ -12,7 +12,7 @@ from arsenal.web.download import download
 from arsenal.text.utils import htmltotext, remove_ligatures, force_unicode, \
     whitespace_cleanup
 
-from pdfhacks import pdftotext, extract_title
+from skid.pdfhacks import pdftotext, extract_title
 
 
 # TODO: use wget instead, it's more robust and has more bells and
@@ -330,7 +330,8 @@ TEMPLATE = u"""\
 # XXX: untested
 # TODO: use me....
 # TODO: use path.py
-def pdf_hammer(filename):
+def to_pdf(filename):
+    """ Hammer almost anything into a pdf. """
 
     s = filename.split('.')
     ext = s[-1]
@@ -349,4 +350,7 @@ def pdf_hammer(filename):
     elif ext in ('ps.gz',):
         # TODO: convert ps.gz to pdf
         assert 0 == os.system('zcat %s > /tmp/tmp.ps' % filename)
-        return pdf_hammer('/tmp/tmp.ps')
+        return to_pdf('/tmp/tmp.ps')
+
+    else:
+        assert False, 'Unsupported file format.'
