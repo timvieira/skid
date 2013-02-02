@@ -13,3 +13,7 @@ if not ROOT.exists():
 
 if not CACHE.exists():
     CACHE.mkdir()
+
+# enable bash completion
+#  need to add "complete -F _optcomplete skid" to bashrc
+completion = False

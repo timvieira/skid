@@ -3,7 +3,7 @@ from subprocess import Popen, PIPE
 
 from skid import index
 from skid import add as _add
-from skid.config import ROOT, CACHE, REMOTE
+from skid import config
 
 from arsenal.fsutils import cd
 from arsenal.automain import automain
@@ -29,6 +29,7 @@ def add(source):
     return _add.document(source, interactive=True)
 
 
+# experimental: tried using this for emacs mode. saves on loading whoosh indices
 def captive():
 
     from skid.index import open_dir, MultifieldParser, DIRECTORY, NAME
@@ -70,7 +71,7 @@ def ack(*x):
 
     TODO: might want to ack text, not just notes.
     """
-    os.system("find %s -name notes.org |xargs ack '%s'" % (CACHE, ' '.join(x)))
+    os.system("find %s -name notes.org |xargs ack '%s'" % (config.CACHE, ' '.join(x)))
 
 
 # TODO: I think dumping everything to the screen isn't the best idea. We should
@@ -119,6 +120,7 @@ def search(*q):
     print
 
 
+# Experimental: used when clicking on org-mode link
 def search_org(*q):
     """
     Search skid-marks for particular attributes. Output org-mode friendly
@@ -141,6 +143,10 @@ def search_org(*q):
 
 
 def search1(*q):
+    """
+    Wraps call to search_org. Redirects output to file and opens it in
+    emacs.
+    """
     sys.stdout = f = file('/tmp/foo', 'wb')
     search_org(*q)
     sys.stdout.flush()
@@ -149,49 +155,33 @@ def search1(*q):
 
 
 def update():
-    """ Update index. """
+    """ Update search index. """
     index.update()
 
 
 def drop():
-    "Drop index. Don't worry you can always make another one."
+    "Drop search index. Don't worry you can always make another one by calling update."
     index.drop()
 
 
+# Experimental: not sure what the best way to shuttle data around is nor how we
+# want to do it.
 def push():
     "Use rsync to push data to remote machine."
-    os.system('rsync --progress -a %s/. %s/marks/.' % (CACHE, REMOTE))
-
-
-def hg(*args):
-    "Ask mercurial some questions"
-    with cd(ROOT):
-        os.system(' '.join(['hg'] + list(args)))
-
-
-def st(*args):
-    "Ask mercurial some questions"
-    with cd(ROOT):
-        os.system(' '.join(['hg st'] + list(args)))
-
-
-def checkpoint():
-    with cd(ROOT):
-        os.system("hg addremove && hg ci -m '()'")
+    os.system('rsync --progress -a %s/. %s/marks/.' % (config.CACHE,
+                                                       config.REMOTE))
 
 
 # todo: what I really want is something like "hg log" which lists a summary of
 # everything I've done.
-def recent():
-    "List recently modified files."
-    (out, err) = Popen(['ls', '-1t', CACHE], stdout=PIPE, stderr=PIPE).communicate()
-    lines = [line for line in out.split('\n') if line.strip() and line.endswith('.d')]
-    return lines
+#def recent():
+#    "List recently modified files."
+#    (out, err) = Popen(['ls', '-1t', CACHE], stdout=PIPE, stderr=PIPE).communicate()
+#    lines = [line for line in out.split('\n') if line.strip() and line.endswith('.d')]
+#    return lines
 
 
-cmds = [k for k,v in list(globals().iteritems()) if hasattr(v, '__call__')]
-
-def main():
+def completion():
     from os import environ, listdir
     if 'COMP_WORDS' in environ:                       # TODO: add filename completions (the bash default)
         cwords = environ['COMP_WORDS'].split()
@@ -205,9 +195,11 @@ def main():
             currword = cwords[cword]
 
         if cword < 2:
+            # second words is one of the skid commands like 'search' or 'add'
+            cmds = [k for k,v in list(globals().iteritems()) if hasattr(v, '__call__')]
             possible = cmds
 
-        elif 'skid add' in cline:
+        elif 'skid add' in cline:     #
             possible = listdir('.')
 
         else:
@@ -219,6 +211,11 @@ def main():
         print ' '.join(possible).encode('utf8')
 
         sys.exit(1)
+
+
+def main():
+    if config.completion:
+        completion()
 
     import skid.__main__
     automain(mod=skid.__main__)
