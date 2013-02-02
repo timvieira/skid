@@ -314,20 +314,23 @@ function add_tooltips() {
 """)
 
 
-def extract_title(pdf):
+def extract_title(filename):
 
-    if isinstance(pdf, basestring):
+    if not isinstance(filename, basestring):
+        pdf = filename
+        filename = pdf.filename
+    else:
         try:
-            pdf = convert(pdf)
+            pdf = convert(filename)
         except KeyboardInterrupt:
             raise
         except:
             return
 
-    f = '/home/timv/.skid/marks/' + pdf.filename
-    if os.path.exists(f + '.d/notes.org'):
+    # check for skid-mark
+    if os.path.exists(filename + '.d/notes.org'):
         from skid.add import Document
-        d = Document(f)
+        d = Document(filename)
         meta = d.parse_notes()
         print meta.get(u'title', None)
         print meta.get(u'author', None)

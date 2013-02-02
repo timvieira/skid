@@ -7,7 +7,6 @@ from glob import glob
 from BeautifulSoup import BeautifulSoup
 from arsenal.iterextras import iterview
 from skid import add
-from skid.config import CACHE
 
 def delicious(xml):
     "Import links from delicious xml export. E.g. the output of delicious_import.py"
@@ -21,8 +20,7 @@ def delicious(xml):
                          notes = post['extended'],
                          interactive = False)
 
-
-def pdfs(pattern=CACHE + '/*.pdf'):
+def pdfs(pattern):
     "Import pdfs with file matching pattern."
     for source in iterview(glob(pattern)):
         if ' ' in source:

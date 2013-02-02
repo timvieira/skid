@@ -1,14 +1,14 @@
 import cPickle as pickle
-from path import path
 from skid.add import Document
 from skid.pdfhacks.pdfmill import convert
 from arsenal.iterextras import iterview
 from arsenal.terminal import red
+from skid.config import CACHE
 
 def build_data():
 
     docs = []
-    for filename in iterview(path('/home/timv/.skid/marks/').glob('*.pdf')):
+    for filename in iterview(CACHE.glob('*.pdf')):
 
         d = Document(filename)
         meta = d.parse_notes()
