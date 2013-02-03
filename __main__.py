@@ -1,4 +1,4 @@
-import os, sys
+import re, os, sys
 from subprocess import Popen, PIPE
 
 from skid import index
@@ -172,6 +172,22 @@ def push():
                                                        config.REMOTE))
 
 
+def rm(cached):
+    "Remove skid-mark associated with cached file."
+
+    cached = cached.strip()
+    cached = re.sub('^file://', '', cached)   # remove "file://" prefix
+
+    assert cached.startswith(config.CACHE), \
+        "This doesn't look like of skid's cached files."
+
+    os.system('rm -f %s' % cached)     # remove cached file
+    os.system('rm -rf %s.d' % cached)  # remove .d directory and all it's contents
+
+    # remove file from whoosh index.
+    index.delete(cached)
+
+
 # todo: what I really want is something like "hg log" which lists a summary of
 # everything I've done.
 #def recent():
@@ -218,7 +234,9 @@ def main():
         completion()
 
     import skid.__main__
-    automain(mod=skid.__main__)
+    automain(available=['drop', 'captive', 'search', 'search1', 'push',
+                        'ack', 'serve', 'rm'],
+             mod=skid.__main__)
 
 
 if __name__ == '__main__':

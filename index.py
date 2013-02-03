@@ -3,12 +3,16 @@ Index skid-marks to support efficient search over attributes including
 full-text.
 """
 
+# TODO: "clean-up script" which find files in cache which might have been
+# deleted manually. Currently, the way to do this is to drop and rebuild the
+# entire index
+
 import os
 from datetime import datetime
 
 from whoosh.index import create_in, open_dir
 from whoosh.fields import Schema, TEXT, KEYWORD, ID, DATETIME
-from whoosh.qparser import MultifieldParser
+from whoosh.qparser import QueryParser, MultifieldParser
 from whoosh.analysis import StandardAnalyzer
 
 from skid.config import ROOT, CACHE
@@ -48,7 +52,7 @@ def search(q):
                                            'text': 1},
                               schema=ix.schema)
         # pass query thru standard analyzer or else Whoosh will choke on stopwords
-        q = u' '.join(tk.text for tk in StandardAnalyzer()(q))  
+        q = u' '.join(tk.text for tk in StandardAnalyzer()(q))
         q = qp.parse(q)
         for hit in searcher.search(q, limit=10):
             yield hit
@@ -70,8 +74,19 @@ def drop():
     print 'dropped index', DIRECTORY
 
 
-# TODO: find files which might have been deleted they might still be living in
-# the index. Currently, the only way to do this is by droping the index.
+def delete(cached):
+    "Remove file from index."
+    try:
+        ix = open_dir(DIRECTORY, NAME)
+        with ix.searcher() as searcher, ix.writer() as w:
+            qp = QueryParser(u'cached', ix.schema)
+            q = qp.parse(unicode(cached))
+            # should only get one hit.
+            [hit] = searcher.search(q)
+            w.delete_document(hit.docnum)
+    except ValueError:
+        print 'Cached file %r not found in index.' % cached
+
 
 def update():
     "Rebuild index from scratch."
@@ -135,8 +150,3 @@ def lexicon(field):
     ix = open_dir(DIRECTORY, NAME)
     with ix.searcher() as s:
         return list(s.lexicon(field))
-
-
-if __name__ == '__main__':
-    from automain import automain
-    automain()
