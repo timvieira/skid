@@ -29,10 +29,13 @@ from pdfminer.pdfparser import PDFParser, PDFDocument
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import PDFPageAggregator
 
-# mako for html output template
-from mako.template import Template
-from mako.runtime import Context
-
+try:
+    # mako for html output template
+    from mako.template import Template
+    from mako.runtime import Context
+except ImportError:
+    def Template(*args):
+        return
 
 run_feature_extraction = 0
 
@@ -339,7 +342,7 @@ def extract_title(filename):
     for page in pdf.items:
 
         #for x in page: x.attributes['obj'] = x
-
+        """
         from pandas import DataFrame
         df = DataFrame([x.attributes for x in page])
 
@@ -354,7 +357,7 @@ def extract_title(filename):
 
 #        print '______________________________'
 #        print df1.to_string()
-
+        """
         g = groupby2(page, key=lambda x: x.attributes['font-size'])
 
         if not g:

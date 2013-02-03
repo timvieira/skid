@@ -209,8 +209,7 @@ class Document(object):
         return 'Document("%s")' % self.cached
 
     def edit_notes(self):
-        subprocess.call([os.environ.get('EDITOR', 'nano'),
-                         self.d / 'notes.org'])
+        subprocess.call(os.environ.get('EDITOR', 'nano').split() + [self.d / 'notes.org'])
 
     def meta(self, name, content, overwrite=False):
         t = self.d / name
