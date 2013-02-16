@@ -1,5 +1,4 @@
-Simple, plaintext, file system
-
+SKID: bookmarks, simply kept in directories
 
 * Motivation
 
@@ -177,12 +176,7 @@ a potential problem that it might cause it to /get out of hand/.
  - I should probably be encouraged to remove duplicates and documents which are
    "useless".
 
-   Version control conventions for deletion might make it very easy to safely
-   delete things. For example, if we store the files-hash in a commit message we
-   can later grep vc logs for file-hash if we try to add the same document again
-   -- allowing us to prompt the user "do you want to resurrect your notes?".
-
-The learn projects is something that I'm have a bit of trouble getting rid of
+The "learn" project is something that I'm have a bit of trouble getting rid of
 for a few reasons (1) it's nice to think of these things as "topics" I'd like to
 learn about (for the most part hierarchical structures isn't too much of an
 issue because topics are pretty flat. There is the occasional: "is this BP or
@@ -209,12 +203,11 @@ autodiff?" type of question).
 
 * TODO
 
-- top-5 most similar (use whoosh) when adding a new document; helps find
-  duplicates and related tags.
+- Show top-5 most similar documents: (use whoosh) when adding a new document;
+  helps find duplicates and related tags.
 
-- deleting document: is clunky, currently don't be removing directory (simple
-  command-line interface can fix this) then dropping the index and rebuilding it
-  from scratch (this isn't the worst thing but it's inefficient).
+  - TODO: (implementation roadblock) how do I get top-5 most similary in the
+    Whoosh API without adding the document first.
 
 - results pagination: piping results thru less is not ideal, navigating results
   is also less than ideal -- it's in the terminal, I shouldn't have to click on
@@ -238,16 +231,15 @@ autodiff?" type of question).
 - utils/gscholar.py: clever little script! We might want to plug it into our
   default pipeline. We can use it to retrieve BibTeX and validate against.
 
-- recommendation:
-   - find most similar documents.
-   - retrieve notes.
+- recommendation: find most similar documents and notes.
 
 - auto-completion:
 
   - smarter: look at string so far see if there is a "title:" or "author:"
     preceding the current word.
 
-  - faster: cache lexicon to file so we don't have to ask Whoosh.
+  - faster: cache lexicon to file so we don't have to ask Whoosh. It's ok for he
+    lexicon to be a little out-of-date. We can force updates with =skid update=.
 
 - look into Andrej Karpathy's "research pooler"
   https://sites.google.com/site/researchpooler/

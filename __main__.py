@@ -5,7 +5,6 @@ from skid import index
 from skid import add as _add
 from skid import config
 
-from arsenal.fsutils import cd
 from arsenal.automain import automain
 from arsenal.terminal import cyan, yellow, magenta
 
@@ -215,7 +214,7 @@ def completion():
             cmds = [k for k,v in list(globals().iteritems()) if hasattr(v, '__call__')]
             possible = cmds
 
-        elif 'skid add' in cline:     #
+        elif 'skid add' in cline:
             possible = listdir('.')
 
         else:
