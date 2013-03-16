@@ -52,7 +52,17 @@ def search(q):
                                            'text': 1},
                               schema=ix.schema)
         # pass query thru standard analyzer or else Whoosh will choke on stopwords
-        q = u' '.join(tk.text for tk in StandardAnalyzer()(q))
+        q = u' '.join(tk.text for tk in StandardAnalyzer()(q))   # this fails on attributes, e.g. "author:vieira"
+        q = qp.parse(q)
+        for hit in searcher.search(q, limit=10):
+            yield hit
+
+
+def search2(q):
+    q = unicode(q.decode('utf8'))
+    ix = open_dir(DIRECTORY, NAME)
+    with ix.searcher() as searcher:
+        qp = QueryParser('text', schema=ix.schema)
         q = qp.parse(q)
         for hit in searcher.search(q, limit=10):
             yield hit
