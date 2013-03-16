@@ -8,6 +8,9 @@ from skid import config
 from arsenal.automain import automain
 from arsenal.terminal import cyan, yellow, magenta
 
+
+from skid.index import lexicon
+
 # TODO: I'd like to quickly check if I've added a paper before. Not sure hash
 # equality is enough, but it's a start. Should have a quick way to do this at
 # the prompt "skid similar doc.pdf" and "skid hash doc.pdf" checks for hash
@@ -77,7 +80,7 @@ def ack(*x):
 # have some command-line options (-v: verbose; -s: sources; -d: directory, -n:
 # notes, etc). By default we should list the preferred link type (for pdfs this
 # should be the cached document; links and notes should be the source).
-def search(*q):
+def _search(searcher, *q):
     """
     Search skid-marks plain-text or metadata.
     """
@@ -101,7 +104,7 @@ def search(*q):
         else:
             return '(%s, %s et al.)' % (last[0], last[1])
 
-    for hit in index.search(q):
+    for hit in searcher(q):
         a = author(hit['author'])
         if a:
             x = '%s %s' % (magenta % a, hit['title'])
@@ -117,6 +120,19 @@ def search(*q):
         print cyan % link(hit['cached'] + '.d/notes.org')
         print
     print
+
+
+def search(*q):
+    """
+    Search skid-marks plain-text or metadata.
+    """
+    return _search(index.search, *q)
+
+def search2(*q):
+    """
+    Search skid-marks plain-text or metadata.
+    """
+    return _search(index.search2, *q)
 
 
 # Experimental: used when clicking on org-mode link
@@ -233,8 +249,8 @@ def main():
         completion()
 
     import skid.__main__
-    automain(available=['drop', 'captive', 'search', 'search1', 'push',
-                        'ack', 'serve', 'rm'],
+    automain(available=['drop', 'captive', 'search', 'search1', 'search2', 'push',
+                        'ack', 'serve', 'rm', 'lexicon'],
              mod=skid.__main__)
 
 
