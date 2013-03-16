@@ -1,8 +1,9 @@
+import re
 import cPickle as pickle
 from skid.add import Document
 from skid.pdfhacks.pdfmill import convert
 from arsenal.iterextras import iterview
-from arsenal.terminal import red, green
+from arsenal.terminal import red, green, yellow, blue
 from skid.config import CACHE
 
 
@@ -53,11 +54,6 @@ def load():
         return pickle.load(f)
 
 
-import re
-import jellyfish
-from jellyfish import levenshtein_distance
-
-
 def shingle(x, size=3):
     """
     >>> shingle("abcdef", size=3)
@@ -78,26 +74,13 @@ def find_authors(meta, d, pdf):
     lines = []
 
     author = d.parse_notes()['author']
-
-    a = set(shingle(author.replace(';', '')))
+    authors = [set(shingle(x.strip())) for x in author.split(';')]
 
     for x in pdf.items[0]:
 
         text = x.attributes['text']
         text = re.sub(',', ' ', text)
-
-        # remove lower case words
-        # TODO: there are some exceptions like 'de Martins'
-#        text = re.sub('\\b[a-z]\S*\\b', '', text)
-#        text = re.sub('\s\s+', ' ', text)
-
         text = text.encode('utf8', 'ignore')  # HACK: ignores non-ascii
-
-#        print
-#        print x.attributes['text']
-#        print text
-
-#        distance = levenshtein_distance(authors, text)
 
         b = shingle(x.attributes['text'])
         b = set(b)
@@ -105,15 +88,17 @@ def find_authors(meta, d, pdf):
         if not b:
             continue
 
-        distance = -len(a & b) * 1.0 / len(a | b)
+        distance = sum(-len(a & b) * 1.0 / len(a | b) for a in authors)
 
-        if distance > -0.11:
+        if distance > -0.2:
+            x.attributes['author'] = False
             continue
 
         if distance >= 0:
+            x.attributes['author'] = False
             continue
 
-        lines.append(((distance, -x.attributes['font-size']), x.attributes))
+        lines.append(((distance, -x.attributes['font-size']), x))
 
     # ERRORS:
     #  - copyright
@@ -133,26 +118,39 @@ def find_authors(meta, d, pdf):
     lines.sort()
     print
 
-    font_name = lines[0][1].get('font-name', None)
-    font_size = lines[0][1].get('font-size', None)
+    font_name = lines[0][1].attributes.get('font-name', None)
+    font_size = lines[0][1].attributes.get('font-size', None)
 
 
     extracted = []
 
-    for (distance, _), x in lines[:10]:  # most similar lines
+    for (distance, _), item in lines[:10]:  # most similar lines
 
+        x = item.attributes
         print '  %6.4f' % distance,
 
-        text = x.pop('text').encode('utf8')
+        text = x['text'].encode('utf8')
+
+        info = x.copy()
+        info.pop('text')
 
         if x['font-name'] == font_name and x['font-size'] == font_size:
-            print green % text, x
+            print green % text, info
             extracted.append(text)
+
+            x[text] = text
+            x['author'] = True
+
         else:
-            print red % text, x
+            print red % text, info
 
     print
 
+    # TODO: check if there is still an entire name with no good match.
+
+    if not extracted:
+        print red % 'failed to extract anything relevant :-('
+        return
 
     c = reduce(set.union, map(set, map(shingle, extracted)))
 
@@ -164,26 +162,51 @@ def find_authors(meta, d, pdf):
                 tally[j] += 1
 
 
-    import fabulous
-    def color(c, x):
-        "Colorize numbers in [0,1] based on value; darker means smaller value."
-
-        a, b = 238, 255   # 232, 255
-        w = b - a
-        offset = x*w
-        offset = int(round(offset))
-        return str(fabulous.color.fg256(a + offset, c))
-
     print ''.join(color(c, 1 - x*1.0/3) for c, x in zip(author, tally))
 
 
+import fabulous
+def color(c, x):
+    "Colorize numbers in [0,1] based on value; darker means smaller value."
+    a, b = 238, 255   # 232, 255
+    w = b - a
+    offset = x*w
+    offset = int(round(offset))
+    return str(fabulous.color.fg256(a + offset, c))
+
+
+from skid.pdfhacks.pdfmill import gs, template, Context
+def main():
+
+    outdir = 'tmp'
+    outfile = outdir + '/output.html'
+
+    pages = []
+    for i, (meta, d, pdf) in enumerate(data()):
+        find_authors(meta, d, pdf)
+
+        gs(meta['cached'], outdir)
+        pages.append(pdf.pages[0])
+
+        if i > 5:
+            break
+
+    # if we want to draw the first pages of many pdfs on one html document we
+    # have to lie to the items -- tell them they are on pages other than the
+    # first...
+    yoffset = 0
+    for p in pages:
+        for item in p.items:
+            if hasattr(item, 'yoffset'):
+                item.yoffset += yoffset
+        yoffset += p.height
+
+    with file(outfile, 'wb') as f:
+        template.render_context(Context(f, pages=pages))
+
+    import webbrowser
+    webbrowser.open(outfile)
+
+
 if __name__ == '__main__':
-    #d, pdf = data_iter.next()
-
-    for xx in data():
-        find_authors(*xx)
-
-    # TODO: missing 'leon bottou' and 'jonas peters'
-
-
-#    build_data()
+    main()
