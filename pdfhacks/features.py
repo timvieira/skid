@@ -4,7 +4,7 @@ import re, sys, unittest
 #------------------------------------------------------------------------------
 DEBUG = 0
 from contextlib import contextmanager
-from misc import ctx_redirect_io
+from arsenal.misc import ctx_redirect_io
 @contextmanager
 def verbose():
     global DEBUG
@@ -21,7 +21,7 @@ def verbose():
 
         sys.stdout.flush()
 
-import terminal.colors as colors
+import arsenal.terminal.colors as colors
 Fail = colors.red % 'FAIL'
 Pass = colors.green % 'pass'
 YES = colors.bold % '  = YES ==='
@@ -29,13 +29,13 @@ NO = colors.bold % '  = NO ==='
 #------------------------------------------------------------------------------
 
 
-from nlp.wordsplitter import wordsplit_sentence
+from arsenal.nlp.wordsplitter import wordsplit_sentence
 def wordsplit(text):
     text = re.sub('[a-z]\?[a-z]', '', text)   # special case fi => \002 => ?
     return wordsplit_sentence(text).split()
 
 # pre-compiled regular expressions
-from nlp.patterns import URL_RE, EMAIL_RE
+from arsenal.nlp.patterns import URL_RE, EMAIL_RE
 NONALPHA = re.compile('[^a-zA-Z]')
 SPACES = re.compile('\s+')
 DIGIT = re.compile('[0-9]')
@@ -43,7 +43,7 @@ PUNC = re.compile('[!"%&\'()*+,./:;<=>?@[\\]^_`{|}~]')
 LOWERCASE = re.compile('([a-z]+)')
 UPPERCASE = re.compile('([A-Z]+)')
 
-from nlp.features import pattern
+from arsenal.nlp.features import pattern
 
 zipcode = pattern("[0-9]{5}(?:-[0-9]{4})?")
 phoneorzip = pattern('[0-9]+-[0-9]+')
@@ -58,13 +58,13 @@ def get_lexicon(x):
     return frozenset(x.strip().split() if isinstance(x, (str, unicode)) else x)
 
 # Name lexicon features
-from nlp.lexicon.names import male, female, last
+from arsenal.nlp.lexicon.names import male, female, last
 first_names = get_lexicon(male.male_names) | get_lexicon(female.female_names)
 last_names = get_lexicon(last.last_names)
 firstname = first_names.__contains__
 lastname = last_names.__contains__
 
-from nlp.lexicon.stopwords import stopwords
+from arsenal.nlp.lexicon.stopwords import stopwords
 stopwords = get_lexicon(stopwords)
 def is_stopword(w):
     return w.lower() in stopwords or not (1 < len(w) <= 25)
@@ -73,17 +73,17 @@ def not_stopword(w):
 def remove_stopwords(text):
     return filter(not_stopword, text.split())
 
-from nlp.lexicon.honorifics import honorifics
+from arsenal.nlp.lexicon.honorifics import honorifics
 honorifics = honorifics.__contains__
 
 # Postal address lexicons.
 #   Note: these features assume lowercase inputs
-from nlp.lexicon.postal_abbrev import postal_abbrev
-from nlp.lexicon.address import cardinal_direction
+from arsenal.nlp.lexicon.postal_abbrev import postal_abbrev
+from arsenal.nlp.lexicon.address import cardinal_direction
 postal_abbrev = postal_abbrev.__contains__
 cardinal_direction = cardinal_direction.__contains__
 
-from nlp.lexicon import state_abbrev
+from arsenal.nlp.lexicon import state_abbrev
 state_abbr_normalizer = \
     dict((x, abbr[0]) for abbr in state_abbrev.more_abbreviations for x in abbr[1:4])
 
@@ -99,12 +99,12 @@ def simplify(w):
     w = NONALPHA.sub('', w)
     return w
 
-from nlp.lexicon.universities import universities
+from arsenal.nlp.lexicon.universities import universities
 def normalize_university(x):
     return frozenset(simplify(w) for w in remove_stopwords(re.sub('[^a-zA-Z\. ]', ' ', x)))
 universities = set(normalize_university(x[-1]) for x in universities)
 
-from nlp.features import possible_year, doftw, month, time, digits, punct, \
+from arsenal.nlp.features import possible_year, doftw, month, time, digits, punct, \
     numeric, written_number, ordinal, abbrev, initial, roman
 
 def stem(w):
@@ -217,11 +217,14 @@ def one_or_more(a):
     plus = a + '+'
     return lambda m: (plus if len(m.group(1)) > 1 else a)
 
+OTHER = re.compile("[^\w?+'\-,./\s]")
+
 def letter_pattern(text):
     text = UPPERCASE.sub(one_or_more('A'), text)
     text = LOWERCASE.sub(one_or_more('a'), text)
     text = DIGIT.sub('8', text)
     text = SPACES.sub(' ', text)
+    text = OTHER.sub('?', text)
     return text
 
 #_________________________
