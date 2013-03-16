@@ -37,7 +37,7 @@ except ImportError:
     def Template(*args):
         return
 
-run_feature_extraction = 0
+run_feature_extraction = 1
 
 if run_feature_extraction:
     from skid.pdfhacks import features
@@ -46,29 +46,21 @@ if run_feature_extraction:
 def random_color():
     return tuple(random.randint(0,255) for i in xrange(3))
 
-def add_style(item, style):
-    if not hasattr(item, 'style'):
-        item.style = ''
-    item.style += style
-
-
 def feature_extraction(item):
-    item.attributes = {}
+#    item.attributes = {}
 
     position = {'x0': item.x0, 'y0': item.y0, 'x1': item.x1, 'y1': item.y1}
     item.attributes.update(position)
 
-    if not isinstance(item, LTTextLine):
+    if not isinstance(item._item, LTTextLine):
         return
 
-    #text = pprint.pformat(item.get_text().strip())[2:-1]
-    text = item.get_text().strip()
-#    text = remove_html_escapes(text)
+    text = item._item.get_text().strip()
     text = remove_ligatures(text)
 
     item.attributes['text'] = text
 
-    children = [c for c in item if hasattr(c, 'fontname')]
+    children = [c for c in item._item if hasattr(c, 'fontname')]
     if children:
         # this isn't really font size, its height of the character bbox, which
         # might be better because it invariant to font type.
@@ -99,7 +91,11 @@ class MyItem(object):
         self.height = item.height
         self.width = item.width
         self.yoffset = item.yoffset
-        self.attributes = item.attributes
+        self.attributes = {} #item.attributes
+
+        assert not hasattr(item, 'attributes')
+
+        self._item = item
 
         self.x0 = item.x0
         self.x1 = item.x1
@@ -110,6 +106,22 @@ class MyItem(object):
         assert self.x0 <= self.x1 and self.y0 <= self.y1
         assert abs(self.x1 - (self.x0 + self.width)) <= 1   # allow one pixel of error..
         assert abs(self.y1 - (self.y0 + self.height)) <= 1  # "
+
+        #if isinstance(item, LTTextLine):
+        feature_extraction(self)
+
+        self.style = {}
+
+    def render_style(self):
+        sty = self.style
+        if self.attributes.get('author', False):
+            sty['background-color'] = 'rgba(255,0,0,0.25)'
+        return ' '.join('%s: %s;' % x for x in sty.items())
+
+    @property
+    def tooltip(self):
+        return '<pre>' + urllib.quote(pprint.pformat(self.attributes)) + '</pre>'
+
 
 def gs(f, outdir):
     # where we'll put the images
@@ -166,21 +178,15 @@ class HTMLConverter(object):
         item.width = int(item.width)
         item.height = int(item.height)
 
-        add_style(item, 'border: %s;' % c)
-
-        feature_extraction(item)
-
-        # format the tooltip
-        if isinstance(item, LTTextLine):
-            item.tooltip = '<pre>' + urllib.quote(pprint.pformat(item.attributes)) + '</pre>'
-        else:
-            item.tooltip = ''
-
         item.yoffset = item.y0 + item.page.yoffset
         item.page.boxes.append(item)
 
         if isinstance(item, LTTextLine):
-            self.items[-1].append(MyItem(item))
+            x = MyItem(item)
+            x.style['border'] = c
+
+            self.items[-1].append(x)
+            self.pages[-1].items.append(x)
 
     def render(self, item):
 
@@ -208,7 +214,7 @@ class HTMLConverter(object):
 
         # give item a reference to the page it's on, and the other way around as well.
         item.page = self.pages[-1]
-        self.pages[-1].items.append(item)
+#        self.pages[-1].items.append(item)
 
         # apply coordinate transformation; item is currently "upside down"
         item.y0 = item.page.height - item.y0
@@ -229,10 +235,8 @@ class HTMLConverter(object):
         # these are higher-level things like paragraphs and headings, but very noisy.
         elif isinstance(item, LTTextBox):
             self.draw_item('2px solid red', item)
-            color = random_color()
             for child in item:
                 self.render(child)
-                add_style(child, 'background-color: rgba(%s,%s,%s,0.5);' % color)
 
         elif isinstance(item, LTFigure):
             for child in item:
@@ -295,9 +299,9 @@ function add_tooltips() {
 
     <img src="img/${page.imgfile}" width="${page.width}" />
 
-    % for item in page.boxes:
+    % for item in page.items:
         <div style="position:absolute;
-                    ${item.style}
+                    ${item.render_style()}
                     left: ${item.x0}px;
                     top: ${item.yoffset}px;
                     width: ${item.width}px;
@@ -426,6 +430,7 @@ def main(filenames):
 
     import webbrowser
     webbrowser.open(outfile)
+
 
 if __name__ == '__main__':
 
