@@ -181,67 +181,43 @@ class HTMLConverter(object):
         item.height = int(item.height)
 
         item.yoffset = item.y0 + item.page.yoffset
-        item.page.boxes.append(item)
 
         if isinstance(item, LTTextLine):
             x = MyItem(item)
             x.style['border'] = 'thin solid orange'
-            self.pages[-1].items.append(x)
+            self.current_page.items.append(x)
 
     def render(self, item):
-
-        if isinstance(item, LTAnon):  # appears to be the space character
-            return
 
         if isinstance(item, LTPage):
             item.yoffset = self.yoffset
             self.yoffset += item.height
 
-            self.current_page = item
-
-            if not hasattr(self.current_page, 'imgfile'):
-                self.current_page.imgfile = '%s-page-%s.png' % (self.filename, len(self.pages) + 1)
-
-            item.boxes = []
-            #item.img_src = "{self.imgdir}/{page.id}.png".format(self=self, page=item)
             self.pages.append(item)
-            self.items.append([])
-            item.items = []
+            self.current_page = item
+            self.current_page.items = []
+            self.current_page.imgfile = '%s-page-%s.png' % (self.filename, len(self.pages))
+
             for child in item:
                 self.render(child)
 
             return
 
-
-        # give item a reference to the page it's on, and the other way around as well.
-        item.page = self.pages[-1]
+        # give item reference to it's page
+        item.page = self.current_page
 
         # apply coordinate transformation; item is currently "upside down"
         item.y0 = item.page.height - item.y0
         item.y1 = item.page.height - item.y1
         item.height = item.y0 - item.y1
 
-        if isinstance(item, LTLine):
-            pass
-
-        elif isinstance(item, LTRect):
-            pass
-
-        elif isinstance(item, LTTextLine):
+        if isinstance(item, LTTextLine):
             self.draw_item(item)
-            for child in item:
-                self.render(child)
 
-        elif isinstance(item, LTTextBox):
-            self.draw_item(item)
-            for child in item:
-                self.render(child)
-
-        elif isinstance(item, LTFigure):
-            for child in item:
-                self.render(child)
-
-
+        else:
+            if hasattr(item, '__iter__'):
+                for child in item:
+                    self.render(child)
 
 
 template = Template("""
