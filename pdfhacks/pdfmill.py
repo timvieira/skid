@@ -24,7 +24,7 @@ from skid.pdfhacks.conversion import pdf2image
 
 # pdfminer
 from pdfminer.layout import LAParams, LTAnon, LTPage, LTLine, LTRect, \
-    LTTextLine, LTTextBox, LTFigure
+    LTTextLine, LTTextBox, LTFigure, LTTextBoxHorizontal
 from pdfminer.pdfparser import PDFParser, PDFDocument
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import PDFPageAggregator
@@ -47,7 +47,6 @@ def random_color():
     return tuple(random.randint(0,255) for i in xrange(3))
 
 def feature_extraction(item):
-#    item.attributes = {}
 
     position = {'x0': item.x0, 'y0': item.y0, 'x1': item.x1, 'y1': item.y1}
     item.attributes.update(position)
@@ -91,7 +90,7 @@ class MyItem(object):
         self.height = item.height
         self.width = item.width
         self.yoffset = item.yoffset
-        self.attributes = {} #item.attributes
+        self.attributes = {}
 
         assert not hasattr(item, 'attributes')
 
@@ -106,9 +105,6 @@ class MyItem(object):
         assert self.x0 <= self.x1 and self.y0 <= self.y1
         assert abs(self.x1 - (self.x0 + self.width)) <= 1   # allow one pixel of error..
         assert abs(self.y1 - (self.y0 + self.height)) <= 1  # "
-
-        #if isinstance(item, LTTextLine):
-        feature_extraction(self)
 
         self.style = {}
 
@@ -155,6 +151,8 @@ def convert(f):
         c.render(layout)
         break  # stop after first page.
 
+    c.add_features()
+
     return c
 
 
@@ -164,11 +162,15 @@ class HTMLConverter(object):
         self.filename = filename
         self.yoffset = 0
         self.pages = []
-        self.text_lines = []
         self.items = []
         self.current_page = None
 
-    def draw_item(self, c, item):
+    def add_features(self):
+        for page in self.pages:
+            for x in page.items:
+                feature_extraction(x)
+
+    def draw_item(self, item):
 
         # bounding box canonicalization
         item.x0 = int(min(item.x0, item.x1))
@@ -183,9 +185,7 @@ class HTMLConverter(object):
 
         if isinstance(item, LTTextLine):
             x = MyItem(item)
-            x.style['border'] = c
-
-            self.items[-1].append(x)
+            x.style['border'] = 'thin solid orange'
             self.pages[-1].items.append(x)
 
     def render(self, item):
@@ -212,9 +212,9 @@ class HTMLConverter(object):
 
             return
 
+
         # give item a reference to the page it's on, and the other way around as well.
         item.page = self.pages[-1]
-#        self.pages[-1].items.append(item)
 
         # apply coordinate transformation; item is currently "upside down"
         item.y0 = item.page.height - item.y0
@@ -223,24 +223,25 @@ class HTMLConverter(object):
 
         if isinstance(item, LTLine):
             pass
+
         elif isinstance(item, LTRect):
             pass
 
         elif isinstance(item, LTTextLine):
-            self.draw_item('thin solid orange', item)
-            self.text_lines.append(item)
+            self.draw_item(item)
             for child in item:
                 self.render(child)
 
-        # these are higher-level things like paragraphs and headings, but very noisy.
         elif isinstance(item, LTTextBox):
-            self.draw_item('2px solid red', item)
+            self.draw_item(item)
             for child in item:
                 self.render(child)
 
         elif isinstance(item, LTFigure):
             for child in item:
                 self.render(child)
+
+
 
 
 template = Template("""
