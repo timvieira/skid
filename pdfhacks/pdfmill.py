@@ -20,6 +20,8 @@ from arsenal.text.utils import remove_ligatures
 from arsenal.debug import ip
 from arsenal.terminal import red, green, blue, yellow
 
+from pandas import DataFrame
+
 from skid.pdfhacks.conversion import pdf2image
 
 # pdfminer
@@ -86,14 +88,14 @@ def feature_extraction(item):
 
 
 class MyItem(object):
+
     def __init__(self, item):
+        assert not hasattr(item, 'attributes')
+
         self.height = item.height
         self.width = item.width
         self.yoffset = item.yoffset
         self.attributes = {}
-
-        assert not hasattr(item, 'attributes')
-
         self._item = item
 
         self.x0 = item.x0
@@ -164,6 +166,26 @@ class HTMLConverter(object):
         self.pages = []
         self.items = []
         self.current_page = None
+
+    def data_frame(self):
+        items = self.pages[0].items
+        for x in items:
+            x.attributes['obj'] = x
+        return DataFrame([x.attributes for x in items])
+
+    def play(self):
+
+        df = self.data_frame()
+        df1 = df.set_index(['font-size', 'font-name']).sort(ascending=False)
+
+        for k,v in df.groupby(['font-size', 'font-name'], sort=True):
+            print '-----'
+            print unicode(k).encode('utf8'), unicode(v).encode('utf8')
+
+        print df1.to_string()
+
+        from arsenal.debug import ip; ip()
+
 
     def add_features(self):
         for page in self.pages:
@@ -319,53 +341,35 @@ def extract_title(filename):
         print meta.get(u'title', None)
         print meta.get(u'author', None)
 
+    page = pdf.pages[0].items
 
-    for page in pdf.items:
+    g = groupby2(page, key=lambda x: x.attributes['font-size'])
 
-        #for x in page: x.attributes['obj'] = x
-        """
-        from pandas import DataFrame
-        df = DataFrame([x.attributes for x in page])
+    if not g:
+        return
 
-        if 'font-size' not in df.columns or 'font-name' not in df.columns:
-            continue
+    title = ' '.join(x.attributes['text'].strip() for x in g[max(g)])
 
-        df1 = df.set_index(['font-size', 'font-name']).sort(ascending=False)
+    print yellow % title.encode('utf8')
 
-#        for k,v in df.groupby(['font-size', 'font-name'], sort=True):
-#            print '-----'
-#            print k,v
+    g = groupby2(page, key=lambda x: x.attributes['font-name'])
 
-#        print '______________________________'
-#        print df1.to_string()
-        """
-        g = groupby2(page, key=lambda x: x.attributes['font-size'])
+    freq = [(len(v), k, v) for k,v in g.iteritems()]
 
-        if not g:
-            continue  # try the next page...
+    freq.sort()
 
-        title = ' '.join(x.attributes['text'].strip() for x in g[max(g)])
-
-        print yellow % title
-
-        g = groupby2(page, key=lambda x: x.attributes['font-name'])
-
-        freq = [(len(v), k, v) for k,v in g.iteritems()]
-
-        freq.sort()
-
-        for count, key, items in freq:
-            print
-            print red % count, green % key
-            for x in items[:10]:
-                print yellow % x.attributes['text'] #, [(k,v) for (k,v) in x.attributes.items() if k not in ('text', 'font-name', 'obj')]
+    for count, key, items in freq:
+        print
+        print red % count, green % key
+        for x in items[:10]:
+            print yellow % x.attributes['text'].encode('utf8') #, [(k,v) for (k,v) in x.attributes.items() if k not in ('text', 'font-name', 'obj')]
 
 #        from debug import ip; ip()
 
 #        print red % 'EXITING'
 #        exit(1)
 
-        return title
+    return title
 
 
 def main(filenames):
@@ -376,8 +380,11 @@ def main(filenames):
     pages = []
     for filename in filenames:
 
+        ff = ' file://' + filename
+
         print
-        print green % filename
+        print red % ('#' + '_' *len(ff))
+        print red % ('#' + ff)
         try:
             pdf = convert(filename)
         except KeyboardInterrupt:
@@ -387,7 +394,7 @@ def main(filenames):
             print yellow % 'ERROR'
         else:
 
-            print yellow % extract_title(pdf)
+            print yellow % unicode(extract_title(pdf)).encode('utf8')
 
             gs(filename, outdir)
             pages.append(pdf.pages[0])
