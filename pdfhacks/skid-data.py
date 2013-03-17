@@ -25,19 +25,19 @@ def data(debug=False):
                 print meta.get(u'author', None)
                 print
 
-            try:
-                pdf = convert(filename)
-            except:
-                if debug:
-                    print red % 'FAIL', filename
-                continue
+#            try:
+            pdf = convert(filename)
+#            except:
+#                if debug:
+#                    print red % 'FAIL', filename
+#                continue
 
-            try:
-                pickle.dumps(pdf)
-            except:
-                if debug:
-                    print red % 'bad file.', filename
-                continue
+#            try:
+#                pickle.dumps(pdf)
+#            except:
+#                if debug:
+#                    print red % 'bad file.', filename
+#                continue
 
             yield (meta, d, pdf)
 
@@ -76,7 +76,7 @@ def find_authors(meta, d, pdf):
     author = d.parse_notes()['author']
     authors = [set(shingle(x.strip())) for x in author.split(';')]
 
-    for x in pdf.items[0]:
+    for x in pdf.pages[0].items:
 
         text = x.attributes['text']
         text = re.sub(',', ' ', text)
@@ -109,7 +109,6 @@ def find_authors(meta, d, pdf):
 
     # TODO:
     #  - check for n-grams explained in author string.
-    #  - break-up author names. They often appear in separate bboxes
 
     if not lines:
         print red % 'Sorry, no lines in the document :-('
@@ -138,7 +137,6 @@ def find_authors(meta, d, pdf):
             print green % text, info
             extracted.append(text)
 
-            x[text] = text
             x['author'] = True
 
         else:
@@ -206,6 +204,14 @@ def main():
 
     import webbrowser
     webbrowser.open(outfile)
+
+
+def tovector(x):
+    for k, v in x.attributes.items():
+        if k == 'author':
+            continue
+        if isinstance(v, (bool, basestring)):
+            yield '%s=%s' % (k,v)
 
 
 if __name__ == '__main__':
