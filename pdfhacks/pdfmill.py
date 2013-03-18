@@ -100,11 +100,15 @@ def feature_extraction(item):
     layout = {
     }
 
+    pattern = features.letter_pattern(text)
+
     textual = {
+        'word': re.findall('(\w+|\W+)', text),
+        'word-patterns': pattern.split(),
         'ends-with-hyphen': text.endswith('-'),
         'is_university': features.is_university(text),
         'title_shaped':  features.title_shaped(text),
-        'letter_pattern': features.letter_pattern(text),
+        'letter_pattern': pattern,
         'url': features.url(text),
         'email': features.email(text),
     }
@@ -150,8 +154,6 @@ class MyItem(object):
 
     def render_style(self):
         sty = self.style
-        if self.attributes.get('author', False):
-            sty['background-color'] = 'rgba(255,0,0,0.25)'
         return ' '.join('%s: %s;' % x for x in sty.items())
 
     @property
@@ -162,10 +164,14 @@ class MyItem(object):
 def gs(f, outdir):
     # where we'll put the images
     imgdir = os.path.abspath(outdir) + '/img'
-    # have ghostscript render images of each page.
-    #if not os.path.exists(imgdir):
-    pdf2image(f, outputdir_fmt=imgdir, output_format=os.path.basename(f) + '-page-%d.png',
-              moreopts='-dFirstPage=1 -dLastPage=1')
+    fmt = os.path.basename(f) + '-page-%d.png'
+
+    p = imgdir + '/' + (fmt % 1)
+
+    if not os.path.exists(p):
+        print >> sys.stderr, '[ghostscript]', f, '->', p
+        pdf2image(f, outputdir_fmt=imgdir, output_format=fmt,
+                  moreopts='-dFirstPage=1 -dLastPage=1')
 
 
 def convert(f):
@@ -273,17 +279,14 @@ class HTMLConverter(object):
             for v in vs:
                 v.attributes['fontsize-size-rank'] = rank + 1
 
-
-
-        g = groupby2(items, key=lambda x: x.font_size)
-        if g:
-            for x in g[max(g)]:
-                x.attributes['title'] = True
-                print '%s: %s' % (blue % 'title', x.text)
-                x.style['background-color'] = 'rgba(0,0,255,0.2)'
-
-        else:
-            print g
+#        g = groupby2(items, key=lambda x: x.font_size)
+#        if g:
+#            for x in g[max(g)]:
+#                x.attributes['title'] = True
+#                print '%s: %s' % (blue % 'title', x.text)
+#                x.style['background-color'] = 'rgba(0,0,255,0.2)'
+#        else:
+#            print g
 
     def draw_item(self, item):
 
