@@ -1,36 +1,33 @@
 import re
-import cPickle as pickle
+import fabulous
+
 from skid.add import Document
-from skid.pdfhacks.pdfmill import convert
-from arsenal.iterextras import iterview
-from arsenal.terminal import red, green, yellow, blue
 from skid.config import CACHE
+from skid.pdfhacks.pdfmill import convert, gs, template, Context
+
+from arsenal.iterextras import iterview
+from arsenal.terminal import red, green, yellow, blue, magenta
 
 
-def data(debug=False):
+def data():
 
     for filename in CACHE.glob('*.pdf'):
-
-        if debug:
-            print filename
 
         d = Document(filename)
         meta = d.parse_notes()
 
         if meta.get(u'author', None):
 
-            if debug:
-                print
-                print meta.get(u'title', None)
-                print meta.get(u'author', None)
-                print
+            ff = ' file://' + filename
+            print
+            print red % ('#' + '_' *len(ff))
+            print red % ('#' + ff)
+            print
+            print ('%s: %s' % (yellow % 'meta', meta.get(u'title', None))).encode('utf8')
+            print ('%s: %s' % (yellow % 'meta', meta.get(u'author', None))).encode('utf8')
+            print
 
-#            try:
             pdf = convert(filename)
-#            except:
-#                if debug:
-#                    print red % 'FAIL', filename
-#                continue
 
             yield (meta, d, pdf)
 
@@ -45,11 +42,8 @@ def shingle(x, size=3):
 
 def find_authors(meta, d, pdf):
 
-    print '====================================='
-    print 'file://' + d.cached
-
-    print meta['title'].encode('utf8')
-    print meta['author'].encode('utf8')
+    #print meta['title']
+    #print meta['author'].encode('utf8')
 
     lines = []
 
@@ -59,7 +53,9 @@ def find_authors(meta, d, pdf):
     if not pdf:
         return
 
-    for x in pdf.pages[0].items:
+    items = pdf.pages[0].items
+
+    for x in items:
 
         if 'text' not in x.attributes:
             continue
@@ -106,7 +102,6 @@ def find_authors(meta, d, pdf):
     font_name = lines[0][1].attributes.get('fontname', None)
     font_size = lines[0][1].attributes.get('fontsize', None)
 
-
     extracted = []
 
     for (distance, _), item in lines[:10]:  # most similar lines
@@ -126,6 +121,17 @@ def find_authors(meta, d, pdf):
 
         else:
             print red % text, info
+
+
+    # dump training data to file.
+    with file('data.tsv', 'a') as f:
+        for item in items:
+            f.write(str(item.attributes.get('author', False)))
+            f.write('\t')
+            f.write('alwayson')
+            f.write('\t')
+            f.write('\t'.join(tovector(item)))
+            f.write('\n')
 
     print
 
@@ -149,7 +155,6 @@ def find_authors(meta, d, pdf):
     return True
 
 
-import fabulous
 def color(c, x):
     "Colorize numbers in [0,1] based on value; darker means smaller value."
     a, b = 238, 255   # 232, 255
@@ -159,19 +164,33 @@ def color(c, x):
     return str(fabulous.color.fg256(a + offset, c))
 
 
-from skid.pdfhacks.pdfmill import gs, template, Context
+from learn import predict, pickle
+
 def main():
 
     outdir = 'tmp'
     outfile = outdir + '/output.html'
 
+    # create file, we'll be appending to it as we go along
+    with file('data.tsv', 'wb') as f:
+        f.write('')
+
+    with file('weights.pkl~') as f:
+        w = pickle.load(f)
+
     pages = []
     for i, (meta, d, pdf) in enumerate(data()):
-        if i >= 1:
-            break
+#        if i >= 10:
+#            break
         if find_authors(meta, d, pdf):
             gs(meta['cached'], outdir)
             pages.append(pdf.pages[0])
+
+            for x in pdf.pages[0].items:
+                if predict(w, {k: 1.0 for k in tovector(x)}) == 'True':
+                    x.style['border'] = '2px solid red'
+                    print '%s: %s' % (magenta % 'author', x.text)
+
 
     # if we want to draw the first pages of many pdfs on one html document we
     # have to lie to the items -- tell them they are on pages other than the
@@ -195,7 +214,7 @@ def tovector(x):
         if k == 'author':
             continue
         if isinstance(v, (bool, basestring)):
-            yield '%s=%s' % (k,v)
+            yield ('%s=%s' % (k,v)).replace('\n','').replace('\t','').encode('utf8')
 
 
 if __name__ == '__main__':
