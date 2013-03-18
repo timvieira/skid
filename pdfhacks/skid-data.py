@@ -121,9 +121,8 @@ def find_authors(meta, d, pdf):
 
         if x['fontname'] == font_name and x['fontsize'] == font_size:
             print green % text, info
-            extracted.append(text)
-
             x['author'] = True
+            extracted.append(text)
 
         else:
             print red % text, info
