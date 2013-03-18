@@ -84,7 +84,7 @@ def find_authors(meta, d, pdf):
             x.attributes['author'] = False
             continue
 
-        lines.append(((distance, -x.attributes['font-size']), x))
+        lines.append(((distance, -x.attributes['fontsize']), x))
 
     # ERRORS:
     #  - copyright
@@ -103,8 +103,8 @@ def find_authors(meta, d, pdf):
     lines.sort()
     print
 
-    font_name = lines[0][1].attributes.get('font-name', None)
-    font_size = lines[0][1].attributes.get('font-size', None)
+    font_name = lines[0][1].attributes.get('fontname', None)
+    font_size = lines[0][1].attributes.get('fontsize', None)
 
 
     extracted = []
@@ -119,7 +119,7 @@ def find_authors(meta, d, pdf):
         info = x.copy()
         info.pop('text')
 
-        if x['font-name'] == font_name and x['font-size'] == font_size:
+        if x['fontname'] == font_name and x['fontsize'] == font_size:
             print green % text, info
             extracted.append(text)
 
@@ -168,15 +168,11 @@ def main():
 
     pages = []
     for i, (meta, d, pdf) in enumerate(data()):
-
         if i >= 1:
             break
-
         if find_authors(meta, d, pdf):
-
             gs(meta['cached'], outdir)
             pages.append(pdf.pages[0])
-
 
     # if we want to draw the first pages of many pdfs on one html document we
     # have to lie to the items -- tell them they are on pages other than the

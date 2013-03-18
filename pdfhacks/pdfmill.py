@@ -45,10 +45,15 @@ run_feature_extraction = 1
 if run_feature_extraction:
     from skid.pdfhacks import features
 
+# TODO: post/pre-processing
+#
+#  - remove superscript thingies from authors with a filter on char objects on
+#    textline!
+
 
 # TODO: features
 #
-#  - rank of font-size (= bbox height)
+#  - rank of fontsize (= bbox height)
 #
 #  - font name
 #
@@ -65,7 +70,7 @@ if run_feature_extraction:
 #  - nearest box underneath what looks like a title (according to simple title
 #    extraction heuristic)
 #
-#  - vertically above the word 'abstract' (and below title guess)
+#  - above the word 'abstract' (and below title guess)
 #
 #  - (90% of authors should be retrieved by taking words between abstract and
 #    title. which are not emails, urls, addresses, or institution names)
@@ -86,19 +91,8 @@ def feature_extraction(item):
         'text': text,
     })
 
-    children = [c for c in item._item if hasattr(c, 'fontname')]
-    if children:
-        # Use height of the character bbox as font size, which might be better
-        # because it invariant to font type (but can be worse if it's
-        # incorrectly reported by pdfminer)
-
-        # things like subscripts can throw this number off (definitely don't
-        # want the min!)
-        item.attributes['font-size'] = int(sum(c.height for c in children) * 1.0 / len(children))
-
-        fontnames = Counter(c.fontname for c in children)
-        item.attributes['font-name'] = fontnames.most_common()[0][0] if fontnames else 'unknown'
-
+    item.attributes['fontsize'] = item.font_size
+    item.attributes['fontname'] = item.font_name
 
     item.attributes['abstract'] = item.abstract
 
@@ -142,6 +136,19 @@ class MyItem(object):
         self.attributes = {}
 
         self.abstract = bool(re.findall('abstract', self.text, flags=re.I))
+
+        self.font_size = int(item.height)
+        self.font_name = 'unknown'
+
+        self.children = [c for c in item if hasattr(c, 'fontname')]
+        if self.children:
+            # Use height of the character bbox as font size, which might be better
+            # because it invariant to font type (but can be worse if it's
+            # incorrectly reported by pdfminer).
+
+            # take most frequent font name and size
+            self.font_size = Counter(int(c.height) for c in self.children).most_common()[0][0]
+            self.font_name = Counter(c.fontname for c in self.children).most_common()[0][0]
 
     def render_style(self):
         sty = self.style
@@ -214,9 +221,9 @@ class HTMLConverter(object):
     def play(self):
 
         df = self.data_frame()
-        df1 = df.set_index(['font-size', 'font-name']).sort(ascending=False)
+        df1 = df.set_index(['fontsize', 'fontname']).sort(ascending=False)
 
-        for k,v in df.groupby(['font-size', 'font-name'], sort=True):
+        for k,v in df.groupby(['fontsize', 'fontname'], sort=True):
             print '-----'
             print unicode(k).encode('utf8'), unicode(v).encode('utf8')
 
@@ -224,11 +231,46 @@ class HTMLConverter(object):
 
         from arsenal.debug import ip; ip()
 
-
     def add_features(self):
+
+        items = self.pages[0].items
+
+        # above/below abstract
+        abstracts = [x for x in items if x.abstract]
+        if len(abstracts) == 1:
+            [abstract] = abstracts
+            for x in items:
+                x.attributes['above-abstract'] = x.yoffset < abstract.yoffset
+        else:
+            # TODO: handle no abstracts or many abstracts
+            pass
+
+        # extract local features
         for page in self.pages:
             for x in page.items:
                 feature_extraction(x)
+
+        # fontsize frequency
+        fontsize = Counter(x.font_size for x in items)
+        freq = zip(fontsize.values(), fontsize.keys())
+        freq.sort(reverse=True)
+        rank = {k: rank + 1 for rank, (v, k) in enumerate(freq)}
+        for x in items:
+            x.attributes['fontsize-freq-rank'] = rank[x.font_size]
+
+        # width frequency
+        w = Counter(int(x.width) for x in items)
+        freq = zip(w.values(), w.keys())
+        freq.sort(reverse=True)
+        rank = {k: rank + 1 for rank, (v, k) in enumerate(freq)}
+        for x in items:
+            x.attributes['width-rank'] = rank[int(x.width)]
+
+        # fontsize rank
+        fontsize = groupby2(items, lambda x: x.font_size)
+        for rank, (_, vs) in enumerate(reversed(sorted(fontsize.items()))):
+            for v in vs:
+                v.attributes['fontsize-size-rank'] = rank + 1
 
     def draw_item(self, item):
 
@@ -381,7 +423,7 @@ def extract_title(filename):
 
     page = pdf.pages[0].items
 
-    g = groupby2(page, key=lambda x: x.attributes['font-size'])
+    g = groupby2(page, key=lambda x: x.attributes['fontsize'])
 
     if not g:
         return
@@ -390,7 +432,7 @@ def extract_title(filename):
 
     print yellow % title.encode('utf8')
 
-    g = groupby2(page, key=lambda x: x.attributes['font-name'])
+    g = groupby2(page, key=lambda x: x.attributes['fontname'])
 
     freq = [(len(v), k, v) for k,v in g.iteritems()]
 
@@ -400,12 +442,8 @@ def extract_title(filename):
         print
         print red % count, green % key
         for x in items[:10]:
-            print yellow % x.attributes['text'].encode('utf8') #, [(k,v) for (k,v) in x.attributes.items() if k not in ('text', 'font-name', 'obj')]
-
-#        from debug import ip; ip()
-
-#        print red % 'EXITING'
-#        exit(1)
+            print yellow % x.attributes['text'].encode('utf8')
+            print #'    ', [(k,v) for (k,v) in x.attributes.items() if k not in ('text', 'fontname', 'obj')]
 
     return title
 
