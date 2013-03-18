@@ -11,7 +11,7 @@ from arsenal.terminal import red, green, yellow, blue, magenta
 
 def data():
 
-    for filename in CACHE.glob('*.pdf'):
+    for filename in iterview(CACHE.glob('*.pdf')):
 
         d = Document(filename)
         meta = d.parse_notes()
@@ -42,21 +42,21 @@ def shingle(x, size=3):
 
 def find_authors(meta, d, pdf):
 
-    #print meta['title']
-    #print meta['author'].encode('utf8')
-
-    lines = []
-
-    author = d.parse_notes()['author']
+    author = meta['author']
     authors = [set(shingle(x.strip())) for x in author.split(';')]
+
+    title = meta['title']
+    T = set(shingle(title.strip()))
 
     if not pdf:
         return
 
     items = pdf.pages[0].items
 
-    for x in items:
+    author_candidates = []
+    title_candidates = []
 
+    for x in items:
         if 'text' not in x.attributes:
             continue
 
@@ -70,17 +70,18 @@ def find_authors(meta, d, pdf):
         if not b:
             continue
 
+        dist = -len(T & b) * 1.0 / len(T | b)
+
+        if dist <= -0.1:
+            title_candidates.append(((dist,
+                                      -x.attributes['fontsize']), x))
+
         distance = sum(-len(a & b) * 1.0 / len(a | b) for a in authors)
 
         if distance > -0.2:
-            x.attributes['author'] = False
             continue
 
-        if distance >= 0:
-            x.attributes['author'] = False
-            continue
-
-        lines.append(((distance, -x.attributes['fontsize']), x))
+        author_candidates.append(((distance, -x.attributes['fontsize']), x))
 
     # ERRORS:
     #  - copyright
@@ -92,41 +93,25 @@ def find_authors(meta, d, pdf):
     # TODO:
     #  - check for n-grams explained in author string.
 
-    if not lines:
+    if not author_candidates or not title_candidates:
         print red % 'Sorry, no lines in the document :-('
         return
 
-    lines.sort()
-    print
+    for x in items:
+        x.attributes['label'] = 'other'
 
-    font_name = lines[0][1].attributes.get('fontname', None)
-    font_size = lines[0][1].attributes.get('fontsize', None)
+    for x in heuristic(title, title_candidates):
+        x.attributes['label'] = 'title'
+        x.style['background-color'] = 'rgba(0,0,255,0.2)'
 
-    extracted = []
-
-    for (distance, _), item in lines[:10]:  # most similar lines
-
-        x = item.attributes
-        print '  %6.4f' % distance,
-
-        text = x['text'].encode('utf8')
-
-        info = x.copy()
-        info.pop('text')
-
-        if x['fontname'] == font_name and x['fontsize'] == font_size:
-            print green % text, info
-            x['author'] = True
-            extracted.append(text)
-
-        else:
-            print red % text, info
-
+    for x in heuristic(author, author_candidates):
+        x.attributes['label'] = 'author'
+        x.style['background-color'] = 'rgba(255,0,0,0.2)'
 
     # dump training data to file.
     with file('data.tsv', 'a') as f:
         for item in items:
-            f.write(str(item.attributes.get('author', False)))
+            f.write(item.attributes['label'])
             f.write('\t')
             f.write('alwayson')
             f.write('\t')
@@ -135,24 +120,51 @@ def find_authors(meta, d, pdf):
 
     print
 
-    # TODO: check if there is still an entire name with no good match.
+    return True
+
+
+def heuristic(target, candidates):
+    extracted = []
+    candidates.sort()
+
+    # font name and size of top hit
+    font_name = candidates[0][1].attributes.get('fontname', None)
+    font_size = candidates[0][1].attributes.get('fontsize', None)
+
+    print
+    print 'Candidates:'
+    for (distance, _), item in candidates[:10]:  # most similar lines
+        x = item.attributes
+        print '  %6.4f' % distance,
+
+        text = x['text'].encode('utf8')
+        info = x.copy()
+        info.pop('text')
+
+        if x['fontname'] == font_name and x['fontsize'] == font_size:
+            print green % text, info
+            extracted.append(item)
+        else:
+            print red % text, info
 
     if not extracted:
         print red % 'failed to extract anything relevant :-('
         return
 
-    c = reduce(set.union, map(set, map(shingle, extracted)))
+    extracted_text = ' '.join(x.text for x in extracted).encode('utf8')
 
-    tally = [0]*len(author)
+    c = set(shingle(extracted_text))
+
+    tally = [0]*len(target)
     size = 3
-    for i in xrange(len(author)):
-        if author[i:i+size] in c:
+    for i in xrange(len(target)):
+        if target[i:i+size] in c:
             for j in xrange(i, i+size):
                 tally[j] += 1
 
-    print ''.join(color(c, 1 - x*1.0/3) for c, x in zip(author, tally))
+    print ''.join(color(c, 1 - x*1.0/3) for c, x in zip(target, tally))
 
-    return True
+    return extracted
 
 
 def color(c, x):
@@ -161,10 +173,10 @@ def color(c, x):
     w = b - a
     offset = x*w
     offset = int(round(offset))
-    return str(fabulous.color.fg256(a + offset, c))
+    return unicode(fabulous.color.fg256(a + offset, c)).encode('utf8')
 
 
-from learn import predict, pickle
+from skid.pdfhacks.learn import predict, pickle
 
 def main():
 
@@ -179,18 +191,18 @@ def main():
         w = pickle.load(f)
 
     pages = []
-    for i, (meta, d, pdf) in enumerate(data()):
-#        if i >= 10:
-#            break
+    for meta, d, pdf in data():
         if find_authors(meta, d, pdf):
             gs(meta['cached'], outdir)
             pages.append(pdf.pages[0])
 
             for x in pdf.pages[0].items:
-                if predict(w, {k: 1.0 for k in tovector(x)}) == 'True':
-                    x.style['border'] = '2px solid red'
-                    print '%s: %s' % (magenta % 'author', x.text)
+                y = predict(w, {k: 1.0 for k in tovector(x)})
+                if y != 'other':
+                    x.style['border'] = '2px solid %s' % {'author': 'red', 'title': 'blue'}[y]
 
+                    c = {'author': magenta, 'title': blue}[y]
+                    print '%s: %s' % (c % y, x.text)
 
     # if we want to draw the first pages of many pdfs on one html document we
     # have to lie to the items -- tell them they are on pages other than the
@@ -211,11 +223,19 @@ def main():
 
 def tovector(x):
     for k, v in x.attributes.items():
-        if k == 'author':
+
+        if k == 'label':
             continue
-        if isinstance(v, (bool, basestring)):
+
+        if isinstance(v, (bool, basestring, int)):
             yield ('%s=%s' % (k,v)).replace('\n','').replace('\t','').encode('utf8')
 
+        elif isinstance(v, list):
+            for x in v:
+                yield ('%s=%s' % (k,x)).replace('\n','').replace('\t','').encode('utf8')
+
+        else:
+            assert False, (k,v)
 
 if __name__ == '__main__':
     main()
