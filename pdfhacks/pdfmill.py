@@ -28,7 +28,7 @@ from skid.pdfhacks.conversion import pdf2image
 
 # pdfminer
 from pdfminer.layout import LAParams, LTPage, LTTextLine
-from pdfminer.pdfparser import PDFParser, PDFDocument
+from pdfminer.pdfparser import PDFParser, PDFDocument, PDFSyntaxError
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import PDFPageAggregator
 
@@ -54,8 +54,6 @@ if run_feature_extraction:
 # TODO: features
 #
 #  - rank of fontsize (= bbox height)
-#
-#  - font name
 #
 #  - presence/freq of comma, and, single initial
 #
@@ -120,7 +118,7 @@ class MyItem(object):
     def __init__(self, item):
         assert not hasattr(item, 'attributes')
         self._item = item
-        self.text = remove_ligatures(item.get_text().strip())  # cleanup text
+        self.text = re.sub('[^\x20-\x7E]', '', remove_ligatures(unicode(item.get_text()).strip())).encode('utf8')
         self.yoffset = item.yoffset
 
         self.x0 = item.x0
@@ -135,7 +133,7 @@ class MyItem(object):
         self.style = {}
         self.attributes = {}
 
-        self.abstract = bool(re.findall('abstract', self.text, flags=re.I))
+        self.abstract = bool(re.findall('^abstract', self.text, flags=re.I))
 
         self.font_size = int(item.height)
         self.font_name = 'unknown'
@@ -176,7 +174,10 @@ def convert(f):
     parser = PDFParser(fp)
     doc = PDFDocument()
     parser.set_document(doc)
-    doc.set_parser(parser)
+    try:
+        doc.set_parser(parser)
+    except PDFSyntaxError:
+        return
 
     rsrcmgr = PDFResourceManager()
 
@@ -271,6 +272,18 @@ class HTMLConverter(object):
         for rank, (_, vs) in enumerate(reversed(sorted(fontsize.items()))):
             for v in vs:
                 v.attributes['fontsize-size-rank'] = rank + 1
+
+
+
+        g = groupby2(items, key=lambda x: x.font_size)
+        if g:
+            for x in g[max(g)]:
+                x.attributes['title'] = True
+                print '%s: %s' % (blue % 'title', x.text)
+                x.style['background-color'] = 'rgba(0,0,255,0.2)'
+
+        else:
+            print g
 
     def draw_item(self, item):
 
@@ -423,7 +436,7 @@ def extract_title(filename):
 
     page = pdf.pages[0].items
 
-    g = groupby2(page, key=lambda x: x.attributes['fontsize'])
+    g = groupby2(page, key=lambda x: x.fontsize)
 
     if not g:
         return
