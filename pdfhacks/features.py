@@ -217,7 +217,7 @@ def one_or_more(a):
     plus = a + '+'
     return lambda m: (plus if len(m.group(1)) > 1 else a)
 
-OTHER = re.compile("[^\w?+'\-,./\s]")
+OTHER = re.compile("[^\w?+'\-,./\s@]")
 
 def letter_pattern(text):
     text = UPPERCASE.sub(one_or_more('A'), text)

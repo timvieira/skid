@@ -14,19 +14,20 @@ the bottom of the lowest box above it.
 
 """
 
-import os, sys, pprint, random, urllib
+import re, os, sys, pprint, urllib
+from collections import Counter
+from pandas import DataFrame
+
 from arsenal.iterextras import groupby2
 from arsenal.text.utils import remove_ligatures
+from arsenal.misc import ignore_error
 from arsenal.debug import ip
 from arsenal.terminal import red, green, blue, yellow
-
-from pandas import DataFrame
 
 from skid.pdfhacks.conversion import pdf2image
 
 # pdfminer
-from pdfminer.layout import LAParams, LTAnon, LTPage, LTLine, LTRect, \
-    LTTextLine, LTTextBox, LTFigure, LTTextBoxHorizontal
+from pdfminer.layout import LAParams, LTPage, LTTextLine
 from pdfminer.pdfparser import PDFParser, PDFDocument
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import PDFPageAggregator
@@ -45,37 +46,70 @@ if run_feature_extraction:
     from skid.pdfhacks import features
 
 
-def random_color():
-    return tuple(random.randint(0,255) for i in xrange(3))
+# TODO: features
+#
+#  - rank of font-size (= bbox height)
+#
+#  - font name
+#
+#  - presence/freq of comma, and, single initial
+#
+#  - position on page
+#
+#  - bbox width (relative, rank)
+#
+#  - email, university, institute, address patterns
+#
+#  - letter patterns, word pattern (not entire line pattern)
+#
+#  - nearest box underneath what looks like a title (according to simple title
+#    extraction heuristic)
+#
+#  - vertically above the word 'abstract' (and below title guess)
+#
+#  - (90% of authors should be retrieved by taking words between abstract and
+#    title. which are not emails, urls, addresses, or institution names)
+#
+#  - copyright typically lists author name (but, might be an institution?)
+#
 
 def feature_extraction(item):
 
-    position = {'x0': item.x0, 'y0': item.y0, 'x1': item.x1, 'y1': item.y1}
-    item.attributes.update(position)
+    text = item.text
 
-    if not isinstance(item._item, LTTextLine):
+    if not text:
         return
 
-    text = item._item.get_text().strip()
-    text = remove_ligatures(text)
-
-    item.attributes['text'] = text
+    item.attributes.update({
+        'x0': item.x0, 'y0': item.y0, 'x1': item.x1, 'y1': item.y1,
+        'width': item.width, 'height': item.height,
+        'text': text,
+    })
 
     children = [c for c in item._item if hasattr(c, 'fontname')]
     if children:
-        # this isn't really font size, its height of the character bbox, which
-        # might be better because it invariant to font type.
-        item.attributes['font-size'] = int(min(c.height for c in children))
-        item.attributes['font-name'] = children[0].fontname
+        # Use height of the character bbox as font size, which might be better
+        # because it invariant to font type (but can be worse if it's
+        # incorrectly reported by pdfminer)
+
+        # things like subscripts can throw this number off (definitely don't
+        # want the min!)
+        item.attributes['font-size'] = int(sum(c.height for c in children) * 1.0 / len(children))
+
+        fontnames = Counter(c.fontname for c in children)
+        item.attributes['font-name'] = fontnames.most_common()[0][0] if fontnames else 'unknown'
+
+
+    item.attributes['abstract'] = item.abstract
 
     if not run_feature_extraction:
         return
 
     layout = {
-        'ends-with-hyphen': text.endswith('-'),
     }
 
     textual = {
+        'ends-with-hyphen': text.endswith('-'),
         'is_university': features.is_university(text),
         'title_shaped':  features.title_shaped(text),
         'letter_pattern': features.letter_pattern(text),
@@ -91,24 +125,23 @@ class MyItem(object):
 
     def __init__(self, item):
         assert not hasattr(item, 'attributes')
-
-        self.height = item.height
-        self.width = item.width
-        self.yoffset = item.yoffset
-        self.attributes = {}
         self._item = item
+        self.text = remove_ligatures(item.get_text().strip())  # cleanup text
+        self.yoffset = item.yoffset
 
         self.x0 = item.x0
         self.x1 = item.x1
         self.y0 = item.y0
-        #self.y1 = item.y1 is often unreliable
-        self.y1 = item.y0 + item.height
-
+        self.y1 = item.y0 + item.height  # item.y1 is often unreliable
         assert self.x0 <= self.x1 and self.y0 <= self.y1
-        assert abs(self.x1 - (self.x0 + self.width)) <= 1   # allow one pixel of error..
-        assert abs(self.y1 - (self.y0 + self.height)) <= 1  # "
+
+        self.height = item.height
+        self.width = item.width
 
         self.style = {}
+        self.attributes = {}
+
+        self.abstract = bool(re.findall('abstract', self.text, flags=re.I))
 
     def render_style(self):
         sty = self.style
@@ -147,7 +180,12 @@ def convert(f):
     device = PDFPageAggregator(rsrcmgr, laparams=laparams)
     interpreter = PDFPageInterpreter(rsrcmgr, device)
     for page in doc.get_pages():
-        interpreter.process_page(page)
+        worked = False
+        with ignore_error():
+            interpreter.process_page(page)
+            worked = True
+        if not worked:
+            return
         layout = device.get_result()
         c.current_page = page
         c.render(layout)

@@ -8,7 +8,6 @@ from skid import config
 from arsenal.automain import automain
 from arsenal.terminal import cyan, yellow, magenta
 
-
 from skid.index import lexicon
 
 # TODO: I'd like to quickly check if I've added a paper before. Not sure hash

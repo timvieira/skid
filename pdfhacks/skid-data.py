@@ -32,26 +32,7 @@ def data(debug=False):
 #                    print red % 'FAIL', filename
 #                continue
 
-#            try:
-#                pickle.dumps(pdf)
-#            except:
-#                if debug:
-#                    print red % 'bad file.', filename
-#                continue
-
             yield (meta, d, pdf)
-
-
-def build_data():
-    docs = list(data())
-    # save the file every time...
-    with file('skid-data.pkl~', 'wb') as f:
-        pickle.dump(docs, f)
-
-
-def load():
-    with file('skid-data.pkl~') as f:
-        return pickle.load(f)
 
 
 def shingle(x, size=3):
@@ -60,7 +41,6 @@ def shingle(x, size=3):
     ['abc', 'bcd', 'cde', 'def']
     """
     return [x[i:i + size] for i in xrange(0, len(x) - size + 1)]
-
 
 
 def find_authors(meta, d, pdf):
@@ -76,7 +56,13 @@ def find_authors(meta, d, pdf):
     author = d.parse_notes()['author']
     authors = [set(shingle(x.strip())) for x in author.split(';')]
 
+    if not pdf:
+        return
+
     for x in pdf.pages[0].items:
+
+        if 'text' not in x.attributes:
+            continue
 
         text = x.attributes['text']
         text = re.sub(',', ' ', text)
@@ -159,8 +145,9 @@ def find_authors(meta, d, pdf):
             for j in xrange(i, i+size):
                 tally[j] += 1
 
-
     print ''.join(color(c, 1 - x*1.0/3) for c, x in zip(author, tally))
+
+    return True
 
 
 import fabulous
@@ -181,13 +168,15 @@ def main():
 
     pages = []
     for i, (meta, d, pdf) in enumerate(data()):
-        find_authors(meta, d, pdf)
 
-        gs(meta['cached'], outdir)
-        pages.append(pdf.pages[0])
-
-        if i > 5:
+        if i >= 1:
             break
+
+        if find_authors(meta, d, pdf):
+
+            gs(meta['cached'], outdir)
+            pages.append(pdf.pages[0])
+
 
     # if we want to draw the first pages of many pdfs on one html document we
     # have to lie to the items -- tell them they are on pages other than the
