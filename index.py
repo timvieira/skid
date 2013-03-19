@@ -40,7 +40,7 @@ def create():
     create_in(DIRECTORY, schema, NAME)
 
 
-def search(q):
+def search(q, limit=10):
     q = unicode(q.decode('utf8'))
     ix = open_dir(DIRECTORY, NAME)
     with ix.searcher() as searcher:
@@ -54,17 +54,17 @@ def search(q):
         # pass query thru standard analyzer or else Whoosh will choke on stopwords
         q = u' '.join(tk.text for tk in StandardAnalyzer()(q))   # this fails on attributes, e.g. "author:vieira"
         q = qp.parse(q)
-        for hit in searcher.search(q, limit=10):
+        for hit in searcher.search(q, limit=limit):
             yield hit
 
 
-def search2(q):
+def search2(q, limit=10):
     q = unicode(q.decode('utf8'))
     ix = open_dir(DIRECTORY, NAME)
     with ix.searcher() as searcher:
         qp = QueryParser('text', schema=ix.schema)
         q = qp.parse(q)
-        for hit in searcher.search(q, limit=10):
+        for hit in searcher.search(q, limit=limit):
             yield hit
 
 
