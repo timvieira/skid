@@ -141,7 +141,7 @@ def heuristic(target, candidates):
         info = x.copy()
         info.pop('text')
 
-        if x.fontname == fontname and x.fontsize == fontsize:
+        if item.fontname == fontname and item.fontsize == fontsize:
             print green % text, info
             extracted.append(item)
         else:
@@ -236,6 +236,7 @@ def tovector(x):
 
         else:
             assert False, (k,v)
+
 
 if __name__ == '__main__':
     main()
