@@ -7,6 +7,7 @@ ROOT = path('~/.skid').expand()    # feel free to use environment variables
 CACHE = ROOT / 'marks'
 REMOTE = 'login.clsp.jhu.edu:~/papers'
 
+LIMIT = None
 
 if not ROOT.exists():
     ROOT.mkdir()
