@@ -97,12 +97,9 @@ def feature_extraction(item):
     if not run_feature_extraction:
         return
 
-    layout = {
-    }
-
     pattern = features.letter_pattern(text)
 
-    textual = {
+    item.attributes.update({
         'word': re.findall('(\w+|\W+)', text),
         'word-patterns': pattern.split(),
         'ends-with-hyphen': text.endswith('-'),
@@ -111,10 +108,7 @@ def feature_extraction(item):
         'letter_pattern': pattern,
         'url': features.url(text),
         'email': features.email(text),
-    }
-
-    item.attributes.update(layout)
-    item.attributes.update(textual)
+    })
 
 
 class MyItem(object):
