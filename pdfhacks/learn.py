@@ -28,15 +28,15 @@ def feature_label_freq_filter(data, c, threshold=3):
 def traintest(datafile):
     data = list(load(datafile))
     n = len(data)
-    a = data[:n // 2]
-    b = data[n // 2:]
+    a = data[:int(n *0.7)]
+    b = data[int(n *0.7):]
 
     # feature count filter
     c = Counter(k for _, phi in data for k in phi)
     a = freq_filter(a, c)
 
-#    c = Counter((y, k) for y, phi in data for k in phi)
-#    a = feature_label_freq_filter(a, c)
+    c = Counter((y, k) for y, phi in data for k in phi)
+    a = feature_label_freq_filter(a, c)
 
     return list(a), b
 
