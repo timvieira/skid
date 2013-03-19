@@ -128,8 +128,8 @@ def heuristic(target, candidates):
     candidates.sort()
 
     # font name and size of top hit
-    font_name = candidates[0][1].attributes.get('fontname', None)
-    font_size = candidates[0][1].attributes.get('fontsize', None)
+    fontname = candidates[0][1].attributes.get('fontname', None)
+    fontsize = candidates[0][1].attributes.get('fontsize', None)
 
     print
     print 'Candidates:'
@@ -141,7 +141,7 @@ def heuristic(target, candidates):
         info = x.copy()
         info.pop('text')
 
-        if x['fontname'] == font_name and x['fontsize'] == font_size:
+        if x.fontname == fontname and x.fontsize == fontsize:
             print green % text, info
             extracted.append(item)
         else:

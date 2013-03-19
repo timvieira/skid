@@ -89,8 +89,8 @@ def feature_extraction(item):
         'text': text,
     })
 
-    item.attributes['fontsize'] = item.font_size
-    item.attributes['fontname'] = item.font_name
+    item.attributes['fontsize'] = item.fontsize
+    item.attributes['fontname'] = item.fontname
 
     item.attributes['abstract'] = item.abstract
 
@@ -139,8 +139,8 @@ class MyItem(object):
 
         self.abstract = bool(re.findall('^abstract', self.text, flags=re.I))
 
-        self.font_size = int(item.height)
-        self.font_name = 'unknown'
+        self.fontsize = int(item.height)
+        self.fontname = 'unknown'
 
         self.children = [c for c in item if hasattr(c, 'fontname')]
         if self.children:
@@ -149,8 +149,8 @@ class MyItem(object):
             # incorrectly reported by pdfminer).
 
             # take most frequent font name and size
-            self.font_size = Counter(int(c.height) for c in self.children).most_common()[0][0]
-            self.font_name = Counter(c.fontname for c in self.children).most_common()[0][0]
+            self.fontsize = Counter(int(c.height) for c in self.children).most_common()[0][0]
+            self.fontname = Counter(c.fontname for c in self.children).most_common()[0][0]
 
     def render_style(self):
         sty = self.style
@@ -258,12 +258,12 @@ class HTMLConverter(object):
                 feature_extraction(x)
 
         # fontsize frequency
-        fontsize = Counter(x.font_size for x in items)
+        fontsize = Counter(x.fontsize for x in items)
         freq = zip(fontsize.values(), fontsize.keys())
         freq.sort(reverse=True)
         rank = {k: rank + 1 for rank, (v, k) in enumerate(freq)}
         for x in items:
-            x.attributes['fontsize-freq-rank'] = rank[x.font_size]
+            x.attributes['fontsize-freq-rank'] = rank[x.fontsize]
 
         # width frequency
         w = Counter(int(x.width) for x in items)
@@ -274,12 +274,12 @@ class HTMLConverter(object):
             x.attributes['width-rank'] = rank[int(x.width)]
 
         # fontsize rank
-        fontsize = groupby2(items, lambda x: x.font_size)
+        fontsize = groupby2(items, lambda x: x.fontsize)
         for rank, (_, vs) in enumerate(reversed(sorted(fontsize.items()))):
             for v in vs:
                 v.attributes['fontsize-size-rank'] = rank + 1
 
-#        g = groupby2(items, key=lambda x: x.font_size)
+#        g = groupby2(items, key=lambda x: x.fontsize)
 #        if g:
 #            for x in g[max(g)]:
 #                x.attributes['title'] = True
