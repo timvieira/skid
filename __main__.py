@@ -103,7 +103,7 @@ def _search(searcher, *q):
         else:
             return '(%s, %s et al.)' % (last[0], last[1])
 
-    for hit in searcher(q):
+    for hit in searcher(q, limit=config.LIMIT):
         a = author(hit['author'])
         if a:
             x = '%s %s' % (magenta % a, hit['title'])
@@ -126,6 +126,7 @@ def search(*q):
     Search skid-marks plain-text or metadata.
     """
     return _search(index.search, *q)
+
 
 def search2(*q):
     """
@@ -158,8 +159,7 @@ def search_org(*q):
 
 def search1(*q):
     """
-    Wraps call to search_org. Redirects output to file and opens it in
-    emacs.
+    Wraps call to search_org. Redirects output to file and opens it in emacs.
     """
     sys.stdout = f = file('/tmp/foo', 'wb')
     search_org(*q)
