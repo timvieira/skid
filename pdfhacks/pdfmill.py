@@ -438,7 +438,7 @@ def extract_title(filename):
     if not g:
         return
 
-    title = ' '.join(x.attributes['text'].strip() for x in g[max(g)])
+    title = ' '.join(x.text for x in g[max(g)])
 
     print yellow % title.encode('utf8')
 
