@@ -104,7 +104,7 @@ def _search(searcher, *q):
             return '(%s, %s et al.)' % (last[0], last[1])
 
     for hit in searcher(q, limit=config.LIMIT):
-        a = author(hit['author'])
+        a = author(hit.get('author', ''))
         if a:
             x = '%s %s' % (magenta % a, hit['title'])
         else:
@@ -182,8 +182,7 @@ def drop():
 # want to do it.
 def push():
     "Use rsync to push data to remote machine."
-    os.system('rsync --progress -a %s/. %s/marks/.' % (config.CACHE,
-                                                       config.REMOTE))
+    os.system('rsync --progress -a %s/. %s/marks/.' % (config.CACHE, config.REMOTE))
 
 
 def rm(cached):
@@ -204,11 +203,22 @@ def rm(cached):
 
 # todo: what I really want is something like "hg log" which lists a summary of
 # everything I've done.
-#def recent():
-#    "List recently modified files."
-#    (out, err) = Popen(['ls', '-1t', CACHE], stdout=PIPE, stderr=PIPE).communicate()
-#    lines = [line for line in out.split('\n') if line.strip() and line.endswith('.d')]
-#    return lines
+def _recent():
+    from subprocess import Popen, PIPE
+    from skid.add import Document
+
+    (out, _) = Popen(['ls', '-1t', config.CACHE], stdout=PIPE, stderr=PIPE).communicate()
+
+    for line in out.split('\n'):
+        line = line.strip()
+        if line.endswith('.d'):
+            d = Document(config.CACHE / line[:-2])
+            meta = d.parse_notes()
+            yield meta
+
+def recent():
+    "List recently modified files."
+    _search(lambda *x, **kw: _recent())
 
 
 def completion():
@@ -249,7 +259,7 @@ def main():
 
     import skid.__main__
     automain(available=['drop', 'captive', 'search', 'search1', 'search2', 'push',
-                        'ack', 'serve', 'rm', 'lexicon'],
+                        'ack', 'serve', 'rm', 'lexicon', 'recent'],
              mod=skid.__main__)
 
 
