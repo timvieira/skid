@@ -198,7 +198,7 @@ class Document(object):
 
     def __init__(self, cached):
         self.cached = path(cached).expand().abspath()
-        assert self.cached.exists()
+        assert self.cached.exists(), self.cached
         self.d = self.cached + '.d'
 
         if not self.d.exists():
