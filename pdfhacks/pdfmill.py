@@ -442,7 +442,7 @@ def extract_title(filename):
 
     print yellow % title.encode('utf8')
 
-    g = groupby2(page, key=lambda x: x.attributes['fontname'])
+    g = groupby2(page, key=lambda x: x.fontname)
 
     freq = [(len(v), k, v) for k,v in g.iteritems()]
 
@@ -452,8 +452,7 @@ def extract_title(filename):
         print
         print red % count, green % key
         for x in items[:10]:
-            print yellow % x.attributes['text'].encode('utf8')
-            print #'    ', [(k,v) for (k,v) in x.attributes.items() if k not in ('text', 'fontname', 'obj')]
+            print yellow % x.text.encode('utf8')
 
     return title
 
