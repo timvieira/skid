@@ -60,11 +60,11 @@ def find_authors(meta, d, pdf):
         if 'text' not in x.attributes:
             continue
 
-        text = x.attributes['text']
+        text = x.text
         text = re.sub(',', ' ', text)
         text = text.encode('utf8', 'ignore')  # HACK: ignores non-ascii
 
-        b = shingle(x.attributes['text'])
+        b = shingle(text)
         b = set(b)
 
         if not b:
@@ -73,15 +73,14 @@ def find_authors(meta, d, pdf):
         dist = -len(T & b) * 1.0 / len(T | b)
 
         if dist <= -0.1:
-            title_candidates.append(((dist,
-                                      -x.attributes['fontsize']), x))
+            title_candidates.append(((dist, -x.fontsize), x))
 
         distance = sum(-len(a & b) * 1.0 / len(a | b) for a in authors)
 
         if distance > -0.2:
             continue
 
-        author_candidates.append(((distance, -x.attributes['fontsize']), x))
+        author_candidates.append(((distance, -x.fontsize), x))
 
     # ERRORS:
     #  - copyright
@@ -128,8 +127,8 @@ def heuristic(target, candidates):
     candidates.sort()
 
     # font name and size of top hit
-    fontname = candidates[0][1].attributes.get('fontname', None)
-    fontsize = candidates[0][1].attributes.get('fontsize', None)
+    fontname = candidates[0][1].fontname
+    fontsize = candidates[0][1].fontsize
 
     print
     print 'Candidates:'
@@ -137,7 +136,7 @@ def heuristic(target, candidates):
         x = item.attributes
         print '  %6.4f' % distance,
 
-        text = x['text'].encode('utf8')
+        text = item.text.encode('utf8')
         info = x.copy()
         info.pop('text')
 
