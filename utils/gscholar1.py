@@ -1,11 +1,9 @@
-import httplib
-import urllib
+import urllib, httplib
 from BeautifulSoup import BeautifulSoup
-import re
 
-from terminal import red, yellow, green, blue
+from arsenal.terminal import red, yellow, green, blue
+from arsenal.text import htmltotext
 
-from text import htmltotext
 
 def search(terms, limit=10, SEARCH_HOST = "scholar.google.com", SEARCH_BASE_URL = "/scholar"):
 
