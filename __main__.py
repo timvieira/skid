@@ -4,11 +4,12 @@ from subprocess import Popen, PIPE
 from skid import index
 from skid import add as _add
 from skid import config
+from skid.index import lexicon
+from skid.add import Document
 
 from arsenal.automain import automain
 from arsenal.terminal import cyan, yellow, magenta
 
-from skid.index import lexicon
 
 # TODO: I'd like to quickly check if I've added a paper before. Not sure hash
 # equality is enough, but it's a start. Should have a quick way to do this at
@@ -28,34 +29,6 @@ def add(source):
     Add document from source. Sources can be urls or filenames.
     """
     return _add.document(source, interactive=True)
-
-
-# experimental: tried using this for emacs mode. saves on loading whoosh indices
-def captive():
-
-    from skid.index import open_dir, MultifieldParser, DIRECTORY, NAME
-
-    ix = open_dir(DIRECTORY, NAME)
-    searcher = ix.searcher()
-    qp = MultifieldParser(fieldnames=['title', 'author', 'tags', 'notes', 'text'],
-                          fieldboosts={'title': 5,
-                                       'author': 5,
-                                       'tags': 3,
-                                       'notes': 2,
-                                       'text': 1},
-                          schema=ix.schema)
-
-    while True:
-        q = sys.stdin.readline().rstrip()
-        if not q:
-            break
-        print '<query %r>' % q
-
-        for hit in searcher.search(qp.parse(unicode(q.decode('utf8'))), limit=5):
-            print hit['title']
-            print hit['cached'] + '.d/notes.org'
-            print hit['tags']
-            print
 
 
 def ack(*x):
@@ -84,7 +57,6 @@ def _search(searcher, *q):
     Search skid-marks plain-text or metadata.
     """
     q = ' '.join(q)
-    print yellow % 'query: %r showing to 10 results' % (q,)
 
     def link(x):
         if not x.startswith('http') and not x.startswith('file://'):
@@ -125,14 +97,16 @@ def search(*q):
     """
     Search skid-marks plain-text or metadata.
     """
+    if config.LIMIT:
+        print yellow % 'query: %r showing top %s results' % (' '.join(q), config.LIMIT)
     return _search(index.search, *q)
 
 
-def search2(*q):
-    """
-    Search skid-marks plain-text or metadata.
-    """
-    return _search(index.search2, *q)
+#def search2(*q):
+#    """
+#    Search skid-marks plain-text or metadata.
+#    """
+#    return _search(index.search2, *q)
 
 
 # Experimental: used when clicking on org-mode link
@@ -157,6 +131,7 @@ def search_org(*q):
             print ' ', ' '.join('[[skid:tags:%s][%s]]' % (x,x) for x in hit['tags'].split()).encode('utf8').strip()
 
 
+# Experimental: search interface pop open emacs
 def search1(*q):
     """
     Wraps call to search_org. Redirects output to file and opens it in emacs.
@@ -204,11 +179,7 @@ def rm(cached):
 # todo: what I really want is something like "hg log" which lists a summary of
 # everything I've done.
 def _recent():
-    from subprocess import Popen, PIPE
-    from skid.add import Document
-
     (out, _) = Popen(['ls', '-1t', config.CACHE], stdout=PIPE, stderr=PIPE).communicate()
-
     for line in out.split('\n'):
         line = line.strip()
         if line.endswith('.d'):
@@ -258,7 +229,8 @@ def main():
         completion()
 
     import skid.__main__
-    automain(available=['drop', 'captive', 'search', 'search1', 'search2', 'push',
+    automain(available=['drop', 'search', 'search1', #'search2',
+                        'push',
                         'ack', 'serve', 'rm', 'lexicon', 'recent'],
              mod=skid.__main__)
 
