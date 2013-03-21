@@ -7,7 +7,7 @@ full-text.
 # deleted manually. Currently, the way to do this is to drop and rebuild the
 # entire index
 
-import os
+import re, os
 from datetime import datetime
 
 from whoosh.index import create_in, open_dir
@@ -52,20 +52,25 @@ def search(q, limit=10):
                                            'text': 1},
                               schema=ix.schema)
         # pass query thru standard analyzer or else Whoosh will choke on stopwords
-        q = u' '.join(tk.text for tk in StandardAnalyzer()(q))   # this fails on attributes, e.g. "author:vieira"
+#        q = u' '.join(tk.text for tk in StandardAnalyzer()(q))   # this fails on attributes, e.g. "author:vieira"
+#        from arsenal.debug import ip; ip()
+
+        # expect user to use 'AND' and 'OR' for conjunctive/disjunctive queries
+        q = re.sub(r'\b(and|or)\b', '', q) # remove 'and' and 'or'
+
         q = qp.parse(q)
         for hit in searcher.search(q, limit=limit):
             yield hit
 
 
-def search2(q, limit=10):
-    q = unicode(q.decode('utf8'))
-    ix = open_dir(DIRECTORY, NAME)
-    with ix.searcher() as searcher:
-        qp = QueryParser('text', schema=ix.schema)
-        q = qp.parse(q)
-        for hit in searcher.search(q, limit=limit):
-            yield hit
+#def search2(q, limit=10):
+#    q = unicode(q.decode('utf8'))
+#    ix = open_dir(DIRECTORY, NAME)
+#    with ix.searcher() as searcher:
+#        qp = QueryParser('text', schema=ix.schema)
+#        q = qp.parse(q)
+#        for hit in searcher.search(q, limit=limit):
+#            yield hit
 
 
 #def correct(qstr):
