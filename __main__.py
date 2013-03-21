@@ -4,7 +4,6 @@ from subprocess import Popen, PIPE
 from skid import index
 from skid import add as _add
 from skid import config
-from skid.index import lexicon
 from skid.add import Document
 
 from arsenal.automain import automain
@@ -31,7 +30,7 @@ def add(source):
     return _add.document(source, interactive=True)
 
 
-def ack(*x):
+def ack(x):
     """
     Search notes for pattern.
 
@@ -45,17 +44,21 @@ def ack(*x):
 
     TODO: might want to ack text, not just notes.
     """
-    os.system("find %s -name notes.org |xargs ack '%s'" % (config.CACHE, ' '.join(x)))
+    os.system("find %s -name notes.org |xargs ack '%s'" % (config.CACHE, x))
 
 
 # TODO: I think dumping everything to the screen isn't the best idea. We should
 # have some command-line options (-v: verbose; -s: sources; -d: directory, -n:
 # notes, etc). By default we should list the preferred link type (for pdfs this
 # should be the cached document; links and notes should be the source).
-def _search(searcher, *q):
+def _search(searcher, q, limit=config.LIMIT, show=('author', 'title', 'link', 'link:notes')):
     """
     Search skid-marks plain-text or metadata.
     """
+
+    if limit:
+        print yellow % 'query: %r showing top %s results' % (' '.join(q), limit)
+
     q = ' '.join(q)
 
     def link(x):
@@ -69,37 +72,52 @@ def _search(searcher, *q):
             return ''
         last = [a.strip().split()[-1] for a in x.split(';')]
         if len(last) == 1:
-            return '(%s)' % last[0]
+            return '%s' % last[0]
         elif len(last) == 2:
-            return '(%s & %s)' % (last[0], last[1])
+            return '%s & %s' % (last[0], last[1])
         else:
-            return '(%s, %s et al.)' % (last[0], last[1])
+            return '%s et al.' % (last[0])
 
-    for hit in searcher(q, limit=config.LIMIT):
-        a = author(hit.get('author', ''))
-        if a:
-            x = '%s %s' % (magenta % a, hit['title'])
-        else:
-            x = hit['title']
-        print x.strip().replace('\n', ' ').encode('utf8')
+    for hit in searcher(q, limit=limit):
 
-        if hit['source'].startswith('http'):
+        if 'author' in show:
+            a = author(hit.get('author', ''))
+            if a:
+                year = hit.get('year', '')
+                if year:
+                    a = '%s, %s' % (a, year)
+                print (magenta % '(%s)' % a).encode('utf8'),
+
+        if 'title' in show:
+            print hit['title'].replace('\n', ' ').encode('utf8')
+
+        if 'source' in show:
             print cyan % link(hit['source'])
-        else:
+
+        if 'cached' in show:
             print cyan % link(hit['cached'])
 
-        print cyan % link(hit['cached'] + '.d/notes.org')
+        if 'tags' in show:
+            print hit['tags']
+
+        if 'link' in show:
+            if hit['source'].startswith('http'):
+                print cyan % link(hit['source'])
+            else:
+                print cyan % link(hit['cached'])
+
+        if 'link:notes' in show:
+            print cyan % link(hit['cached'] + '.d/notes.org')
+
         print
     print
 
 
-def search(*q):
+def search(q, **kwargs):
     """
     Search skid-marks plain-text or metadata.
     """
-    if config.LIMIT:
-        print yellow % 'query: %r showing top %s results' % (' '.join(q), config.LIMIT)
-    return _search(index.search, *q)
+    return _search(index.search, q, **kwargs)
 
 
 #def search2(*q):
@@ -110,12 +128,11 @@ def search(*q):
 
 
 # Experimental: used when clicking on org-mode link
-def search_org(*q):
+def search_org(q):
     """
     Search skid-marks for particular attributes. Output org-mode friendly
     output.
     """
-    q = ' '.join(q)
     print
     print '#+title: Search result for query %r' % q
     for hit in index.search(q):
@@ -132,12 +149,12 @@ def search_org(*q):
 
 
 # Experimental: search interface pop open emacs
-def search1(*q):
+def search1(q):
     """
     Wraps call to search_org. Redirects output to file and opens it in emacs.
     """
     sys.stdout = f = file('/tmp/foo', 'wb')
-    search_org(*q)
+    search_org(q)
     sys.stdout.flush()
     os.system("emacs -nw /tmp/foo -e 'org-mode'")
     sys.stdout = sys.__stdout__
@@ -189,7 +206,7 @@ def _recent():
 
 def recent():
     "List recently modified files."
-    _search(lambda *x, **kw: _recent())
+    _search(lambda *x, **kw: _recent(), '')
 
 
 def completion():
@@ -211,7 +228,7 @@ def completion():
             possible = cmds
 
         elif 'skid add' in cline:
-            possible = listdir('.')
+            possible = listdir('.')  # TODO: want the standard bash completion in this case
 
         else:
             possible = index.lexicon('author') + index.lexicon('title')
@@ -224,15 +241,98 @@ def completion():
         sys.exit(1)
 
 
+def lexicon(field):
+    for x in index.lexicon(field):
+        print x
+
+
 def main():
     if config.completion:
         completion()
 
-    import skid.__main__
-    automain(available=['drop', 'search', 'search1', #'search2',
-                        'push',
-                        'ack', 'serve', 'rm', 'lexicon', 'recent'],
-             mod=skid.__main__)
+    from argparse import ArgumentParser
+
+    commands = 'search, search1, add, rm, drop, push, serve, ack, lexicon, recent, update'
+
+    if len(sys.argv) <= 1:
+        print commands
+        return
+
+    cmd = sys.argv.pop(1)
+
+    if cmd in ('search', 'search1'):
+
+        p = ArgumentParser()
+        p.add_argument('query', nargs='+')
+        p.add_argument('--limit', help='query limit (use 0 for no limit)', type=int, default=10)
+        p.add_argument('--show', help='display options', type=str)
+        p.add_argument('--hide', help='display options', type=str)
+        args = p.parse_args()
+
+        show = {'author', 'title', 'link:cached', 'link:notes'}
+        show.update(x.strip() for x in (args.show or '').split(','))
+
+        for x in (x.strip() for x in (args.hide or '').split(',')):
+            if x in show:
+                show.remove(x)
+
+        if cmd == 'search':
+            search(args.query, limit=args.limit if args.limit > 0 else None, show=show)
+        else:
+#            search1(args.query, limit=args.limit, show=show)
+            assert False, 'temporarily disabled.'
+
+    elif cmd == 'add':
+        p = ArgumentParser()
+        p.add_argument('source')
+        args = p.parse_args()
+        add(args.source)
+
+    elif cmd == 'rm':
+        p = ArgumentParser()
+        p.add_argument('cached')
+        args = p.parse_args()
+        rm(args.cached)
+
+    elif cmd == 'update':
+        p = ArgumentParser()
+        args = p.parse_args()
+        update()
+
+    elif cmd == 'drop':
+        drop()
+
+    elif cmd == 'push':
+        push()
+
+    elif cmd == 'serve':
+        serve()
+
+    elif cmd == 'ack':
+        p = ArgumentParser()
+        p.add_argument('query')
+        args = p.parse_args()
+        ack(args.query)
+
+    elif cmd == 'search_org':
+        p = ArgumentParser()
+        p.add_argument('query')
+        args = p.parse_args()
+        search_org(args.query)
+
+    elif cmd == 'lexicon':
+        p = ArgumentParser()
+        p.add_argument('field')
+        args = p.parse_args()
+        lexicon(args.ield)
+
+    elif cmd == 'recent':
+        p = ArgumentParser()
+        args = p.parse_args()
+        recent()
+
+    else:
+        print commands
 
 
 if __name__ == '__main__':
