@@ -17,11 +17,11 @@ def load(filename):
 def conjunctions(phi):
     return ['(%s & %s)' % (phi[i], phi[j]) for i in xrange(len(phi)) for j in xrange(i+1)]
 
-def freq_filter(data, c, threshold=3):
+def freq_filter(data, c, threshold=5):
     for y, phi in data:
         yield y, [k for k in phi if c[k] >= threshold]
 
-def feature_label_freq_filter(data, c, threshold=3):
+def feature_label_freq_filter(data, c, threshold=5):
     for y, phi in data:
         yield y, [k for k in phi if c[y, k] >= threshold]
 

@@ -82,16 +82,6 @@ def find_authors(meta, d, pdf):
 
         author_candidates.append(((distance, -x.fontsize), x))
 
-    # ERRORS:
-    #  - copyright
-    #  - emails
-    #  - citations
-    #  - sometimes author have same font, but different fontsize (even though it
-    #    looks the same size in the pdf)
-
-    # TODO:
-    #  - check for n-grams explained in author string.
-
     if not author_candidates or not title_candidates:
         print red % 'Sorry, no lines in the document :-('
         return

@@ -44,9 +44,6 @@ def cache_url(url):
 def cache_document(src):
     "Cache a document, return filename of the cached file."
 
-    # TODO: maybe support omitting 'http://', just guess that if its not a file
-    # name it must be a url.
-
     # TODO:
     #  - make sure we don't overwrite files
     #  - cache to staging area first
