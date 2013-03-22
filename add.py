@@ -5,8 +5,8 @@ import re, os, subprocess
 from path import path
 
 from skid.config import CACHE
-from skid.common import unicodify_dict
 
+from arsenal.text.utils import force_unicode
 from arsenal.terminal import yellow, red, blue
 from arsenal.web.download import download
 from arsenal.text.utils import htmltotext, remove_ligatures, force_unicode, \
@@ -14,8 +14,14 @@ from arsenal.text.utils import htmltotext, remove_ligatures, force_unicode, \
 
 from skid.pdfhacks import pdftotext, extract_title
 
+
 class SkidError(Exception):
     pass
+
+
+def unicodify_dict(a):
+    return {force_unicode(k): force_unicode(v).strip() for k,v in a.iteritems()}
+
 
 # TODO: use wget instead, it's more robust and has more bells and
 # whistles.. e.g. handling redirects, ftp, timeouts, and all sorts of silly
