@@ -106,6 +106,9 @@ def _search(searcher, q, limit=config.LIMIT, show=('author', 'title', 'link', 'l
         if 'link:notes' in show:
             print cyan % link(hit['cached'] + '.d/notes.org')
 
+        if 'notes' in show:
+            print hit['notes']
+
         print
     print
 
