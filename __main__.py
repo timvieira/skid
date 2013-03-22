@@ -6,7 +6,6 @@ from skid import add as _add
 from skid import config
 from skid.add import Document
 
-from arsenal.automain import automain
 from arsenal.terminal import cyan, yellow, magenta
 
 
@@ -57,9 +56,7 @@ def _search(searcher, q, limit=config.LIMIT, show=('author', 'title', 'link', 'l
     """
 
     if limit:
-        print yellow % 'query: %r showing top %s results' % (' '.join(q), limit)
-
-    q = ' '.join(q)
+        print yellow % 'query: %r showing top %s results' % (q, limit)
 
     def link(x):
         if not x.startswith('http') and not x.startswith('file://'):
@@ -128,14 +125,14 @@ def search(q, **kwargs):
 
 
 # Experimental: used when clicking on org-mode link
-def search_org(q):
+def search_org(q, **kwargs):
     """
     Search skid-marks for particular attributes. Output org-mode friendly
     output.
     """
     print
     print '#+title: Search result for query %r' % q
-    for hit in index.search(q):
+    for hit in index.search(q, limit=kwargs.get('limit', config.LIMIT)):
         source = hit['source']
         cached = hit['cached']
         d = cached + '.d'
@@ -149,12 +146,12 @@ def search_org(q):
 
 
 # Experimental: search interface pop open emacs
-def search1(q):
+def search1(q, **kwargs):
     """
     Wraps call to search_org. Redirects output to file and opens it in emacs.
     """
     sys.stdout = f = file('/tmp/foo', 'wb')
-    search_org(q)
+    search_org(q, **kwargs)
     sys.stdout.flush()
     os.system("emacs -nw /tmp/foo -e 'org-mode'")
     sys.stdout = sys.__stdout__
@@ -260,7 +257,7 @@ def main():
 
     cmd = sys.argv.pop(1)
 
-    if cmd in ('search', 'search1'):
+    if cmd in ('search', 'search1', 'search_org'):
 
         p = ArgumentParser()
         p.add_argument('query', nargs='+')
@@ -269,18 +266,16 @@ def main():
         p.add_argument('--hide', help='display options', type=str)
         args = p.parse_args()
 
-        show = {'author', 'title', 'link:cached', 'link:notes'}
+        show = {'author', 'title', 'link', 'link:notes'}
         show.update(x.strip() for x in (args.show or '').split(','))
 
         for x in (x.strip() for x in (args.hide or '').split(',')):
             if x in show:
                 show.remove(x)
 
-        if cmd == 'search':
-            search(args.query, limit=args.limit if args.limit > 0 else None, show=show)
-        else:
-#            search1(args.query, limit=args.limit, show=show)
-            assert False, 'temporarily disabled.'
+        s = {'search': search, 'search1': search1, 'search_org': search_org}[cmd]
+
+        s(' '.join(args.query), limit=args.limit if args.limit > 0 else None, show=show)
 
     elif cmd == 'add':
         p = ArgumentParser()
