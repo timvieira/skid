@@ -1,11 +1,11 @@
 """
-Manage directory structure.
+Add document to skid (cache document, extract text, create metadata files).
 """
 import re, os, subprocess
 from path import path
 
 from skid.config import CACHE
-from skid.common import mergedict, unicodify_dict, dictsubset
+from skid.common import unicodify_dict
 
 from arsenal.terminal import yellow, red, blue
 from arsenal.web.download import download
@@ -14,6 +14,8 @@ from arsenal.text.utils import htmltotext, remove_ligatures, force_unicode, \
 
 from skid.pdfhacks import pdftotext, extract_title
 
+class SkidError(Exception):
+    pass
 
 # TODO: use wget instead, it's more robust and has more bells and
 # whistles.. e.g. handling redirects, ftp, timeouts, and all sorts of silly
@@ -72,7 +74,7 @@ def cache_document(src):
     assert False
 
 
-# TODO: add file to Whoosh index.
+# TODO: add file to Whoosh index (after interactive editing completes?)
 
 # TODO:
 #
@@ -82,13 +84,7 @@ def cache_document(src):
 #
 # - If it's a pdf we should try to get a bibtex entry for it.
 #
-# - merge:
-#    - might want to handle most of this thru version control.
-#    - check document already exists
-#    - merges metadata
-#    - merge document contents (pick old or new version)
-#
-def document(source, tags='', title='', notes='', interactive=True):
+def document(source, interactive=True):
     """
     Import document from ``source``. Procedure will download/cache the file,
     create a directory to store metadta.
@@ -113,78 +109,20 @@ def document(source, tags='', title='', notes='', interactive=True):
     d.write_hash()
     d.extract_plaintext()
 
-    update_existing(d, source, tags, title, notes)
+    meta = {
+        'title': d.extract_title(),
+        'author': '',
+        'year': '',
+        'tags': '',
+        'notes': '',
+        'source': source,
+        'cached': cached,
+    }
+
+    d.meta('notes.org', d.note_template(meta))
 
     if interactive:
         d.edit_notes()
-
-
-def update_existing(d, source, tags='', title='', notes=''):
-
-    old = d.extract_metadata()
-
-    # Adding a document from the cache is typically a "refresh", e.g. updating
-    # the output of processing a file by pushing it through the pipeline. In
-    # such an event we almost never want the source to change to the location of
-    # the cached file. Thus, we handle the conflict automatically by using the
-    # old source.
-    if source.startswith(CACHE):
-        source = old['source']
-
-    new = {
-        'notes': notes.strip(),
-        'title': title,
-        'source': source,
-        'cached': d.cached,
-    }
-
-    new = mergedict(old, new)
-
-    if tags:
-        tags = tags.split() if isinstance(tags, basestring) else list(tags)
-        # newtags will include all exisiting tags in the order the are listed in
-        # document, concatenating new tags (ignoring duplicates; in order
-        # listed).
-        newtags = old['tags'].strip().split()
-        existingtags = set(newtags)
-        for t in tags:
-            if t not in existingtags:
-                newtags.append(t.strip())
-        new['tags'] = ' '.join(newtags)
-
-    new = unicodify_dict(new)
-    old = unicodify_dict(old)
-
-    existingdata = d.note_content()
-
-    newcontent = d.note_template(new)
-
-    if dictsubset(new, old):
-        d.meta('notes.org', newcontent, overwrite=True)
-
-    elif newcontent.strip() != existingdata.strip():     # manual resolution
-        merge_kdiff3(newcontent, d.d / 'notes.org')     # XXX: shouldn't hardcode path
-
-
-def merge_kdiff3(newcontent, existing):
-    "XXX: newcontent is a string; existing is a file."
-
-    tmp = '/tmp/newmetadata.org'
-    with file(tmp, 'wb') as f:
-        f.write(newcontent)
-
-    print red % 'Need to merge notes...'
-    print yellow % '=================================='
-    if 0 != os.system('kdiff3 --merge %s %s --output %s' % (existing, tmp, existing)):
-        print red % 'merge aborted. keeping original, other temporarily saved to %s' % tmp
-
-        # TODO: should probably delete any mess we might have made. This is
-        # probably easier to do if we work in a staging area (we might not even
-        # care to clean up after ourselves in that case).
-        raise AssertionError('merging notes failed. aborting')
-    else:
-        print yellow % 'merge successful.'
-        os.remove(existing + '.orig')  # remove kdiff's temporary file.
 
 
 # TODO: everything pertaining to Document should appear here probably including
@@ -228,26 +166,18 @@ class Document(object):
             f.write('\n')
         return h
 
-    def extract_metadata(self):
+    def extract_title(self):
 
-        metadata = {'tags': '', 'title': '', 'notes': '', 'author': ''}
         if self.cached.endswith('.pdf'):
-            metadata['title'] = extract_title(self.cached)
+            return extract_title(self.cached)
 
         else:
             # assume it's HTML
             x = re.findall('<title>(.*?)</title>', self.cached.text(), re.I)
             if x:
-                metadata['title'] = x[0].strip()  # take the first title
+                return x[0].strip()  # take the first title
             else:
-                pass   # TODO: maybe take first line of the file?
-
-        # user notes trump anything automatic
-        parse = self.parse_notes()
-        if parse:
-            metadata = mergedict(metadata, parse)
-
-        return metadata
+                return ''   # TODO: maybe take first line of the file?
 
     def text(self):
         return (self.d / 'data' / 'text').text().decode('utf8')
@@ -270,7 +200,7 @@ class Document(object):
         return self.meta('data/text', text, overwrite=True)
 
     def note_template(self, x):
-        others = set(x) - set('title author source cached tags notes'.split())
+        others = set(x) - set('title author year source cached tags notes'.split())
         attrs = '\n'.join((':%s: %s' % (k, x[k])).strip() for k in others).strip()
         if attrs:
             attrs += '\n'
@@ -281,8 +211,9 @@ class Document(object):
     # TODO: do not like...
     def note_content(self):
         f = self.d / 'notes.org'
-        if f.exists():
-            return f.text()
+        if not f.exists():
+            raise SkidError('Note file missing for %r.' % self)
+        return f.text()
 #            return unicode(file(f).read().decode('latin1'))
 
     # TODO: use a lazy-loaded attribute?
@@ -291,8 +222,6 @@ class Document(object):
         "Extract metadata from notes.org."
 
         content = self.note_content()
-        if not content:
-            return
 
         # XXX: multiple value to same key.
         metadata = re.findall('^(?:\#\+?|:)([^:\s]+):[ ]*([^\n]*?)\s*$',
@@ -317,6 +246,7 @@ class Document(object):
 TEMPLATE = u"""\
 #+title: {title}
 :author: {author}
+:year: {year}
 :source: [[{source}]]
 :cached: [[{cached}]]
 :tags: {tags}
