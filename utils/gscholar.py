@@ -36,7 +36,7 @@ Using gscholar as a command line tool
 =====================================
 
 Put gscholar.py in your path (e.g. by putting it in your ~/bin/), to call it
-from every directory.
+from any directory.
 
 
 Making a simple lookup:
@@ -120,57 +120,55 @@ GOOGLE_SCHOLAR_URL = "http://scholar.google.com"
 HEADERS = {'User-Agent' : 'Mozilla/5.0',
            'Cookie' : 'GSP=ID=%s' % google_id }
 
-FORMAT_BIBTEX = 4
-FORMAT_ENDNOTE = 3
-FORMAT_REFMAN = 2
-FORMAT_WENXIANWANG = 5
+
+BIBTEX = 4
 
 
-def query(searchstr, outformat, allresults=False):
+def query(searchstr, allresults=False):
     """Return a list of bibtex items."""
     logging.debug("Query: %s" % searchstr)
     searchstr = '/scholar?q='+urllib2.quote(searchstr)
     url = GOOGLE_SCHOLAR_URL + searchstr
     header = HEADERS
-    header['Cookie'] = header['Cookie'] + ":CF=%d" % outformat
+    header['Cookie'] = header['Cookie'] + ":CF=%d" % BIBTEX
     request = urllib2.Request(url, headers=header)
     response = urllib2.urlopen(request)
     html = response.read()
     html.decode('ascii', 'ignore')
     # grab the links
-    tmp = get_links(html, outformat)
+    tmp = get_links(html)
 
     # follow the bibtex links to get the bibtex entries
     result = list()
-    if allresults == False and len(tmp) != 0:
+    if not allresults and len(tmp) != 0:
         tmp = [tmp[0]]
     for link in tmp:
         url = GOOGLE_SCHOLAR_URL+link
         request = urllib2.Request(url, headers=header)
         response = urllib2.urlopen(request)
         bib = response.read()
-        print
-        print
-        print bib
+# TODO: this should probably be a debugging option.
+#        print
+#        print
+#        print bib
         result.append(bib)
     return result
 
 
-def get_links(html, outformat):
+def get_links(html):
     """Return a list of reference links from the html."""
-    if outformat == FORMAT_BIBTEX:
-        refre = re.compile(r'<a href="(/scholar\.bib\?[^>]*)">')
-    elif outformat == FORMAT_ENDNOTE:
-        refre = re.compile(r'<a href="(/scholar\.enw\?[^>]*)">')
-    elif outformat == FORMAT_REFMAN:
-        refre = re.compile(r'<a href="(/scholar\.ris\?[^>]*)">')
-    elif outformat == FORMAT_WENXIANWANG:
-        refre = re.compile(r'<a href="(/scholar\.ral\?[^>]*)">')
-    reflist = refre.findall(html)
+
+
+#    results = [(a,b) for a,b in re.findall('<a.*?href="(.*?)".*?>(.*?)</a>', html) if '[PDF]' in b]
+
+
+#    from arsenal.debug import ip; ip()
+
+    reflist = re.findall(r'<a href="(/scholar\.bib\?[^>]*)">', html)
+    
     # escape html enteties
-    reflist = [re.sub('&(%s);' % '|'.join(name2codepoint), lambda m:
-        unichr(name2codepoint[m.group(1)]), s) for s in reflist]
-    return reflist
+    escape = lambda m: unichr(name2codepoint[m.group(1)])
+    return [re.sub('&(%s);' % '|'.join(name2codepoint), escape, s) for s in reflist]
 
 
 def convert_pdf_to_txt(pdf):
@@ -182,14 +180,13 @@ def convert_pdf_to_txt(pdf):
     return stdout
 
 
-def pdflookup(pdf, allresults, outformat):
+def pdflookup(pdf, allresults=False):
     """Look a pdf up on google scholar and return bibtex items."""
     txt = convert_pdf_to_txt(pdf)
     # remove all non alphanumeric characters
-    txt = re.sub("\W", " ", txt)
-    words = txt.strip().split()[:20]  # query first 20 words in document
+    words = re.findall('\w\w\w\w+', txt)[:20]  # query first 20 words longer than 4 characters in document
     gsquery = " ".join(words)
-    bibtexlist = query(gsquery, outformat, allresults)
+    bibtexlist = query(gsquery, allresults)
     return bibtexlist
 
 
@@ -210,6 +207,7 @@ def _get_bib_element(bibitem, element):
 
 def rename_file(pdf, bibitem):
     """Attempt to rename pdf according to bibitem."""
+
     year = _get_bib_element(bibitem, "year")
     author = _get_bib_element(bibitem, "author")
     if author:
@@ -219,7 +217,10 @@ def rename_file(pdf, bibitem):
     for i in year, author, title:
         if i:
             l.append(i)
-    filename =  " - ".join(l) + ".pdf"
+#    filename =  " - ".join(l) + ".pdf"
+
+    filename = (author + year[-2:] + title.split()[0] + '.pdf').lower()
+
     newfile = pdf.replace(os.path.basename(pdf), filename)
     print
     print "Will rename:"
@@ -239,57 +240,56 @@ def rename_file(pdf, bibitem):
         print "Aborting."
 
 
-
+import argparse
 def main():
-    usage = 'Usage: %prog [options] {pdf | "search terms"}'
-    parser = optparse.OptionParser(usage)
-    parser.add_option("-a", "--all", action="store_true", dest="all",
-            default="False", help="show all bibtex results")
-    parser.add_option("-d", "--debug", action="store_true", dest="debug",
-            default="False", help="show debugging output")
-    parser.add_option("-r", "--rename", action="store_true", dest="rename",
-            default="False", help="rename file (asks before doing it)")
-    parser.add_option("-f", "--outputformat", dest='output',
-            default="bibtex", help="Output format. Available formats are: bibtex, endnote, refman, wenxianwang [default: %default]")
-    (options, args) = parser.parse_args()
-    if options.debug == True:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--all', action='store_true', default=False,
+                        help='show all bibtex results')
+    parser.add_argument('--debug', action='store_true', default=False,
+                        help='show debugging output')
+    parser.add_argument('--rename', action='store_true', default=False,
+                        help='rename file (asks before doing it)')
+    parser.add_argument('query', nargs='+',
+                        help='Search terms or pdf.')
+
+    args = parser.parse_args()
+
+    if args.debug:
         logging.basicConfig(level=logging.DEBUG)
-    if options.output == 'bibtex':
-        outformat = FORMAT_BIBTEX
-    elif options.output == 'endnote':
-        outformat = FORMAT_ENDNOTE
-    elif options.output == 'refman':
-        outformat = FORMAT_REFMAN
-    elif options.output == 'wenxianwang':
-        outformat = FORMAT_WENXIANWANG
-    if len(args) != 1:
+
+    if not args.query:
         parser.error("No argument given, nothing to do.")
         sys.exit(1)
-    args = args[0]
+
+    q = ' '.join(args.query)
     pdfmode = False
-    if os.path.exists(args):
-        logging.debug("File exist, assuming you want me to lookup the pdf: %s." % args)
+
+    if os.path.exists(q):
+        logging.debug("File exist, assuming you want me to lookup the pdf: %s." % q)
         pdfmode = True
-        biblist = pdflookup(args, all, outformat)
+        biblist = pdflookup(q, args.all)
     else:
-        logging.debug("Assuming you want me to lookup the query: %s." % args)
-        biblist = query(args, outformat, options.all)
-    if len(biblist) < 1:
+        logging.debug("Assuming you want me to lookup the query: %s." % q)
+        biblist = query(q, args.all)
+
+    if not biblist:
         print "No results found, try again with a different query!"
         sys.exit(1)
-    if options.all == True:
+
+    if args.all:
         logging.debug("All results:")
         for i in biblist:
             print i
     else:
         logging.debug("First result:")
         print biblist[0]
-    if options.rename == True:
+
+    if args.rename:
         if not pdfmode:
             print "You asked me to rename the pdf but didn't tell me which file to rename, aborting."
             sys.exit(1)
         else:
-            rename_file(args, biblist[0])
+            rename_file(q, biblist[0])
 
 
 if __name__ == "__main__":
