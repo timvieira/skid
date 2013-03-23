@@ -4,7 +4,7 @@ SKID: bookmarks, simply kept in directories
 
 Great post by GradHacker: [[http://www.gradhacker.org/2012/08/13/towards-better-pdf-management-with-the-filesystem/][Towards Better PDF Management with the Filesystem]].
 
-Tools for organizing your pdfs are restrictive (and proprietary in the sense
+Tools for organizing your PDFs are restrictive and proprietary (in the sense
 that information is kept hostage inside the software).
 
 Article advocates
@@ -12,9 +12,19 @@ Article advocates
  2. flat structure: keeping a single (flat) directory of all your papers
  3. tags over folders: well-known problem we all faced before gmail.
  4. conventions: naming conventions, tagging conventions
- 5. "simple scripts": they don't say it directly (author is a mac user, not a
+ 5. simple scripts: they don't say it directly (author is a mac user, not a
     linux geek), but they talk about using simple programs rather large
     monolithic programs.
+
+=skid= stores all documents in a single directory called the cache
+(=~/.skid/marks/=). Each file in the cache has a directory associated with it
+where metadata and other associated data will live. These directories are named
+after the cached document with a '.d' suffix (for example, cached document
+=Cookbook.pdf= has a directory =Cookbook.pdf.d/=). The most important file
+living in this directory is =notes.org=. This file is where users annotated
+documents with bibliographic metadata (e.g. title, author, year), personal
+notes, and system information (e.g. source from which it was downloaded).
+
 
 * Explanation
 
@@ -50,34 +60,6 @@ Examples include:
    bibtex data, tags, and comments for research papers.
 
 
-** Adding a document
-
-  1. cache document (download links - it will be cached locally, copy local
-     files into =~/.skid/marks= directory)
-  2. create =.d= directory
-  3. create =notes.org= file (initialize content, e.g. title, tags)
-  4. merge with any existing =notes.org=
-  5. open description file in a text editor
-
-Merging - what if the document has already been added?
-
- - anything automatically replaces null.
- - conflict can be dealt with via kdiff3 or possibly some emacs extension.
-
-Keeping data safe
-
- - TODO: staging area
- - version control
-
-Example description file
-
-: :title: Personal homepage of Tim Vieira
-: :source: http://timvieira.github.com
-: :tags: people nlp ml
-:
-: PhD student at Johns Hopkins University. Works on Dyna programming language and
-: speeding-up inference algorithms using machine learning.
-
 * Things I fumble about trying to do
 
  - looking up a paper's directory so that I could copy files into its folder
@@ -95,8 +77,6 @@ Example description file
 
    * Pagination of results.
 
-   * concise representation of hits; cmd-line options to control verbosity.
-
    * Auto-complete/suggestion might require an interactive command-line
      interface (or possibly a web app, not sure how I feel about a web app).
 
@@ -109,12 +89,12 @@ Example description file
    on a topic or something ... for example the learn directories...
 
  - Reference structure:
-   - It might be nice to leverage/standardize the way documents /cite/, at least
+   - It might be nice to leverage/standardize the way documents cite, at least
      in the notes.org file. (I'm pretty sure we want to avoid automatic citation
      extraction)
 
  - Attachments:
-   - maybe single documents is too flat...
+   - maybe single documents is too flat.
    - Should attachments be indexed?
 
 * Markup language
@@ -167,39 +147,6 @@ hoarding...
 ** Recommendation
 
 find related stuff, suggest tags
-
-* Thinking out loud
-
-I'm a big fan of the /central directory/ with all my papers in it, but there is
-a potential problem that it might cause it to /get out of hand/.
-
- - I should probably be encouraged to remove duplicates and documents which are
-   "useless".
-
-The "learn" project is something that I'm have a bit of trouble getting rid of
-for a few reasons (1) it's nice to think of these things as "topics" I'd like to
-learn about (for the most part hierarchical structures isn't too much of an
-issue because topics are pretty flat. There is the occasional: "is this BP or
-autodiff?" type of question).
-
- - I like that learn has references, code, and notes kept together in a single
-   directory. This way relevant files are brought to my attention (things which
-   I want to /refer to constantly/ and things which are only in my /peripheral/,
-   document which have /potential/.
-
- - TODO: Can we get exactly this same effect by actually USING skid? For
-   example, if I want to see files relevant to 'learn/topic' I can simply look
-   for documents tagged something like 'learn' and 'topic'. Dumping things in
-   skid marks has to disadvantage of 'add' overhead (this can be remedied by
-   non-interactive mode; I could even tag documents with system tag like
-   '$unsorted' or something like that to indicate that this is potentially just
-   some crap I downloaded and want indexed so I can find it later).
-
-   skid-explore could make personalized recommendations, which go beyond the
-   learn tagging scheme, and will go beyond the hierarchical folder structure.
-
-   So this means -- papers will not live in learn, but notes and code still will
-   for now.
 
 * TODO
 
