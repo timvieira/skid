@@ -196,8 +196,8 @@ def rm(cached):
     index.delete(cached)
 
 
-# todo: what I really want is something like "hg log" which lists a summary of
-# everything I've done.
+# TODO: use mtime in Whoosh index instead if "ls -t"? (requires "skid update")
+# TODO: add option to sort by date-added
 def _recent():
     (out, _) = Popen(['ls', '-1t', config.CACHE], stdout=PIPE, stderr=PIPE).communicate()
     for line in out.split('\n'):
@@ -207,8 +207,9 @@ def _recent():
             meta = d.parse_notes()
             yield meta
 
+
 def recent():
-    "List recently modified files."
+    "List recent files."
     _search(lambda *x, **kw: _recent(), '')
 
 
