@@ -246,6 +246,16 @@ def lexicon(field):
         print x
 
 
+def similar(cached, limit=config.LIMIT, numterms=40, fieldname='text', **kwargs):
+    "Most similar results to cached document."
+    ix = index.open_dir(index.DIRECTORY, index.NAME)
+    with ix.searcher() as searcher:
+        results = searcher.find('cached', unicode(cached))
+        result = results[0]
+        for hit in result.more_like_this(top=limit, numterms=numterms, fieldname=fieldname):
+            yield hit
+
+
 def main():
     if config.completion:
         completion()
@@ -322,12 +332,21 @@ def main():
         p = ArgumentParser()
         p.add_argument('field')
         args = p.parse_args()
-        lexicon(args.ield)
+        lexicon(args.field)
 
     elif cmd == 'recent':
         p = ArgumentParser()
         args = p.parse_args()
         recent()
+
+    elif cmd == 'similar':
+
+        p = ArgumentParser()
+        p.add_argument('cached')
+        args = p.parse_args()
+
+        _search(similar, args.cached, limit=10)
+
 
     else:
         print commands
