@@ -49,6 +49,7 @@ class Browser(LassoBrowser):
         common_words = reduce(set.intersection, m['obj'].map(lambda x: x.features))
         print common_words
         print '***********************************'
+        print m['title'].to_string()
 
 
 import skid.add
@@ -56,18 +57,19 @@ import skid.add
 class Document(skid.add.Document):
 
     def __init__(self, i, filename):
-        super(Document, self).__init__(filename)
 
-        raise NotImplementedError('TODO: cleanup use better version and take advantage of super class...')
+        # XXX: do this earlier
+        filename = filename.replace('.d/data/text', '')
+        print filename
+
+        super(Document, self).__init__(filename)
 
         self.id = i
         self.filename = filename
 
-        self.text_file = filename
-        self.cached = filename.replace('.d/data/text', '')
-        self.d = filename.replace('/data/text', '')
+        self.text_file = filename + '.d/data/text'
 
-        self.words = [w.lower() for w in re.findall('[A-Za-z]+', file(filename).read()) if 3 < len(w) < 20]
+        self.words = [w.lower() for w in re.findall('[A-Za-z]+', file(self.text_file).read()) if 3 < len(w) < 20]
         self.setofwords = set(self.words)
 
         self.features = self.setofwords
@@ -78,8 +80,9 @@ class Document(skid.add.Document):
 
         self.tfidf = self.norm = None
 
-        # XXX: parse_notes does not exist anymore
-        self.tags = parse_notes(file(self.d + '/notes.org').read())['tags'].split()
+        self.meta = self.parse_notes()
+
+        self.tags = self.meta['tags'].split()
 
     def jaccard(self, other):
         "Jaccard distance"
@@ -144,13 +147,13 @@ def compute_similarities(documents):
 
             result = result[0]
 
-            for hit in result.more_like_this(top=50, numterms=5, fieldname='text'):
+            for hit in result.more_like_this(top=10, numterms=5, fieldname='text'):
                 attrs = hit.fields()
 
                 try:
                     hitdoc = z[attrs['cached']]
                 except KeyError:
-                    print 'SKIP hit:', attrs['cached']
+                    # skip hits that live outside the designated set, z
                     continue
                 else:
                     dd.append((doc, hitdoc))
@@ -190,11 +193,18 @@ def main(documents):
             print 'skipping:', d.id
             continue
 
-        X.append({'id': d.id,
-                  'filename': d.filename,
-                  'obj': d,
-                  'x': Y[d.id,0],
-                  'y': Y[d.id,1]})
+        x = {'id': d.id,
+             'filename': d.filename,
+             'obj': d,
+             'x': Y[d.id,0],
+             'y': Y[d.id,1]}
+        
+
+        meta = d.parse_notes()
+
+        x.update(meta)
+
+        X.append(x)
 
 #    for i in xrange(len(documents)):
 #        for j in xrange(i + 1, len(documents)):
