@@ -343,13 +343,10 @@ def main():
         recent()
 
     elif cmd == 'similar':
-
         p = ArgumentParser()
         p.add_argument('cached')
         args = p.parse_args()
-
         _search(similar, args.cached, limit=10)
-
 
     else:
         print commands
