@@ -1,18 +1,19 @@
 """
 Add document to skid (cache document, extract text, create metadata files).
+
+TODO: date added.
 """
 import re, os, subprocess
 from path import path
+from datetime import datetime
 
 from skid.config import CACHE
+from skid.pdfhacks import pdftotext, extract_title
 
-from arsenal.text.utils import force_unicode
 from arsenal.terminal import yellow, red, blue
 from arsenal.web.download import download
-from arsenal.text.utils import htmltotext, remove_ligatures, force_unicode, \
+from arsenal.text.utils import htmltotext, force_unicode, remove_ligatures, \
     whitespace_cleanup
-
-from skid.pdfhacks import pdftotext, extract_title
 
 
 class SkidError(Exception):
@@ -122,7 +123,9 @@ def document(source, interactive=True):
         'cached': cached,
     }
 
-    d.meta('notes.org', d.note_template(meta))
+    d.store('notes.org', d.note_template(meta))
+
+    d.store('data/date-added', str(datetime.now()))
 
     if interactive:
         d.edit_notes()
@@ -152,7 +155,7 @@ class Document(object):
     def edit_notes(self):
         subprocess.call(os.environ.get('EDITOR', 'nano').split() + [self.d / 'notes.org'])
 
-    def meta(self, name, content, overwrite=False):
+    def store(self, name, content, overwrite=False):
         t = self.d / name
         assert overwrite or not t.exists(), name + ' already exists!'
         with file(t, 'wb') as f:
@@ -163,11 +166,7 @@ class Document(object):
         return content
 
     def write_hash(self):
-        h = self.cached.read_hexhash('sha1')
-        with file(self.d / 'data' / 'hash', 'wb') as f:
-            f.write(h)
-            f.write('\n')
-        return h
+        return self.store('data/hash', self.cached.read_hexhash('sha1'), overwrite=True)
 
     def extract_title(self):
 
@@ -200,7 +199,7 @@ class Document(object):
 
         text = remove_ligatures(text)
 
-        return self.meta('data/text', text, overwrite=True)
+        return self.store('data/text', text, overwrite=True)
 
     def note_template(self, x):
         others = set(x) - set('title author year source cached tags notes'.split())
