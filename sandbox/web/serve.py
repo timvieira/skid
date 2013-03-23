@@ -8,8 +8,8 @@ def get(x):
 
 from contextlib import contextmanager
 from StringIO import StringIO
-from terminal.ansi2html import ansi2html
-from misc import ctx_redirect_io
+from arsenal.terminal.ansi2html import ansi2html
+from arsenal.misc import ctx_redirect_io
 
 @contextmanager
 def redirect_io(convertansi=False):
@@ -46,12 +46,19 @@ def search():
     q = get('q') or '*'
     print 'query:', q, '<br/>'*2
 
-    for hit in searcher.search(qp.parse(unicode(q.decode('utf8'))), limit=50):
+    for hit in searcher.search(qp.parse(unicode(q.decode('utf8'))), limit=10):
         print '<div class="item">'
         print '<b>', hit['title'].strip(), '</b></br>'
-        print hit['cached'].strip(), '</br>'
+        print '<a href="file://%s">cached</a>' % hit['cached']
+
+        src = hit['source']
+        if not src.startswith('http'):
+            src = 'file://' + src
+        print '<a href="%s">source</a>' % src
+        print '<br/>'
+
         print ' '.join("""
-<a href="Javascript:var q='tags:%s'; search(q); $('query').value=q;">%s</a>""" % (t,t) for t in hit['tags'].split())
+<a href="Javascript:add_tag_to_query('%s')">%s</a>""" % (t, t) for t in hit['tags'].split())
         print '</div>'
 
 
@@ -70,6 +77,12 @@ def index():
 <link rel="stylesheet" type="text/css" href="/?file=style.css"/>
 
 <script type="text/javascript" language="javascript">
+
+function add_tag_to_query(tag) {
+    var q = $('query').value.trim() + " " + 'tags:' + tag; 
+    search(q); 
+    $('query').value = q;
+}
 
 function add_tooltip(elem) {
     if (elem.getAttribute('tooltip')) {
@@ -94,7 +107,6 @@ function ajax(url, params, obj) {
 
 // TODO: check if changed before making sending query
 function search(q) { ajax('/search?', {q:q}); }
-function parse(q) { ajax('/parse?', {q:q}); }
 function onload() {
    //search();
 }
@@ -117,23 +129,20 @@ function onload() {
 </div>
 
 <script type="text/javascript">
-    $('query').observe('keyup', function (e) { search(Event.element(e).value); } );
-    $('parse').observe('keyup', function (e) { parse(Event.element(e).value); } );
+//    $('query').observe('keyup', function (e) { search(Event.element(e).value); } );
 </script>
 
 </body></html>"""
 
 
 def run():
-    import fsutils, os
+    from arsenal.fsutils import cd
+    import os
     import webbrowser; webbrowser.open('http://localhost:8080')
     bottle.debug(True)
 
-    print __file__
-    print os.path.dirname(__file__)
-
-    with fsutils.cd(os.path.dirname(__file__)):
-        bottle.run(reloader=True)
+    with cd(os.path.dirname(__file__)):
+        bottle.run(reloader=False)
 
 if __name__ == '__main__':
     run()
