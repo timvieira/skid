@@ -109,6 +109,9 @@ def _search(searcher, q, limit=config.LIMIT, show=('author', 'title', 'link', 'l
         if 'notes' in show:
             print hit['notes']
 
+        if 'score' in show:
+            print 'score:', hit.score
+
         print
     print
 
