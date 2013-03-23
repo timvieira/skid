@@ -15,8 +15,8 @@ from pandas import DataFrame
 from viz.interact.lasso import LassoBrowser
 from viz.mds import mds
 
-from iterextras import iterview
-from debug import ip
+from arsenal.iterextras import iterview
+from arsenal.debug import ip
 
 
 class Browser(LassoBrowser):
