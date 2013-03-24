@@ -332,7 +332,8 @@ def main():
 
     elif cmd == 'recent':
         p = ArgumentParser()
-        p.add_argument('--by', help='List all documents sorted by', choices=('modified', 'added'), default='added')
+        p.add_argument('--by', choices=('modified', 'added'), default='added',
+                       help='List all documents sorted by')
         args = p.parse_args()
 
         if args.by == 'added':
