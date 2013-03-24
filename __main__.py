@@ -123,13 +123,6 @@ def search(q, **kwargs):
     return _search(index.search, q, **kwargs)
 
 
-#def search2(*q):
-#    """
-#    Search skid-marks plain-text or metadata.
-#    """
-#    return _search(index.search2, *q)
-
-
 # Experimental: used when clicking on org-mode link
 def search_org(q, **kwargs):
     """
@@ -196,21 +189,21 @@ def rm(cached):
     index.delete(cached)
 
 
-# TODO: use mtime in Whoosh index instead if "ls -t"? (requires "skid update")
-# TODO: add option to sort by date-added
-def _recent():
+# TODO: use mtime in Whoosh index instead if "ls -t" and date-added file? (requires "skid update")
+def docs_added():
+    for _, f in reversed(sorted((f.text(), f) for f in config.CACHE.glob('*.d/data/date-added'))):
+        yield f.replace('.d/data/date-added', '')
+
+def docs_modified():
     (out, _) = Popen(['ls', '-1t', config.CACHE], stdout=PIPE, stderr=PIPE).communicate()
     for line in out.split('\n'):
-        line = line.strip()
         if line.endswith('.d'):
-            d = Document(config.CACHE / line[:-2])
-            meta = d.parse_notes()
-            yield meta
+            yield config.CACHE / line[:-2]
 
-
-def recent():
+# TODO: pass show/hide options
+def recent(lister):
     "List recent files."
-    _search(lambda *x, **kw: _recent(), '')
+    _search(lambda *x, **kw: (Document(f).parse_notes() for f in lister()), '')
 
 
 def completion():
@@ -266,7 +259,7 @@ def main():
 
     from argparse import ArgumentParser
 
-    commands = 'search, search1, add, rm, drop, push, serve, ack, lexicon, recent, update'
+    commands = 'search, search1, search_org, add, rm, drop, push, serve, ack, lexicon, recent, update'
 
     if len(sys.argv) <= 1:
         print commands
@@ -283,9 +276,8 @@ def main():
         p.add_argument('--hide', help='display options', type=str)
         args = p.parse_args()
 
-        show = {'author', 'title', 'link', 'link:notes'}
+        show = {'author', 'title', 'link', 'link:notes'}   # defaults
         show.update(x.strip() for x in (args.show or '').split(','))
-
         for x in (x.strip() for x in (args.hide or '').split(',')):
             if x in show:
                 show.remove(x)
@@ -340,8 +332,15 @@ def main():
 
     elif cmd == 'recent':
         p = ArgumentParser()
+        p.add_argument('--by', help='List all documents sorted by', choices=('modified', 'added'), default='added')
         args = p.parse_args()
-        recent()
+
+        if args.by == 'added':
+            recent(docs_added)
+        elif args.by == 'modified':
+            recent(docs_modified)
+        else:
+            raise Exception('Unrecognized argument %r' % args.by)
 
     elif cmd == 'similar':
         p = ArgumentParser()
