@@ -10,9 +10,7 @@ from datetime import datetime
 for f in config.CACHE.files():
 
     d = Document(f)
-
-    mtime = (f + '.d').ctime
-    mtime = str(datetime.fromtimestamp(mtime))
+    mtime = str(datetime.fromtimestamp((f + '.d').mtime))
 
     # won't overwrite
     d.store('data/date-added', mtime, overwrite=False)
