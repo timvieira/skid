@@ -203,3 +203,37 @@ find related stuff, suggest tags
 
 - document exploration: multidimensional scaling scatter plot. Might want to
   play around with ClusterLDA and vanilla LDA.
+
+* Org-mode configuration
+
+Support for 'skid:' direction in org-mode links
+
+: ;;------------------------------------------------------------------------------
+: ;; Support for skid links
+: ;;
+: ;; USAGE:
+: ;;
+: ;; The link directive 'skid'
+: ;;
+: ;;  [[skid:author:"Jason Eisner"][Jason Eisner]]
+: ;;
+: ;; Programmatic
+: ;;
+: ;;  (skid-search "tags:related:discrete-backprop")
+: ;;  (skid-search "machine learning")
+: ;;
+: ;; org-mode reference http://orgmode.org/org.html#Adding-hyperlink-types
+:
+: (require 'org)
+:
+: (org-add-link-type "skid" 'skid-search)
+:
+: (defun skid-search (query)
+:   "skid tag search."
+:   (interactive)
+:   (switch-to-buffer (make-temp-name "Skid"))
+:   (insert (shell-command-to-string (concat "python -m skid search_org " query)))
+:   (beginning-of-buffer)
+:   (org-mode))
+:
+: ;;------------------------------------------------------------------------------
