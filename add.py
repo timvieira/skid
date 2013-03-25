@@ -130,6 +130,8 @@ def document(source, interactive=True):
     if interactive:
         d.edit_notes()
 
+    print "Don't forget to 'skid update'"
+
 
 # TODO: everything pertaining to Document should appear here probably including
 # methods to: find most-similar documents, insert/delete/update index
@@ -141,13 +143,26 @@ def document(source, interactive=True):
 class Document(object):
 
     def __init__(self, cached):
+
+        if cached.startswith('file://'):
+            cached = cached[7:]
+
         self.cached = path(cached).expand().abspath()
-        assert self.cached.exists(), self.cached
+        assert self.cached.exists(), 'File %r does not exist' % self.cached
         self.d = self.cached + '.d'
 
         if not self.d.exists():
             self.d.mkdir()
             (self.d / 'data').mkdir()
+
+    @property
+    def added(self):
+        x = (self.d / 'data' / 'date-added').text().strip()
+        return datetime.strptime(x, '%Y-%m-%d %H:%M:%S.%f')
+
+    @property
+    def modified(self):
+        return self.d.mtime
 
     def __repr__(self):
         return 'Document("%s")' % self.cached
@@ -235,6 +250,8 @@ class Document(object):
             if k in ('cached','source'):
                 # remove org-mode's link markup
                 v = re.sub('^\[\[(.*?)\]\]$', r'\1', v)
+                v = re.sub('(file://)', '', v)
+
             x[k] = v
 
         [d] = re.findall('\n([^:#][\w\W]*$|$)', content)
