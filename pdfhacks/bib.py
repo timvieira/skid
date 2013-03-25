@@ -14,10 +14,10 @@ from subprocess import Popen, PIPE
 from collections import defaultdict
 
 # github.com/timvieira/python-extras
-from fsutils import cd
-from text.utils import force_unicode
-from iterextras import take
-from terminal import green, blue, red, yellow
+from arsenal.fsutils import cd
+from arsenal.text.utils import force_unicode
+from arsenal.iterextras import take
+from arsenal.terminal import green, blue, red, yellow
 
 from skid.pdfhacks.conversion import pdftotext
 

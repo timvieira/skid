@@ -158,7 +158,10 @@ class Document(object):
     @property
     def added(self):
         x = (self.d / 'data' / 'date-added').text().strip()
-        return datetime.strptime(x, '%Y-%m-%d %H:%M:%S.%f')
+        try:
+            return datetime.strptime(x, '%Y-%m-%d %H:%M:%S.%f')
+        except ValueError:
+            return datetime.strptime(x, '%Y-%m-%d %H:%M:%S')
 
     @property
     def modified(self):
