@@ -1,5 +1,7 @@
 import re, os, sys
-from subprocess import Popen, PIPE
+from argparse import ArgumentParser
+from itertools import islice
+from contextlib import contextmanager
 
 from skid import index
 from skid import add as _add
@@ -7,6 +9,8 @@ from skid import config
 from skid.add import Document
 
 from arsenal.terminal import cyan, yellow, magenta
+
+from whoosh.searching import Hit
 
 
 # TODO: I'd like to quickly check if I've added a paper before. Not sure hash
@@ -46,21 +50,14 @@ def ack(x):
     os.system("find %s -name notes.org |xargs ack '%s'" % (config.CACHE, x))
 
 
-# TODO: I think dumping everything to the screen isn't the best idea. We should
-# have some command-line options (-v: verbose; -s: sources; -d: directory, -n:
-# notes, etc). By default we should list the preferred link type (for pdfs this
-# should be the cached document; links and notes should be the source).
-def _search(searcher, q, limit=config.LIMIT, show=('author', 'title', 'link', 'link:notes')):
+def display(results, limit=None, show=('author', 'title', 'link', 'link:notes')):
     """
-    Search skid-marks plain-text or metadata.
+    Display search results.
     """
-
-    if limit:
-        print yellow % 'query: %r showing top %s results' % (q, limit)
 
     def link(x):
         if not x.startswith('http') and not x.startswith('file://'):
-            # add file:// prefix if file, http other wise
+            # add file:// prefix to make file a link in the terminal
             return 'file://' + x
         return x
 
@@ -75,7 +72,9 @@ def _search(searcher, q, limit=config.LIMIT, show=('author', 'title', 'link', 'l
         else:
             return '%s et al.' % (last[0])
 
-    for hit in searcher(q, limit=limit):
+    for doc in islice(results, limit):
+
+        hit = doc.parse_notes()
 
         if 'author' in show:
             a = author(hit.get('author', ''))
@@ -116,22 +115,10 @@ def _search(searcher, q, limit=config.LIMIT, show=('author', 'title', 'link', 'l
     print
 
 
-def search(q, **kwargs):
-    """
-    Search skid-marks plain-text or metadata.
-    """
-    return _search(index.search, q, **kwargs)
-
-
-# Experimental: used when clicking on org-mode link
-def search_org(q, **kwargs):
-    """
-    Search skid-marks for particular attributes. Output org-mode friendly
-    output.
-    """
+def org(results, limit=None, **kwargs):
+    "Format results in org-mode markup."
     print
-    print '#+title: Search result for query %r' % q
-    for hit in index.search(q, limit=kwargs.get('limit', config.LIMIT)):
+    for hit in islice(results, limit):
         source = hit['source']
         cached = hit['cached']
         d = cached + '.d'
@@ -144,16 +131,22 @@ def search_org(q, **kwargs):
             print ' ', ' '.join('[[skid:tags:%s][%s]]' % (x,x) for x in hit['tags'].split()).encode('utf8').strip()
 
 
-# Experimental: search interface pop open emacs
-def search1(q, **kwargs):
+@contextmanager
+def pager(name):
     """
     Wraps call to search_org. Redirects output to file and opens it in emacs.
     """
     sys.stdout = f = file('/tmp/foo', 'wb')
-    search_org(q, **kwargs)
+    yield
     sys.stdout.flush()
-    os.system("emacs -nw /tmp/foo -e 'org-mode'")
     sys.stdout = sys.__stdout__
+
+    if name == 'less':
+        os.system("less -R %s" % f.name)
+    elif name == 'emacs':
+        os.system("emacs -nw %s -e 'org-mode'" % f.name)
+    else:
+        raise Exception('Unknown option for pager %r' % name)
 
 
 def update():
@@ -190,20 +183,28 @@ def rm(cached):
 
 
 # TODO: use mtime in Whoosh index instead if "ls -t" and date-added file? (requires "skid update")
-def docs_added():
-    for _, f in reversed(sorted((f.text(), f) for f in config.CACHE.glob('*.d/data/date-added'))):
-        yield f.replace('.d/data/date-added', '')
+def added(d):
+    return d.added
 
-def docs_modified():
-    (out, _) = Popen(['ls', '-1t', config.CACHE], stdout=PIPE, stderr=PIPE).communicate()
-    for line in out.split('\n'):
-        if line.endswith('.d'):
-            yield config.CACHE / line[:-2]
+def modified(d):
+    return d.modified
 
-# TODO: pass show/hide options
-def recent(lister):
+def score(d):
+    return d.score
+
+def todoc(d):
+    if isinstance(d, Hit):
+        doc = Document(d['cached'])
+        doc.score = d.score
+        return doc
+    return d
+
+
+def ls(q, **kwargs):
     "List recent files."
-    _search(lambda *x, **kw: (Document(f).parse_notes() for f in lister()), '')
+    for f in config.CACHE.files():
+        if q in f:
+            yield Document(f)
 
 
 def completion():
@@ -235,8 +236,6 @@ def completion():
 
         print ' '.join(possible).encode('utf8')
 
-        sys.exit(1)
-
 
 def lexicon(field):
     for x in index.lexicon(field):
@@ -256,10 +255,9 @@ def similar(cached, limit=config.LIMIT, numterms=40, fieldname='text', **kwargs)
 def main():
     if config.completion:
         completion()
+        return
 
-    from argparse import ArgumentParser
-
-    commands = 'search, search1, search_org, add, rm, drop, push, serve, ack, lexicon, recent, update'
+    commands = 'search, add, rm, update, drop, push, serve, ack, lexicon, ls'
 
     if len(sys.argv) <= 1:
         print commands
@@ -267,24 +265,70 @@ def main():
 
     cmd = sys.argv.pop(1)
 
-    if cmd in ('search', 'search1', 'search_org'):
+    if cmd in ('search', 'ls', 'similar'):
 
         p = ArgumentParser()
-        p.add_argument('query', nargs='+')
-        p.add_argument('--limit', help='query limit (use 0 for no limit)', type=int, default=10)
-        p.add_argument('--show', help='display options', type=str)
-        p.add_argument('--hide', help='display options', type=str)
+        p.add_argument('query', nargs='*')
+        p.add_argument('--limit', type=int, default=config.LIMIT,
+                       help='query limit (use 0 for no limit)')
+        p.add_argument('--show', help='display options')
+        p.add_argument('--hide', help='display options')
+        p.add_argument('--pager', choices=('less', 'emacs'), default=None, help='pager for results')
+        p.add_argument('--format', choices=('standard', 'org'), default='standard',
+                       help='output format')
+        p.add_argument('--by', choices=('relevance', 'modified', 'added'), default='relevance',
+                       help='Sort results by')
         args = p.parse_args()
 
+        query = ' '.join(args.query)
+
+        limit = args.limit if args.limit > 0 else None
+
+        # get list of results (convert Whoosh.searching.Hit to skid.Document)
+        s = {'search': index.search, 'ls': ls, 'similar': similar}[cmd]
+        results = list(map(todoc, s(query, limit=limit)))
+
+        # sort documents according to '--by' criteria'
+        sortwith = {'relevance': score, 'modified': modified, 'added': added}[args.by]
+        if cmd == 'ls' and args.by == 'relevance':
+            sortwith = added
+        results.sort(key=sortwith, reverse=True)
+
+        # limit number of search results
+        results = results[:limit]
+
+        if args.format == 'org':
+            format = org
+        else:
+            format = display
+
+        # process display options
         show = {'author', 'title', 'link', 'link:notes'}   # defaults
         show.update(x.strip() for x in (args.show or '').split(','))
         for x in (x.strip() for x in (args.hide or '').split(',')):
             if x in show:
                 show.remove(x)
 
-        s = {'search': search, 'search1': search1, 'search_org': search_org}[cmd]
+        if args.pager:
+            with pager(args.pager):
 
-        s(' '.join(args.query), limit=args.limit if args.limit > 0 else None, show=show)
+                if args.format == 'org':
+                    print '#+title: Search result for query %r' % query   # TODO: move this.
+                    if limit:
+                        print '# showing top %s results' % limit
+
+                else:
+                    print yellow % 'query: %r' % query
+                    if limit:
+                        print yellow % 'showing top %s results' % limit
+
+                format(results, show=show)
+
+        else:
+            print yellow % 'query: %r' % query
+            if limit:
+                print yellow % 'showing top %s results' % limit
+            format(results, show=show)
 
     elif cmd == 'add':
         p = ArgumentParser()
@@ -299,8 +343,6 @@ def main():
         rm(args.cached)
 
     elif cmd == 'update':
-        p = ArgumentParser()
-        args = p.parse_args()
         update()
 
     elif cmd == 'drop':
@@ -318,36 +360,11 @@ def main():
         args = p.parse_args()
         ack(args.query)
 
-    elif cmd == 'search_org':
-        p = ArgumentParser()
-        p.add_argument('query')
-        args = p.parse_args()
-        search_org(args.query)
-
     elif cmd == 'lexicon':
         p = ArgumentParser()
         p.add_argument('field')
         args = p.parse_args()
         lexicon(args.field)
-
-    elif cmd == 'recent':
-        p = ArgumentParser()
-        p.add_argument('--by', choices=('modified', 'added'), default='added',
-                       help='List all documents sorted by')
-        args = p.parse_args()
-
-        if args.by == 'added':
-            recent(docs_added)
-        elif args.by == 'modified':
-            recent(docs_modified)
-        else:
-            raise Exception('Unrecognized argument %r' % args.by)
-
-    elif cmd == 'similar':
-        p = ArgumentParser()
-        p.add_argument('cached')
-        args = p.parse_args()
-        _search(similar, args.cached, limit=10)
 
     else:
         print commands
