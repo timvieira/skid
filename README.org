@@ -232,8 +232,7 @@ Support for 'skid:' direction in org-mode links
 :   "skid tag search."
 :   (interactive)
 :   (switch-to-buffer (make-temp-name "Skid"))
-:   (insert (shell-command-to-string (concat "python -m skid search_org " query)))
+:   (insert (shell-command-to-string (concat "python -m skid search --format org --limit 0 " query)))
 :   (beginning-of-buffer)
 :   (org-mode))
-:
 : ;;------------------------------------------------------------------------------
