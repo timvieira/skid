@@ -37,6 +37,7 @@ def create():
                     notes = TEXT(stored=True),
                     text = TEXT(stored=True),
                     tags = KEYWORD(stored=True),
+                    added = DATETIME(stored=True),
                     mtime = DATETIME(stored=True))
     create_in(DIRECTORY, schema, NAME)
 
@@ -144,6 +145,13 @@ def update():
 
             meta = d.parse_notes()
 
+            assert meta['cached'] == cached, \
+                'Cached field in notes (%s) ' \
+                'does not match associated file (%s) ' \
+                'in notes file %r' % (meta['cached'],
+                                      cached,
+                                      'file://' + d.d/'notes.org')
+
             with file(cached + '.d/data/hash') as h:
                 h = unicode(h.read().decode('utf8'))
 
@@ -156,6 +164,7 @@ def update():
                               notes = meta['notes'],
                               text = text,
                               mtime = mtime,
+                              added = d.added,
                               tags = meta['tags'])
 
 
