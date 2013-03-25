@@ -1,7 +1,53 @@
+commands = 'search, add, rm, update, drop, push, serve, ack, lexicon, ls'
+
+from os import environ
+from skid import config
+
+if 'COMP_WORDS' in environ and config.completion:
+    from glob import glob
+    from path import path
+
+    # TODO: command line options in completions
+    def completion():
+        cwords = environ['COMP_WORDS'].split()
+        cline = environ['COMP_LINE']
+        #cpoint = int(environ['COMP_POINT'])
+        cword = int(environ['COMP_CWORD'])
+
+        currword = None if cword >= len(cwords) else cwords[cword]
+
+        if cword < 2:
+            # second words is one of the skid commands like 'search' or 'add'
+            cmds = commands.split(', ')
+            possible = cmds
+
+        else:
+            prefix = cwords[-1]
+            if len(cwords) == 2:
+                prefix = ''
+
+            possible = glob(prefix + '*')
+            possible = [x + '/' if x.isdir() else x for x in map(path, possible)]
+
+            if len(possible) == 1 and possible[0].isdir():  # only a directory left
+                possible = possible[0].glob('*')
+
+        if currword:
+            possible = [x for x in possible if x.startswith(currword) and len(x) >= len(currword)]
+
+        print ' '.join(possible).encode('utf8')
+
+    completion()
+    exit(1)
+
+
 import re, os, sys
 from argparse import ArgumentParser
 from itertools import islice
 from contextlib import contextmanager
+
+from glob import glob
+from path import path
 
 from skid import index
 from skid import add as _add
@@ -19,17 +65,13 @@ from whoosh.searching import Hit
 # equality (do we want to download the paper and all that?).
 
 def serve():
-    """
-    Fire-up web interface.
-    """
+    "Fire-up web interface."
     from skid.sandbox.web.serve import run
     run()
 
 
 def add(source):
-    """
-    Add document from source. Sources can be urls or filenames.
-    """
+    "Add document from source. Sources can be urls or filenames."
     return _add.document(source, interactive=True)
 
 
@@ -51,9 +93,7 @@ def ack(x):
 
 
 def display(results, limit=None, show=('author', 'title', 'link', 'link:notes')):
-    """
-    Display search results.
-    """
+    "Display search results."
 
     def link(x):
         if not x.startswith('http') and not x.startswith('file://'):
@@ -109,7 +149,7 @@ def display(results, limit=None, show=('author', 'title', 'link', 'link:notes'))
             print hit['notes']
 
         if 'score' in show:
-            print 'score:', hit.score
+            print 'score:', doc.score
 
         print
     print
@@ -182,7 +222,7 @@ def rm(cached):
     index.delete(cached)
 
 
-# TODO: use mtime in Whoosh index instead if "ls -t" and date-added file? (requires "skid update")
+# TODO: use mtime/added in Whoosh index instead if "ls -t" and date-added file? (requires "skid update")
 def added(d):
     return d.added
 
@@ -207,39 +247,9 @@ def ls(q, **kwargs):
             yield Document(f)
 
 
-def completion():
-    from os import environ, listdir
-    if 'COMP_WORDS' in environ:                       # TODO: add filename completions (the bash default)
-        cwords = environ['COMP_WORDS'].split()
-        cline = environ['COMP_LINE']
-        #cpoint = int(environ['COMP_POINT'])
-        cword = int(environ['COMP_CWORD'])
-
-        if cword >= len(cwords):
-            currword = None
-        else:
-            currword = cwords[cword]
-
-        if cword < 2:
-            # second words is one of the skid commands like 'search' or 'add'
-            cmds = [k for k,v in list(globals().iteritems()) if hasattr(v, '__call__')]
-            possible = cmds
-
-        elif 'skid add' in cline:
-            possible = listdir('.')  # TODO: want the standard bash completion in this case
-
-        else:
-            possible = index.lexicon('author') + index.lexicon('title')
-
-        if currword:
-            possible = [x for x in possible if x.startswith(currword) and len(x) >= len(currword)]
-
-        print ' '.join(possible).encode('utf8')
-
-
 def lexicon(field):
     for x in index.lexicon(field):
-        print x
+        print x.encode('utf8')
 
 
 def similar(cached, limit=config.LIMIT, numterms=40, fieldname='text', **kwargs):
@@ -252,12 +262,8 @@ def similar(cached, limit=config.LIMIT, numterms=40, fieldname='text', **kwargs)
             yield hit
 
 
+# TODO: We should probably just search Whoosh here...
 def main():
-    if config.completion:
-        completion()
-        return
-
-    commands = 'search, add, rm, update, drop, push, serve, ack, lexicon, ls'
 
     if len(sys.argv) <= 1:
         print commands

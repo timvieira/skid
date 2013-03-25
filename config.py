@@ -17,4 +17,4 @@ if not CACHE.exists():
 
 # enable bash completion
 #  need to add "complete -F _optcomplete skid" to bashrc
-completion = False
+completion = True
