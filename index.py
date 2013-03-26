@@ -3,17 +3,13 @@ Index skid-marks to support efficient search over attributes including
 full-text.
 """
 
-# TODO: "clean-up script" which find files in cache which might have been
-# deleted manually. Currently, the way to do this is to drop and rebuild the
-# entire index
-
 import re, os
 from datetime import datetime
 
 from whoosh.index import create_in, open_dir
 from whoosh.fields import Schema, TEXT, KEYWORD, ID, DATETIME
 from whoosh.qparser import QueryParser, MultifieldParser
-from whoosh.analysis import StandardAnalyzer
+#from whoosh.analysis import StandardAnalyzer
 
 from skid.config import ROOT, CACHE
 from skid.add import Document
@@ -22,7 +18,6 @@ from skid.add import Document
 DIRECTORY = ROOT + '/index'
 NAME = 'index'
 
-# TODO: date added
 def create():
     """ Create a new Whoosh index.. """
     print 'creating new index in directory %s' % DIRECTORY
@@ -119,7 +114,11 @@ def update():
     # updating at the first unchanged file.
     with ix.writer() as w, ix.searcher() as searcher:
 
-        for cached in CACHE.files():
+        # sort cached files by mtime.
+        files = list(CACHE.files())
+        files.sort(key = (lambda x: (x + '.d').mtime), reverse=True)
+
+        for cached in files:
 
             d = Document(cached)
 
@@ -136,8 +135,11 @@ def update():
             else:
                 assert len(result) == 1, 'cached should be unique.'
                 result = result[0]
-                if mtime <= result['mtime']:   # skip if document hasn't changed
-                    continue
+                if mtime <= result['mtime']:   # already up to date
+
+                    # Since we've sorted files by mtime, we know that files
+                    # after this one are older, and thus we're done.
+                    return
 
                 print '[INFO] update to existing document:', cached
 
@@ -152,12 +154,9 @@ def update():
                                       cached,
                                       'file://' + d.d/'notes.org')
 
-            with file(cached + '.d/data/hash') as h:
-                h = unicode(h.read().decode('utf8'))
-
             w.update_document(source = meta['source'],
                               cached = unicode(cached),
-                              hash = h,
+                              hash = d.hash(),
                               title = meta['title'],
                               author = meta.get('author', u''),
                               year = meta.get('year', u''),
