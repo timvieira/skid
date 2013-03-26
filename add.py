@@ -1,7 +1,5 @@
 """
 Add document to skid (cache document, extract text, create metadata files).
-
-TODO: date added.
 """
 import re, os, subprocess
 from path import path
@@ -14,6 +12,7 @@ from arsenal.terminal import yellow, red, blue
 from arsenal.web.download import download
 from arsenal.text.utils import htmltotext, force_unicode, remove_ligatures, \
     whitespace_cleanup
+from arsenal.fsutils import secure_filename
 
 
 class SkidError(Exception):
@@ -32,11 +31,13 @@ def cache_url(url):
     Download url, write contents to file. Return filename of contents, None on
     failure to download.
     """
+    cached = CACHE / secure_filename(url)
+
+    assert not cached.exists(), 'File %s already exists.' % cached
+
     # TODO: we should tell download where to store stuff explicitly... right now
     # we just both have the same convention.
-    cached = download(url, tries=1, pause=0.1, timeout=60, usecache=True,
-                      cachedir=CACHE)
-    if not cached:
+    if not download(url, timeout=60, usecache=False, cached=cached):
         raise Exception('Failed to download %s.' % url)
 
     return cached
@@ -45,19 +46,11 @@ def cache_url(url):
 def cache_document(src):
     "Cache a document, return filename of the cached file."
 
-    # TODO:
-    #  - make sure we don't overwrite files
-    #  - cache to staging area first
+    # TODO: use staging area
 
     src = path(src)
 
-    if src.startswith('http'):    # cache links
-
-        # TODO: explicitly tell cache_url where to put file (write-to location)
-
-        # FIXME: check we haven't downloaded url already; check if the write-to
-        # location file exists.
-
+    if src.startswith('https:') or src.startswith('http:') or src.startswith('ftp:'):    # cache links
         return cache_url(src)
 
     elif src.exists():   # is this something on disk?
@@ -75,16 +68,14 @@ def cache_document(src):
 
         return dest
 
-    assert False
+    raise SkidError("cache_document doesn't know what to do with source %s" % src)
 
-
-# TODO: add file to Whoosh index (after interactive editing completes?)
 
 # TODO:
 #
 # - "atomically" write directory to avoid issues with failures. Do this by
-#   staging. This will help avoid clobbering existing stuff (notes, cached
-#   document, etc)
+#   staging. It will also help with clobbering existing stuff, unfinished or
+#   aborted imports.
 #
 # - If it's a pdf we should try to get a bibtex entry for it.
 #
@@ -137,9 +128,9 @@ def document(source, interactive=True):
 # methods to: find most-similar documents, insert/delete/update index
 
 # XXX: attributes fall into categories
-# 1. backed by a file
-# 2. extracted from notes
-# 3. derived
+#  1. backed by a file
+#  2. extracted from notes
+#  3. derived (e.g. text extraction)
 class Document(object):
 
     def __init__(self, cached):
@@ -186,6 +177,9 @@ class Document(object):
     def write_hash(self):
         return self.store('data/hash', self.cached.read_hexhash('sha1'), overwrite=True)
 
+    def hash(self):
+        return unicode((self.d / 'data' / 'hash').text().decode('utf8'))
+
     def extract_title(self):
 
         if self.cached.endswith('.pdf'):
@@ -193,7 +187,7 @@ class Document(object):
 
         else:
             # assume it's HTML
-            x = re.findall('<title>(.*?)</title>', self.cached.text(), re.I)
+            x = re.findall('<title>(.*?)</title>', self.cached.text(), flags=re.I)
             if x:
                 return x[0].strip()  # take the first title
             else:
@@ -234,10 +228,9 @@ class Document(object):
         if not f.exists():
             raise SkidError('Note file missing for %r.' % self)
         return f.text()
-#            return unicode(file(f).read().decode('latin1'))
 
     # TODO: use a lazy-loaded attribute?
-    # TODO: better markup language?
+    # TODO: better markup language? or better org-mode markup.
     def parse_notes(self):
         "Extract metadata from notes.org."
 
@@ -261,6 +254,17 @@ class Document(object):
         x['notes'] = d.strip()
 
         return unicodify_dict(x)
+
+    def similar(self, limit, numterms=40, fieldname='text'):
+        "Most similar results to document."
+        from skid import index
+        ix = index.open_dir(index.DIRECTORY, index.NAME)
+        with ix.searcher() as searcher:
+            results = searcher.find('cached', unicode(self.cached))
+            result = results[0]
+            for hit in result.more_like_this(top=limit, numterms=numterms, fieldname=fieldname):
+                yield hit
+
 
 
 # TODO: date added. (is there a way to hide/collapse certain data in org-mode?
