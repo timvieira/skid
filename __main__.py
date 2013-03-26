@@ -10,7 +10,7 @@ if 'COMP_WORDS' in environ and config.completion:
     # TODO: command line options in completions
     def completion():
         cwords = environ['COMP_WORDS'].split()
-        cline = environ['COMP_LINE']
+        #cline = environ['COMP_LINE']
         #cpoint = int(environ['COMP_POINT'])
         cword = int(environ['COMP_CWORD'])
 
@@ -252,16 +252,6 @@ def lexicon(field):
         print x.encode('utf8')
 
 
-def similar(cached, limit=config.LIMIT, numterms=40, fieldname='text', **kwargs):
-    "Most similar results to cached document."
-    ix = index.open_dir(index.DIRECTORY, index.NAME)
-    with ix.searcher() as searcher:
-        results = searcher.find('cached', unicode(cached))
-        result = results[0]
-        for hit in result.more_like_this(top=limit, numterms=numterms, fieldname=fieldname):
-            yield hit
-
-
 # TODO: We should probably just search Whoosh here...
 def main():
 
@@ -290,9 +280,17 @@ def main():
 
         limit = args.limit if args.limit > 0 else None
 
-        # get list of results (convert Whoosh.searching.Hit to skid.Document)
-        s = {'search': index.search, 'ls': ls, 'similar': similar}[cmd]
-        results = list(map(todoc, s(query, limit=limit)))
+        if cmd == 'search':
+            results = index.search(query, limit=limit)
+        elif cmd == 'similar':
+            results = Document(query).similar(limit=limit)
+        elif cmd == 'ls':
+            results = ls(query)
+        else:
+            assert False, 'Unrecognized command %s' % cmd
+
+        # convert results to list and convert Whoosh.searching.Hit to skid.Document
+        results = list(map(todoc, results))
 
         # sort documents according to '--by' criteria'
         sortwith = {'relevance': score, 'modified': modified, 'added': added}[args.by]
