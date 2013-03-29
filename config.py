@@ -18,3 +18,5 @@ if not CACHE.exists():
 # enable bash completion
 #  need to add "complete -F _optcomplete skid" to bashrc
 completion = True
+
+commands = 'search, add, rm, update, drop, push, serve, ack, lexicon, ls'

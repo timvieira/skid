@@ -1,53 +1,10 @@
-commands = 'search, add, rm, update, drop, push, serve, ack, lexicon, ls'
 
-from os import environ
-from skid import config
-
-if 'COMP_WORDS' in environ and config.completion:
-    from glob import glob
-    from path import path
-
-    # TODO: command line options in completions
-    def completion():
-        cwords = environ['COMP_WORDS'].split()
-        #cline = environ['COMP_LINE']
-        #cpoint = int(environ['COMP_POINT'])
-        cword = int(environ['COMP_CWORD'])
-
-        currword = None if cword >= len(cwords) else cwords[cword]
-
-        if cword < 2:
-            # second words is one of the skid commands like 'search' or 'add'
-            cmds = commands.split(', ')
-            possible = cmds
-
-        else:
-            prefix = cwords[-1]
-            if len(cwords) == 2:
-                prefix = ''
-
-            possible = glob(prefix + '*')
-            possible = [x + '/' if x.isdir() else x for x in map(path, possible)]
-
-            if len(possible) == 1 and possible[0].isdir():  # only a directory left
-                possible = possible[0].glob('*')
-
-        if currword:
-            possible = [x for x in possible if x.startswith(currword) and len(x) >= len(currword)]
-
-        print ' '.join(possible).encode('utf8')
-
-    completion()
-    exit(1)
-
+import skid.completion
 
 import re, os, sys
 from argparse import ArgumentParser
 from itertools import islice
 from contextlib import contextmanager
-
-from glob import glob
-from path import path
 
 from skid import index
 from skid import add as _add
@@ -256,7 +213,7 @@ def lexicon(field):
 def main():
 
     if len(sys.argv) <= 1:
-        print commands
+        print config.commands
         return
 
     cmd = sys.argv.pop(1)
@@ -371,7 +328,7 @@ def main():
         lexicon(args.field)
 
     else:
-        print commands
+        print config.commands
 
 
 if __name__ == '__main__':

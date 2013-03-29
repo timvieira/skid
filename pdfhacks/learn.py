@@ -11,7 +11,7 @@ class Instance(object):
         self.label = label
         self.features = None
 
-def load(filename):
+def load_data(filename):
     with file(filename) as f:
         for line in f:
             line = line.strip().split('\t')
@@ -20,6 +20,7 @@ def load(filename):
             yield Instance(label, features)
 
 def conjunctions(phi):
+    phi = list(phi)
     return ['(%s & %s)' % (phi[i], phi[j]) for i in xrange(len(phi)) for j in xrange(i+1)]
 
 def freq_filter(data, c, threshold=5):
@@ -32,7 +33,7 @@ def feature_label_freq_filter(data, c, threshold=5):
         x.features = [k for k in x.features if c[y, k] >= threshold]
 
 def traintest(datafile):
-    data = list(load(datafile))
+    data = list(load_data(datafile))
     n = len(data)
 
     p = 0.7
@@ -96,6 +97,10 @@ def learn(data, test):
 def save(weights, filename):
     with file(filename, 'wb') as f:
         pickle.dump(weights, f)
+
+def load(filename):
+    with file(filename) as f:
+        return pickle.load(f)
 
 # ___________________
 # error analysis

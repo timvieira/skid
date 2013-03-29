@@ -5,7 +5,7 @@ from skid.add import Document
 from skid.config import CACHE
 from skid.pdfhacks.pdfmill import convert, gs, template, Context
 
-from arsenal.iterextras import iterview
+from arsenal.iterextras import iterview, islice
 from arsenal.terminal import red, green, yellow, blue, magenta
 
 
@@ -95,7 +95,7 @@ def find_authors(meta, d, pdf):
 
     for x in heuristic(author, author_candidates):
         x.attributes['label'] = 'author'
-        x.style['background-color'] = 'rgba(255,0,0,0.2)'
+        x.style['background-color'] = 'rgba(0,255,0,0.2)'
 
     # dump training data to file.
     with file('data.tsv', 'a') as f:
@@ -165,33 +165,37 @@ def color(c, x):
     return unicode(fabulous.color.fg256(a + offset, c)).encode('utf8')
 
 
-from skid.pdfhacks.learn import predict, pickle
+from skid.pdfhacks.learn import predict, load, conjunctions
+from path import path
+
+outdir = path('tmp')
+outfile = outdir / 'output.html'
 
 def main():
-
-    outdir = 'tmp'
-    outfile = outdir + '/output.html'
 
     # create file, we'll be appending to it as we go along
     with file('data.tsv', 'wb') as f:
         f.write('')
 
-    with file('weights.pkl~') as f:
-        w = pickle.load(f)
+    try:
+        w = load('weights.pkl~')
+    except IOError:
+        print 'failed to load file'
+        w = None
 
     pages = []
-    for meta, d, pdf in data():
+    for meta, d, pdf in islice(data(), None):
         if find_authors(meta, d, pdf):
             gs(meta['cached'], outdir)
             pages.append(pdf.pages[0])
 
-            for x in pdf.pages[0].items:
-                y = predict(w, {k: 1.0 for k in tovector(x)})
-                if y != 'other':
-                    x.style['border'] = '2px solid %s' % {'author': 'red', 'title': 'blue'}[y]
-
-                    c = {'author': magenta, 'title': blue}[y]
-                    print '%s: %s' % (c % y, x.text)
+            if w is not None:
+                for x in pdf.pages[0].items:
+                    y = predict(w, {k: 1.0 for k in conjunctions(tovector(x))})
+                    if y != 'other':
+                        x.style['border'] = '2px solid %s' % {'author': 'green', 'title': 'blue'}[y]
+                        c = {'author': magenta, 'title': blue}[y]
+                        print '%s: %s' % (c % y, x.text)
 
     # if we want to draw the first pages of many pdfs on one html document we
     # have to lie to the items -- tell them they are on pages other than the
@@ -208,6 +212,47 @@ def main():
 
     import webbrowser
     webbrowser.open(outfile)
+
+
+def markup_pdf(filename):
+    try:
+        w = load('weights.pkl~')
+    except IOError:
+        print 'failed to load file'
+        w = None
+
+    pages = []
+
+    filename = path(filename)
+
+    pdf = convert(filename)
+
+    gs(filename, outdir)
+    pages.append(pdf.pages[0])
+
+    if w is not None:
+        for x in pdf.pages[0].items:
+            y = predict(w, {k: 1.0 for k in conjunctions(tovector(x))})
+            if y != 'other':
+                x.style['border'] = '2px solid %s' % {'author': 'magenta', 'title': 'blue'}[y]
+                c = {'author': magenta, 'title': blue}[y]
+                print '%s: %s' % (c % y, x.text)
+
+    # if we want to draw the first pages of many pdfs on one html document we
+    # have to lie to the items -- tell them they are on pages other than the
+    # first...
+    yoffset = 0
+    for p in pages:
+        for item in p.items:
+            if hasattr(item, 'yoffset'):
+                item.yoffset += yoffset
+        yoffset += p.height
+
+    with file(outfile, 'wb') as f:
+        template.render_context(Context(f, pages=pages))
+
+    import webbrowser
+    webbrowser.open(f.name)
 
 
 def tovector(x):
@@ -228,4 +273,6 @@ def tovector(x):
 
 
 if __name__ == '__main__':
-    main()
+    from arsenal.automain import automain
+    automain()
+    #main()
