@@ -129,6 +129,9 @@ def query(searchstr, allresults=False):
     logging.debug("Query: %s" % searchstr)
     searchstr = '/scholar?q='+urllib2.quote(searchstr)
     url = GOOGLE_SCHOLAR_URL + searchstr
+
+    print url
+
     header = HEADERS
     header['Cookie'] = header['Cookie'] + ":CF=%d" % BIBTEX
     request = urllib2.Request(url, headers=header)
@@ -147,6 +150,7 @@ def query(searchstr, allresults=False):
         request = urllib2.Request(url, headers=header)
         response = urllib2.urlopen(request)
         bib = response.read()
+
 # TODO: this should probably be a debugging option.
 #        print
 #        print
@@ -158,10 +162,7 @@ def query(searchstr, allresults=False):
 def get_links(html):
     """Return a list of reference links from the html."""
 
-
 #    results = [(a,b) for a,b in re.findall('<a.*?href="(.*?)".*?>(.*?)</a>', html) if '[PDF]' in b]
-
-
 #    from arsenal.debug import ip; ip()
 
     reflist = re.findall(r'<a href="(/scholar\.bib\?[^>]*)">', html)
