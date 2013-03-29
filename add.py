@@ -156,7 +156,7 @@ class Document(object):
 
     @property
     def modified(self):
-        return self.d.mtime
+        return datetime.fromtimestamp(self.d.mtime)
 
     def __repr__(self):
         return 'Document("%s")' % self.cached
