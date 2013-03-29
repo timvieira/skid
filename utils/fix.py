@@ -51,5 +51,5 @@ def hash_collisions():
             """
 
 if __name__ == '__main__':
-    from automain import automain
+    from arsenal.automain import automain
     automain()
