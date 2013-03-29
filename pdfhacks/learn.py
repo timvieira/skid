@@ -3,7 +3,13 @@ import sys, cPickle as pickle
 from collections import defaultdict, Counter
 from arsenal.terminal import red, green, magenta
 from arsenal.nlp.evaluation import F1
+from arsenal.iterextras import iterview
 
+class Instance(object):
+    def __init__(self, label, attributes):
+        self.attributes = attributes
+        self.label = label
+        self.features = None
 
 def load(filename):
     with file(filename) as f:
@@ -11,32 +17,45 @@ def load(filename):
             line = line.strip().split('\t')
             label = line[0]
             features = line[1:]
-#            yield label, conjunctions(features)
-            yield label, features
+            yield Instance(label, features)
 
 def conjunctions(phi):
     return ['(%s & %s)' % (phi[i], phi[j]) for i in xrange(len(phi)) for j in xrange(i+1)]
 
 def freq_filter(data, c, threshold=5):
-    for y, phi in data:
-        yield y, [k for k in phi if c[k] >= threshold]
+    for x in data:
+        x.features = [k for k in x.features if c[k] >= threshold]
 
 def feature_label_freq_filter(data, c, threshold=5):
-    for y, phi in data:
-        yield y, [k for k in phi if c[y, k] >= threshold]
+    for x in iterview(data, every=int(len(data)*.1)):
+        y = x.label
+        x.features = [k for k in x.features if c[y, k] >= threshold]
 
 def traintest(datafile):
     data = list(load(datafile))
     n = len(data)
-    a = data[:int(n *0.7)]
-    b = data[int(n *0.7):]
+
+    p = 0.7
+    a = data[:int(n * p)]
+    b = data[int(n * p):]
+
+    for x in data:
+        x.features = [k for k in x.attributes if k.split('=')[0] not in ('text', 'word', 'x0', 'y0', 'x1', 'y1', 'height', 'width')]
 
     # feature count filter
-    c = Counter(k for _, phi in data for k in phi)
-    a = freq_filter(a, c)
+#    c = Counter(k for x in data for k in x.features)
+#    freq_filter(a, c)
 
-    c = Counter((y, k) for y, phi in data for k in phi)
-    a = feature_label_freq_filter(a, c)
+    c = Counter((x.label, k) for x in data for k in x.features)
+    feature_label_freq_filter(a, c, threshold=5)
+
+    print 'conjunctions..'
+    for x in iterview(data):
+        x.features = conjunctions(x.features)
+
+    print 'filter conjunctions...'
+    c = Counter((x.label, k) for x in data for k in x.features)
+    feature_label_freq_filter(a, c, threshold=3)
 
     return list(a), b
 
@@ -52,17 +71,26 @@ def predict(w, phi):
 def argmaxd(x):
     return max(zip(x.values(), x.keys()))[1]
 
-def learn(data):
-    labels = {label for label, _ in data}
+def learn(data, test):
+    labels = {x.label for x in data}
     w = {y: defaultdict(float) for y in labels}
-    for t in xrange(50):
+    for t in iterview(xrange(10), every=1):
+
+#        print
+#        print
+#        print 'Iteration', t
+
         alpha = 10.0 / (t + 1)**0.8
-        for label, features in data:
-            y = predict(w, features)
-            if label != y:
-                for k in features:
-                    w[label][k] += alpha
+        for x in data:
+            y = predict(w, x.features)
+            if x.label != y:
+                for k in x.features:
+                    w[x.label][k] += alpha
                     w[y][k] -= alpha
+
+#        f1('train', data, w)
+#        f1('test', test, w)
+
     return w
 
 def save(weights, filename):
@@ -76,26 +104,25 @@ def f1(name, data, w):
     print
     print name
     f = F1()
-    for (i, (target, phi)) in enumerate(data):
-        f.report(i, predict(w, phi), target)
+    for (i, x) in enumerate(data):
+        f.report(i, predict(w, x.features), x.label)
     f.scores()
 
 def errors(name, data, w):
     print
     print 'ERRORS:', name
-    for target, phi in data:
-        y = predict(w, phi)
-        if y == target:
+    for x in data:
+        y = predict(w, x.features)
+        if y == x.label:
             pass
         else:
-            print ' ', green % '%-6s' % target, red % '%-6s' % y, phi
+            print ' ', green % '%-6s' % x.label, red % '%-6s' % y, [k for k in x.attributes if k.startswith('text')] #x.features
 
-            l = target
-            print '   ', ' '.join('%s%s' % (k, magenta % '(%g)' % w) for _, w, k in sorted([(-abs(w[l][k]), w[l][k], k) for k in phi]))
+            l = x.label
+            print '   ', ' '.join('%s%s' % (k, magenta % '(%g)' % w) for _, w, k in sorted([(-abs(w[l][k]), w[l][k], k) for k in x.features]))
 
             l = y
-            print '   ', ' '.join('%s%s' % (k, magenta % '(%g)' % w) for _, w, k in sorted([(-abs(w[l][k]), w[l][k], k) for k in phi]))
-
+            print '   ', ' '.join('%s%s' % (k, magenta % '(%g)' % w) for _, w, k in sorted([(-abs(w[l][k]), w[l][k], k) for k in x.features]))
 
 
 def main():
@@ -104,7 +131,7 @@ def main():
     train, test = traintest(datafile)
     print 'train: %s, test: %s' % (len(train), len(test))
 
-    w = learn(train)
+    w = learn(train, test)
     save(w, 'weights.pkl~')
 
     f1('train', train, w)
