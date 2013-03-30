@@ -1,4 +1,5 @@
-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import skid.completion
 
 import re, os, sys
@@ -11,9 +12,11 @@ from skid import add as _add
 from skid import config
 from skid.add import Document
 
-from arsenal.terminal import cyan, yellow, magenta
+from arsenal.terminal import cyan, yellow, magenta, green
 
 from whoosh.searching import Hit
+
+from skid.utils import lastname
 
 
 # TODO: I'd like to quickly check if I've added a paper before. Not sure hash
@@ -59,9 +62,12 @@ def display(results, limit=None, show=('author', 'title', 'link', 'link:notes'))
         return x
 
     def author(x):
-        if not x.strip():
+
+        if not x:
             return ''
-        last = [a.strip().split()[-1] for a in x.split(';')]
+
+        last = map(lastname, x)
+
         if len(last) == 1:
             return '%s' % last[0]
         elif len(last) == 2:
@@ -73,8 +79,11 @@ def display(results, limit=None, show=('author', 'title', 'link', 'link:notes'))
 
         hit = doc.parse_notes()
 
+        if 'score' in show:
+            print 'score:', doc.score
+
         if 'author' in show:
-            a = author(hit.get('author', ''))
+            a = author(hit['author'])
             if a:
                 year = hit.get('year', '')
                 if year:
@@ -90,11 +99,9 @@ def display(results, limit=None, show=('author', 'title', 'link', 'link:notes'))
         if 'cached' in show:
             print cyan % link(hit['cached'])
 
-        if 'tags' in show:
-            print hit['tags']
-
         if 'link' in show:
-            if hit['source'].startswith('http'):
+
+            if hit['source'].startswith('http') and not hit['source'].endswith('.pdf'):
                 print cyan % link(hit['source'])
             else:
                 print cyan % link(hit['cached'])
@@ -102,11 +109,14 @@ def display(results, limit=None, show=('author', 'title', 'link', 'link:notes'))
         if 'link:notes' in show:
             print cyan % link(hit['cached'] + '.d/notes.org')
 
-        if 'notes' in show:
-            print hit['notes']
+        if 'tags' in show:
+            print yellow % '[', (yellow % ' | ').join(magenta % x for x in hit['tags']), yellow % ']'
 
-        if 'score' in show:
-            print 'score:', doc.score
+        if 'notes' in show:
+            notes = hit['notes'].strip()
+            if notes:
+                for line in notes.split('\n'):
+                    print yellow % ' |', line
 
         print
     print
@@ -115,17 +125,18 @@ def display(results, limit=None, show=('author', 'title', 'link', 'link:notes'))
 def org(results, limit=None, **kwargs):
     "Format results in org-mode markup."
     print
-    for hit in islice(results, limit):
+    for doc in islice(results, limit):
+        hit = doc.parse_notes()
         source = hit['source']
         cached = hit['cached']
         d = cached + '.d'
         notes = d + '/notes.org'
         print ('\n+ %s' % hit['title']).encode('utf8')
         if hit['author']:
-            print ('  ' + ' ; '.join('[[skid:author:"{0}"][{0}]]'.format(x.strip()) for x in hit['author'].split(';'))).encode('utf8')
+            print ('  ' + ' ; '.join('[[skid:author:"\'{0}\'"][{0}]]'.format(x) for x in hit['author'])).encode('utf8')
         print ('  [[%s][directory]] | [[%s][source]] | [[%s][cache]] | [[%s][notes]]' % (d, source, cached, notes)).encode('utf8')
         if hit['tags']:
-            print ' ', ' '.join('[[skid:tags:%s][%s]]' % (x,x) for x in hit['tags'].split()).encode('utf8').strip()
+            print ' ', ' '.join('[[skid:tags:%s][%s]]' % (x,x) for x in hit['tags']).encode('utf8').strip()
 
 
 @contextmanager
