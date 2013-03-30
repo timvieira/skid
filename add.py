@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
 Add document to skid (cache document, extract text, create metadata files).
 """
@@ -19,8 +21,14 @@ class SkidError(Exception):
     pass
 
 
+def uni(x):
+    if isinstance(x, list):
+        return map(uni, x)
+    assert isinstance(x, basestring), x
+    return force_unicode(x)
+
 def unicodify_dict(a):
-    return {force_unicode(k): force_unicode(v).strip() for k,v in a.iteritems()}
+    return {uni(k): uni(v) for k,v in a.iteritems()}
 
 
 # TODO: use wget instead, it's more robust and has more bells and
@@ -227,7 +235,7 @@ class Document(object):
         f = self.d / 'notes.org'
         if not f.exists():
             raise SkidError('Note file missing for %r.' % self)
-        return f.text()
+        return f.text().decode('latin1')
 
     # TODO: use a lazy-loaded attribute?
     # TODO: better markup language? or better org-mode markup.
@@ -240,7 +248,8 @@ class Document(object):
         metadata = re.findall('^(?:\#\+?|:)([^:\s]+):[ ]*([^\n]*?)\s*$',
                               content, re.MULTILINE)
 
-        x = {}
+        x = {'title': '', 'author': '', 'year': '',
+             'source': '', 'cached': '', 'tags': ''}
         for k, v in metadata:
             v = v.strip()
             if k in ('cached','source'):
@@ -249,6 +258,10 @@ class Document(object):
                 v = re.sub('(file://)', '', v)
 
             x[k] = v
+
+        # todo: split tags and authors
+        x['tags'] = x['tags'].strip().split()
+        x['author'] = filter(None, [a.strip() for a in x['author'].strip().split(';')])
 
         [d] = re.findall('\n([^:#][\w\W]*$|$)', content)
         x['notes'] = d.strip()
