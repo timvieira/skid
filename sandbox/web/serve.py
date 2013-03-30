@@ -58,7 +58,7 @@ def search():
         print '<br/>'
 
         print ' '.join("""
-<a href="Javascript:add_tag_to_query('%s')">%s</a>""" % (t, t) for t in hit['tags'].split())
+<a href="Javascript:add_tag_to_query('%s')">%s</a>""" % (t, t) for t in hit['tags'])
         print '</div>'
 
 
