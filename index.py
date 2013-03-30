@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
 Index skid-marks to support efficient search over attributes including
 full-text.
@@ -138,13 +140,13 @@ def update():
                               cached = unicode(d.cached),
                               hash = d.hash(),
                               title = meta['title'],
-                              author = meta.get('author', u''),
-                              year = meta.get('year', u''),
+                              author = u' ; '.join(meta['author']),
+                              year = meta['year'],
                               notes = meta['notes'],
                               text = d.text(),
                               mtime = d.modified,
                               added = d.added,
-                              tags = meta['tags'])
+                              tags = u' '.join(meta['tags']))
 
 
 def lexicon(field):
