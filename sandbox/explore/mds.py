@@ -82,7 +82,7 @@ class Document(skid.add.Document):
 
         self.meta = self.parse_notes()
 
-        self.tags = self.meta['tags'].split()
+        self.tags = self.meta['tags']
 
     def jaccard(self, other):
         "Jaccard distance"
@@ -198,7 +198,7 @@ def main(documents):
              'obj': d,
              'x': Y[d.id,0],
              'y': Y[d.id,1]}
-        
+
 
         meta = d.parse_notes()
 
