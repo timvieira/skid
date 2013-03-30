@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from path import path
 ROOT = path('~/.skid').expand()    # feel free to use environment variables
 
