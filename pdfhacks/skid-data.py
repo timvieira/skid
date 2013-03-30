@@ -16,15 +16,15 @@ def data():
         d = Document(filename)
         meta = d.parse_notes()
 
-        if meta.get(u'author', None):
+        if meta['author']:
 
             ff = ' file://' + filename
             print
             print red % ('#' + '_' *len(ff))
             print red % ('#' + ff)
             print
-            print ('%s: %s' % (yellow % 'meta', meta.get(u'title', None))).encode('utf8')
-            print ('%s: %s' % (yellow % 'meta', meta.get(u'author', None))).encode('utf8')
+            print ('%s: %s' % (yellow % 'meta', meta['title'])).encode('utf8')
+            print ('%s: %s' % (yellow % 'meta', ' ; '.join(meta['author']))).encode('utf8')
             print
 
             pdf = convert(filename)
@@ -42,8 +42,8 @@ def shingle(x, size=3):
 
 def find_authors(meta, d, pdf):
 
-    author = meta['author']
-    authors = [set(shingle(x.strip())) for x in author.split(';')]
+    authors = [set(shingle(x.strip())) for x in meta['author']]
+    author = ' ; '.join(meta['author'])
 
     title = meta['title']
     T = set(shingle(title.strip()))
