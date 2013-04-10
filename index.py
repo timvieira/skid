@@ -78,16 +78,20 @@ def drop():
 
 def delete(cached):
     "Remove file from index."
-    try:
-        ix = open_dir(DIRECTORY, NAME)
-        with ix.searcher() as searcher, ix.writer() as w:
-            qp = QueryParser(u'cached', ix.schema)
-            q = qp.parse(unicode(cached))
-            # should only get one hit.
-            [hit] = searcher.search(q)
-            w.delete_document(hit.docnum)
-    except ValueError:
-        print 'Cached file %r not found in index.' % cached
+    ix = open_dir(DIRECTORY, NAME)
+    with ix.searcher() as searcher, ix.writer() as w:
+        qp = QueryParser(u'cached', ix.schema)
+        q = qp.parse(unicode(cached))
+        results = searcher.search(q)
+        if len(results) == 0:
+            # Should only happen if user hasn't done run skid-update since
+            # adding the paper being deleted.
+            print 'Cached file %r not found in index.' % cached
+        elif len(results) == 1:
+            w.delete_document(results[0].docnum)
+        else:
+            assert False, 'This should never happen. ' \
+                'Multiple (%s) results for %r found for cached file.' % (len(results), cached)
 
 
 def update():
