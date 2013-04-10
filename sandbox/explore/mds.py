@@ -182,7 +182,7 @@ def main(documents):
     "Start interactive 2-dimensional representation of documents."
 
     print 'loading data.'
-    documents = [Document(i, f) for i, f in enumerate(iterview(documents))][:25]
+    documents = [Document(i, f) for i, f in enumerate(iterview(documents))][:]
     m = compute_similarities(documents)
     Y, _ = mds(m)
 
