@@ -144,18 +144,23 @@ def pager(name):
     """
     Wraps call to search_org. Redirects output to file and opens it in emacs.
     """
-    sys.stdout = f = file('/tmp/foo', 'wb')
-    yield
-    sys.stdout.flush()
-    sys.stdout = sys.__stdout__
 
-    if name == 'less':
-        os.system("less -R %s" % f.name)
-    elif name == 'emacs':
-        os.system("emacs -nw %s -e 'org-mode'" % f.name)
+    if not name:
+        yield
     else:
-        raise Exception('Unknown option for pager %r' % name)
 
+        sys.stdout = f = file('/tmp/foo', 'wb')
+        yield
+        sys.stdout.flush()
+        sys.stdout = sys.__stdout__
+    
+        if name == 'less':
+            os.system("less -R %s" % f.name)
+        elif name == 'emacs':
+            os.system("emacs -nw %s -e 'org-mode'" % f.name)
+        else:
+            raise Exception('Unknown option for pager %r' % name)
+    
 
 def update():
     """ Update search index. """
@@ -281,26 +286,20 @@ def main():
             if x in show:
                 show.remove(x)
 
-        if args.pager:
-            with pager(args.pager):
+        with pager(args.pager):
 
-                if args.format == 'org':
-                    print '#+title: Search result for query %r' % query   # TODO: move this.
-                    if limit:
-                        print '# showing top %s results' % limit
+            if args.format == 'org':
+                print '#+title: Search result for query %r' % query   # TODO: move this.
+                if limit:
+                    print '# showing top %s results' % limit
 
-                else:
-                    print yellow % 'query: %r' % query
-                    if limit:
-                        print yellow % 'showing top %s results' % limit
+            else:
+                print yellow % 'query: %r' % query
+                if limit:
+                    print yellow % 'showing top %s results' % limit
 
-                format(results, show=show)
-
-        else:
-            print yellow % 'query: %r' % query
-            if limit:
-                print yellow % 'showing top %s results' % limit
             format(results, show=show)
+
 
     elif cmd == 'add':
         p = ArgumentParser()
