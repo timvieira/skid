@@ -110,7 +110,7 @@ def display(results, limit=None, show=('author', 'title', 'link', 'link:notes'))
             print cyan % link(hit['cached'] + '.d/notes.org')
 
         if 'tags' in show:
-            print yellow % '[', (yellow % ' | ').join(magenta % x for x in hit['tags']), yellow % ']'
+            print '%s%s%s' % (yellow % '[', (yellow % ', ').join(magenta % x for x in hit['tags']), yellow % ']')
 
         if 'notes' in show:
             notes = hit['notes'].strip()
@@ -240,8 +240,8 @@ def main():
         p.add_argument('query', nargs='*')
         p.add_argument('--limit', type=int, default=config.LIMIT,
                        help='query limit (use 0 for no limit)')
-        p.add_argument('--show', help='display options')
-        p.add_argument('--hide', help='display options')
+        p.add_argument('--show', default='', help='display options')
+        p.add_argument('--hide', default='', help='display options')
         p.add_argument('--pager', choices=('less', 'emacs'), default=None, help='pager for results')
         p.add_argument('--format', choices=('standard', 'org'), default='standard',
                        help='output format')
@@ -281,8 +281,8 @@ def main():
 
         # process display options
         show = {'author', 'title', 'link', 'link:notes'}   # defaults
-        show.update(x.strip() for x in (args.show or '').split(','))
-        for x in (x.strip() for x in (args.hide or '').split(',')):
+        show.update(x.strip() for x in args.show.split(','))
+        for x in (x.strip() for x in args.hide.split(',')):
             if x in show:
                 show.remove(x)
 
@@ -290,7 +290,7 @@ def main():
 
             if args.format == 'org':
                 print '#+title: Search result for query %r' % query   # TODO: move this.
-                if limit:
+                if limit and len(results) > limit:
                     print '# showing top %s results' % limit
 
             else:
