@@ -153,14 +153,14 @@ def pager(name):
         yield
         sys.stdout.flush()
         sys.stdout = sys.__stdout__
-    
+
         if name == 'less':
             os.system("less -R %s" % f.name)
         elif name == 'emacs':
             os.system("emacs -nw %s -e 'org-mode'" % f.name)
         else:
             raise Exception('Unknown option for pager %r' % name)
-    
+
 
 def update():
     """ Update search index. """
@@ -289,13 +289,11 @@ def main():
         with pager(args.pager):
 
             if args.format == 'org':
-                print '#+title: Search result for query %r' % query   # TODO: move this.
-                if limit and len(results) > limit:
+                if limit and len(results) >= limit:
                     print '# showing top %s results' % limit
 
             else:
-                print yellow % 'query: %r' % query
-                if limit:
+                if limit and len(results) >= limit:
                     print yellow % 'showing top %s results' % limit
 
             format(results, show=show)
