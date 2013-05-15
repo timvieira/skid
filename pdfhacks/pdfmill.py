@@ -410,7 +410,7 @@ function add_tooltips() {
 """)
 
 
-def extract_title(filename):
+def extract_title(filename, extra=True):
 
     if not isinstance(filename, basestring):
         pdf = filename
@@ -424,14 +424,23 @@ def extract_title(filename):
             return
 
     # check for skid-mark
-    if os.path.exists(filename + '.d/notes.org'):
-        from skid.add import Document
-        d = Document(filename)
-        meta = d.parse_notes()
-        print meta.get(u'title', None)
-        print meta.get(u'author', None)
+#    if os.path.exists(filename + '.d/notes.org'):
+#        from skid.add import Document
+#        d = Document(filename)
+#        meta = d.parse_notes()
+#        print meta.get(u'title', None)
+#        print meta.get(u'author', None)
 
     page = pdf.pages[0].items
+
+    # preprocessing
+    page = [x for x in page
+            # Need to find a three+ letter word begining with a capital letter to be
+            # considered a candidate for author or title.
+            if re.findall('[A-Z][A-Za-z][A-Za-z]+', x.text)]
+
+    # TODO: titles tend not to have single initial, unlike names, (both title
+    # and author precede the word "abstract")
 
     g = groupby2(page, key=lambda x: x.fontsize)
 
@@ -442,17 +451,23 @@ def extract_title(filename):
 
     print yellow % title.encode('utf8')
 
-    g = groupby2(page, key=lambda x: x.fontname)
+    if extra:
 
-    freq = [(len(v), k, v) for k,v in g.iteritems()]
+        # timv: this is sort of a proxy for author extraction. If it's easy to
+        # copy-paste the authors maybe we don't need to have automatic extraction.
+        #
+        # authors often appear in a distinguishing (infrequent) font
+        g = groupby2(page, key=lambda x: x.fontname)
 
-    freq.sort()
+        freq = [(len(v), k, v) for k,v in g.iteritems()]
 
-    for count, key, items in freq:
-        print
-        print red % count, green % key
-        for x in items[:10]:
-            print yellow % x.text.encode('utf8')
+        freq.sort()
+
+        for count, key, items in freq:
+            print
+            print red % count, green % key
+            for x in items[:10]:
+                print yellow % x.text.encode('utf8')
 
     return title
 
