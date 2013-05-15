@@ -2,6 +2,13 @@
 # -*- coding: utf-8 -*-
 """
 Add document to skid (cache document, extract text, create metadata files).
+
+
+- TODO: date added. (is there a way to hide/collapse certain data in org-mode?
+  should we just use file creation time?)
+
+   - timv: my solution for "hiding" is to put stuff in that `{cached}.d/data/`
+
 """
 import re, os, subprocess
 from path import path
@@ -131,6 +138,8 @@ def document(source, interactive=True):
 
     print "Don't forget to 'skid update'"
 
+    return d
+
 
 # TODO: everything pertaining to Document should appear here probably including
 # methods to: find most-similar documents, insert/delete/update index
@@ -140,6 +149,16 @@ def document(source, interactive=True):
 #  2. extracted from notes
 #  3. derived (e.g. text extraction)
 class Document(object):
+    """
+
+    Notes:
+
+     - Creating an instance of Document has side effects: creates `{cached}.d`
+       directory if it doesn't exist.
+
+       TODO: add option to avoid this?
+
+    """
 
     def __init__(self, cached):
 
@@ -227,8 +246,8 @@ class Document(object):
         if attrs:
             attrs += '\n'
         newdata = TEMPLATE.format(attrs=attrs, **x)
-        newdata = whitespace_cleanup(newdata)
-        return force_unicode(newdata).encode('utf8').strip() + '\n'
+#        newdata = whitespace_cleanup(newdata)
+        return force_unicode(newdata).encode('utf8') #.strip() + '\n'
 
     # TODO: do not like...
     def note_content(self):
@@ -244,7 +263,7 @@ class Document(object):
 
         content = self.note_content()
 
-        # XXX: multiple value to same key.
+        # timv: merge multiple values for same key?
         metadata = re.findall('^(?:\#\+?|:)([^:\s]+):[ ]*([^\n]*?)\s*$',
                               content, re.MULTILINE)
 
@@ -257,9 +276,24 @@ class Document(object):
                 v = re.sub('^\[\[(.*?)\]\]$', r'\1', v)
                 v = re.sub('(file://)', '', v)
 
+            if k in ('link',):
+
+                orglink = '\[\[(' + '[^\[\]]*?' + ')\]\[%s\]\]'
+
+                source = re.findall(orglink % 'source', v)
+                cached = re.findall(orglink % 'cached', v)
+
+                if len(source) == 1:
+                    x['source'] = source[0]
+
+                if len(cached) == 1:
+                    x['cached'] = cached[0]
+
+                continue
+
             x[k] = v
 
-        # todo: split tags and authors
+        # split authors and tags
         x['tags'] = x['tags'].strip().split()
         x['author'] = filter(None, [a.strip() for a in x['author'].strip().split(';')])
 
@@ -279,16 +313,12 @@ class Document(object):
                 yield hit
 
 
-
-# TODO: date added. (is there a way to hide/collapse certain data in org-mode?
-# should we just use file creation time?)
 TEMPLATE = u"""\
 #+title: {title}
 :author: {author}
-:year: {year}
-:source: [[{source}]]
-:cached: [[{cached}]]
-:tags: {tags}
+:year:   {year}
+:link:   [[{source}][source]], [[{cached}][cached]]
+:tags:   {tags}
 {attrs}
 {notes}
 """
@@ -322,3 +352,24 @@ def to_pdf(filename):
 
     else:
         assert False, 'Unsupported file format.'
+
+
+
+if __name__ == '__main__':
+    # use test environment
+    from skid import config
+    ROOT = config.ROOT = path('~/.skid-test').expand()
+    CACHE = config.CACHE = ROOT / 'marks'
+
+    os.system('rm -rf /home/timv/.skid-test/marks/POPL2013-abstract.pdf*')
+
+    test_src = '/home/timv/Desktop/POPL2013-abstract.pdf'
+    test_cached = CACHE / 'POPL2013-abstract.pdf'
+    test_doc = document(test_src, interactive=False)
+
+    print test_doc
+
+    test = Document(test_cached)
+#    from arsenal.debug import ip; ip()
+    from pprint import pprint
+    pprint(test.parse_notes())
