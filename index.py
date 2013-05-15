@@ -6,12 +6,11 @@ full-text.
 """
 
 import re, os
-from datetime import datetime
 
 from whoosh.index import create_in, open_dir
-from whoosh.fields import Schema, TEXT, KEYWORD, ID, DATETIME
+from whoosh.fields import Schema, TEXT, ID, DATETIME
 from whoosh.qparser import QueryParser, MultifieldParser
-from whoosh.analysis import StandardAnalyzer, SimpleAnalyzer, KeywordAnalyzer, STOP_WORDS
+from whoosh.analysis import KeywordAnalyzer, STOP_WORDS
 
 from skid.config import ROOT, CACHE
 from skid.add import Document
@@ -95,7 +94,7 @@ def delete(cached):
 
 
 def update():
-    "Rebuild index from scratch."
+    "Update index."
 
     # create index if it doesn't exist
     if not DIRECTORY.exists():
