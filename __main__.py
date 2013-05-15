@@ -80,7 +80,7 @@ def display(results, limit=None, show=('author', 'title', 'link', 'link:notes'))
         hit = doc.parse_notes()
 
         if 'score' in show:
-            print 'score:', doc.score
+            print yellow % ('[%.2f]' % doc.score),
 
         if 'author' in show:
             a = author(hit['author'])
@@ -110,7 +110,9 @@ def display(results, limit=None, show=('author', 'title', 'link', 'link:notes'))
             print cyan % link(hit['cached'] + '.d/notes.org')
 
         if 'tags' in show:
-            print '%s%s%s' % (yellow % '[', (yellow % ', ').join(magenta % x for x in hit['tags']), yellow % ']')
+            #print '%s%s%s' % (yellow % '[', (yellow % ', ').join(magenta % x for x in hit['tags']), yellow % ']')
+            if hit['tags']:
+                print (magenta % ', ').join(magenta % x for x in hit['tags'])
 
         if 'notes' in show:
             notes = hit['notes'].strip()
@@ -140,26 +142,30 @@ def org(results, limit=None, **kwargs):
 
 
 @contextmanager
-def pager(name):
+def pager(name='none'):
     """
     Wraps call to search_org. Redirects output to file and opens it in emacs.
     """
 
-    if not name:
+    if not name or name == 'none':
         yield
     else:
 
-        sys.stdout = f = file('/tmp/foo', 'wb')
-        yield
-        sys.stdout.flush()
-        sys.stdout = sys.__stdout__
+        if name not in ('emacs', 'less'):
+            raise Exception('Unknown option for pager %r' % name)
+
+        try:
+            with file('/tmp/foo', 'wb') as f:
+                sys.stdout = f
+                yield
+        finally:
+            # make sure we stdout revert back
+            sys.stdout = sys.__stdout__
 
         if name == 'less':
-            os.system("less -R %s" % f.name)
+            os.system("less -RS %s" % f.name)
         elif name == 'emacs':
             os.system("emacs -nw %s -e 'org-mode'" % f.name)
-        else:
-            raise Exception('Unknown option for pager %r' % name)
 
 
 def update():
@@ -225,6 +231,51 @@ def lexicon(field):
         print x.encode('utf8')
 
 
+def authors():
+
+    from collections import defaultdict
+
+    def simplify(x):
+        # simplify name: remove single initial, lowercase, convert to ascii
+        return re.sub(r'\b[a-z]\.\s*', '', x.strip().lower()).encode('ascii', 'ignore')
+
+    ix = defaultdict(list)
+    docs = []  # documents with authors annotated
+
+    for filename in config.CACHE.glob('*.pdf'):
+        d = Document(filename)
+        d.meta = d.parse_notes()
+        authors = d.meta['author']
+        if authors:
+            docs.append(d)
+            for x in authors:
+                ix[simplify(x)].append(d)
+
+    for author, ds in sorted(ix.items(), key=lambda x: len(x[1]), reverse=True):
+        print yellow % '%s (%s)' % (author, len(ds))
+        for d in ds:
+            print ' ', d.meta['title'], magenta % ('(file://%s)' % d.cached)
+
+
+def tags():
+    from collections import defaultdict
+    ix = defaultdict(list)
+
+    for filename in config.CACHE.glob('*.pdf'):
+        d = Document(filename)
+        d.meta = d.parse_notes()
+        tags = d.meta['tags']
+        if authors:
+            for x in tags:
+                ix[x.lower()].append(d)
+
+    for tag, ds in sorted(ix.items(), key=lambda x: len(x[1]), reverse=True):
+        print yellow % '%s (%s)' % (tag, len(ds))
+        for d in ds:
+            print ' ', d.meta['title'], magenta % ('(file://%s)' % (d.cached + '.d/notes.org'))
+
+
+
 # TODO: We should probably just search Whoosh here...
 def main():
 
@@ -238,11 +289,12 @@ def main():
 
         p = ArgumentParser()
         p.add_argument('query', nargs='*')
-        p.add_argument('--limit', type=int, default=config.LIMIT,
+        p.add_argument('--limit', type=int, default=0, #config.LIMIT,
                        help='query limit (use 0 for no limit)')
         p.add_argument('--show', default='', help='display options')
         p.add_argument('--hide', default='', help='display options')
-        p.add_argument('--pager', choices=('less', 'emacs'), default=None, help='pager for results')
+        p.add_argument('--pager', choices=('none', 'less', 'emacs'), default='less',
+                       help='pager for results')
         p.add_argument('--format', choices=('standard', 'org'), default='standard',
                        help='output format')
         p.add_argument('--by', choices=('relevance', 'modified', 'added'), default='relevance',
@@ -323,6 +375,12 @@ def main():
     elif cmd == 'serve':
         serve()
 
+    elif cmd == 'authors':
+        authors()
+
+    elif cmd == 'tags':
+        tags()
+
     elif cmd == 'ack':
         p = ArgumentParser()
         p.add_argument('query')
@@ -334,6 +392,15 @@ def main():
         p.add_argument('field')
         args = p.parse_args()
         lexicon(args.field)
+
+    elif cmd == 'title':
+        # doesn't require adding the document
+        from skid.pdfhacks.pdfmill import extract_title
+        p = ArgumentParser()
+        p.add_argument('pdf')
+        p.add_argument('--no-extra', action='store_false', dest='extra')
+        args = p.parse_args()
+        extract_title(args.pdf, extra=args.extra)
 
     else:
         print config.commands
