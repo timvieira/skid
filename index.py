@@ -39,7 +39,7 @@ def create():
     create_in(DIRECTORY, schema, NAME)
 
 
-def search(q, limit=10):
+def search(q, limit=None):
     q = unicode(q.decode('utf8'))
     ix = open_dir(DIRECTORY, NAME)
     with ix.searcher() as searcher:
