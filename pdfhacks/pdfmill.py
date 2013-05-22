@@ -168,7 +168,7 @@ def gs(f, outdir):
                   moreopts='-dFirstPage=1 -dLastPage=1')
 
 
-def convert(f):
+def pdfminer(f):
 
     fp = open(f, 'rb')
     parser = PDFParser(fp)
@@ -417,7 +417,7 @@ def extract_title(filename, extra=True):
         filename = pdf.filename
     else:
         try:
-            pdf = convert(filename)
+            pdf = pdfminer(filename)
         except KeyboardInterrupt:
             raise
         except:
@@ -486,7 +486,7 @@ def main(filenames):
         print red % ('#' + '_' *len(ff))
         print red % ('#' + ff)
         try:
-            pdf = convert(filename)
+            pdf = pdfminer(filename)
         except KeyboardInterrupt:
             continue
         except:
