@@ -5,6 +5,25 @@ from arsenal.terminal import red, green, magenta
 from arsenal.nlp.evaluation import F1
 from arsenal.iterextras import iterview
 
+def features(x):
+    "Features used for learning and inference."
+#    return conjunctions(attributes(x))
+    return attributes(x)
+
+def attributes(x):
+    "Vector of active boolean attributes. Note these aren't features yet. Use features for that."
+    for k, v in x.attributes.items():
+        if k == 'label':
+            continue
+        if isinstance(v, (bool, basestring, int)):
+            yield ('%s=%s' % (k,v)).replace('\n','').replace('\t','').encode('utf8')
+        elif isinstance(v, list):
+            for x in v:
+                yield ('%s=%s' % (k,x)).replace('\n','').replace('\t','').encode('utf8')
+        else:
+            assert False, (k,v)
+
+
 class Instance(object):
     def __init__(self, label, attributes):
         self.attributes = attributes
@@ -41,7 +60,7 @@ def traintest(datafile):
     b = data[int(n * p):]
 
     for x in data:
-        x.features = [k for k in x.attributes if k.split('=')[0] not in ('text', 'word', 'x0', 'y0', 'x1', 'y1', 'height', 'width')]
+        x.features = [k for k in x.attributes if k.split('=')[0] not in {'text', 'word', 'x0', 'y0', 'x1', 'y1', 'height', 'width'}]
 
     # feature count filter
 #    c = Counter(k for x in data for k in x.features)
@@ -50,13 +69,13 @@ def traintest(datafile):
     c = Counter((x.label, k) for x in data for k in x.features)
     feature_label_freq_filter(a, c, threshold=5)
 
-    print 'conjunctions..'
-    for x in iterview(data):
-        x.features = conjunctions(x.features)
+#    print 'conjunctions..'
+#    for x in iterview(data):
+#        x.features = conjunctions(x.features)
 
-    print 'filter conjunctions...'
-    c = Counter((x.label, k) for x in data for k in x.features)
-    feature_label_freq_filter(a, c, threshold=3)
+#    print 'filter conjunctions...'
+#    c = Counter((x.label, k) for x in data for k in x.features)
+#    feature_label_freq_filter(a, c, threshold=3)
 
     return list(a), b
 
