@@ -1,46 +1,50 @@
+"""
+Get training data for metadata extraction based on user notes.
+
+Applies various hueristics because annotation is technically "out of band",
+whereas most machine learning techniques require "in band" annotation. In our
+case this means we want to know which boxes or chunks of text gave rise to the
+annotation.
+
+This is slighly challenging because of noise in the pdf text extraction, many
+possible extraction sites, spelling variation.
+"""
+
 import re
-import fabulous
+from path import path
 
 from skid.add import Document
 from skid.config import CACHE
-from skid.pdfhacks.pdfmill import convert, gs, template, Context
+from skid.pdfhacks.pdfmill import pdfminer, gs, template, Context
 
 from arsenal.iterextras import iterview, islice
 from arsenal.terminal import red, green, yellow, blue, magenta
 
+from skid.pdfhacks.learn import predict, load, features
+from skid.utils.misc import color, shingle
 
-def data():
 
+def data(verbose=True):
+    """
+    Get a list of skid pdfs which have authors annotated.
+    """
     for filename in iterview(CACHE.glob('*.pdf')):
-
         d = Document(filename)
         meta = d.parse_notes()
-
         if meta['author']:
-
-            ff = ' file://' + filename
-            print
-            print red % ('#' + '_' *len(ff))
-            print red % ('#' + ff)
-            print
-            print ('%s: %s' % (yellow % 'meta', meta['title'])).encode('utf8')
-            print ('%s: %s' % (yellow % 'meta', ' ; '.join(meta['author']))).encode('utf8')
-            print
-
-            pdf = convert(filename)
-
-            yield (meta, d, pdf)
+            if verbose:
+                ff = ' file://' + filename
+                print
+                print red % ('#' + '_' *len(ff))
+                print red % ('#' + ff)
+                print
+                print ('%s: %s' % (yellow % 'meta', meta['title'])).encode('utf8')
+                print ('%s: %s' % (yellow % 'meta', ' ; '.join(meta['author']))).encode('utf8')
+                print
+            yield (meta, d, pdfminer(filename))
 
 
-def shingle(x, size=3):
-    """
-    >>> shingle("abcdef", size=3)
-    ['abc', 'bcd', 'cde', 'def']
-    """
-    return [x[i:i + size] for i in xrange(0, len(x) - size + 1)]
-
-
-def find_authors(meta, d, pdf):
+def find_authors(meta, d, pdf, output):
 
     authors = [set(shingle(x.strip())) for x in meta['author']]
     author = ' ; '.join(meta['author'])
@@ -98,13 +102,13 @@ def find_authors(meta, d, pdf):
         x.style['background-color'] = 'rgba(0,255,0,0.2)'
 
     # dump training data to file.
-    with file('data.tsv', 'a') as f:
+    with file(output, 'a') as f:
         for item in items:
             f.write(item.attributes['label'])
             f.write('\t')
             f.write('alwayson')
             f.write('\t')
-            f.write('\t'.join(tovector(item)))
+            f.write('\t'.join(features(item)))
             f.write('\n')
 
     print
@@ -113,6 +117,12 @@ def find_authors(meta, d, pdf):
 
 
 def heuristic(target, candidates):
+    """
+    Applies string overlap with ``target`` heuristic to ``candidates``.
+
+    Used to winnow the collection of candidates.
+    """
+
     extracted = []
     candidates.sort()
 
@@ -142,10 +152,10 @@ def heuristic(target, candidates):
 
     extracted_text = ' '.join(x.text for x in extracted).encode('utf8')
 
-    c = set(shingle(extracted_text))
+    size = 3
+    c = set(shingle(extracted_text, n=size))
 
     tally = [0]*len(target)
-    size = 3
     for i in xrange(len(target)):
         if target[i:i+size] in c:
             for j in xrange(i, i+size):
@@ -156,25 +166,19 @@ def heuristic(target, candidates):
     return extracted
 
 
-def color(c, x):
-    "Colorize numbers in [0,1] based on value; darker means smaller value."
-    a, b = 238, 255   # 232, 255
-    w = b - a
-    offset = x*w
-    offset = int(round(offset))
-    return unicode(fabulous.color.fg256(a + offset, c)).encode('utf8')
-
-
-from skid.pdfhacks.learn import predict, load, conjunctions
-from path import path
-
-outdir = path('tmp')
+outdir = path('tmp')              # html output and cached ghostscript images to here
 outfile = outdir / 'output.html'
 
-def main():
+def main(output='data.tsv'):
+    """
+    Build data set from user annotation.
+
+    Outputs data.tsv
+
+    """
 
     # create file, we'll be appending to it as we go along
-    with file('data.tsv', 'wb') as f:
+    with file(output, 'wb') as f:
         f.write('')
 
     try:
@@ -185,13 +189,13 @@ def main():
 
     pages = []
     for meta, d, pdf in islice(data(), None):
-        if find_authors(meta, d, pdf):
+        if find_authors(meta, d, pdf, output):
             gs(meta['cached'], outdir)
             pages.append(pdf.pages[0])
 
             if w is not None:
                 for x in pdf.pages[0].items:
-                    y = predict(w, {k: 1.0 for k in conjunctions(tovector(x))})
+                    y = predict(w, {k: 1.0 for k in features(x)})
                     if y != 'other':
                         x.style['border'] = '2px solid %s' % {'author': 'green', 'title': 'blue'}[y]
                         c = {'author': magenta, 'title': blue}[y]
@@ -215,6 +219,12 @@ def main():
 
 
 def markup_pdf(filename):
+    """
+    Apply learned model on a pdf.
+
+    Creates a image of the first page.
+    """
+
     try:
         w = load('weights.pkl~')
     except IOError:
@@ -225,14 +235,14 @@ def markup_pdf(filename):
 
     filename = path(filename)
 
-    pdf = convert(filename)
+    pdf = pdfminer(filename)
 
     gs(filename, outdir)
     pages.append(pdf.pages[0])
 
     if w is not None:
         for x in pdf.pages[0].items:
-            y = predict(w, {k: 1.0 for k in conjunctions(tovector(x))})
+            y = predict(w, {k: 1.0 for k in features(x)})
             if y != 'other':
                 x.style['border'] = '2px solid %s' % {'author': 'magenta', 'title': 'blue'}[y]
                 c = {'author': magenta, 'title': blue}[y]
@@ -255,24 +265,7 @@ def markup_pdf(filename):
     webbrowser.open(f.name)
 
 
-def tovector(x):
-    for k, v in x.attributes.items():
-
-        if k == 'label':
-            continue
-
-        if isinstance(v, (bool, basestring, int)):
-            yield ('%s=%s' % (k,v)).replace('\n','').replace('\t','').encode('utf8')
-
-        elif isinstance(v, list):
-            for x in v:
-                yield ('%s=%s' % (k,x)).replace('\n','').replace('\t','').encode('utf8')
-
-        else:
-            assert False, (k,v)
-
-
 if __name__ == '__main__':
     from arsenal.automain import automain
-    automain()
+    automain(available=[markup_pdf, main])
     #main()
