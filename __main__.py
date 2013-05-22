@@ -11,12 +11,12 @@ from skid import index
 from skid import add as _add
 from skid import config
 from skid.add import Document
+from skid.utils import bibkey, author
 
-from arsenal.terminal import cyan, yellow, magenta, green
+from arsenal.terminal import cyan, yellow, magenta, green, red
 
 from whoosh.searching import Hit
 
-from skid.utils import lastname
 
 
 # TODO: I'd like to quickly check if I've added a paper before. Not sure hash
@@ -61,19 +61,6 @@ def display(results, limit=None, show=('author', 'title', 'link', 'link:notes'))
             return 'file://' + x
         return x
 
-    def author(x):
-
-        if not x:
-            return ''
-
-        last = map(lastname, x)
-
-        if len(last) == 1:
-            return '%s' % last[0]
-        elif len(last) == 2:
-            return '%s & %s' % (last[0], last[1])
-        else:
-            return '%s et al.' % (last[0])
 
     for doc in islice(results, limit):
 
@@ -276,7 +263,8 @@ def tags():
 
 
 
-# TODO: We should probably just search Whoosh here...
+# TODO: We should probably just search Whoosh instead of contorting results the
+# way I'm doing... in order to support ls (which could be done using Whoosh)
 def main():
 
     if len(sys.argv) <= 1:
@@ -285,7 +273,7 @@ def main():
 
     cmd = sys.argv.pop(1)
 
-    if cmd in ('search', 'ls', 'similar'):
+    if cmd in ('search', 'ls', 'similar', 'key'):
 
         p = ArgumentParser()
         p.add_argument('query', nargs='*')
@@ -299,14 +287,40 @@ def main():
                        help='output format')
         p.add_argument('--by', choices=('relevance', 'modified', 'added'), default='relevance',
                        help='Sort results by')
+
+        p.add_argument('--top', action='store_true', default=False)
+
         args = p.parse_args()
 
         query = ' '.join(args.query)
 
         limit = args.limit if args.limit > 0 else None
 
+
+        # todo: support for bibtex key style search, e.g. 'bottou12counterfactual'
+        #
+        #   - convert 'bottou12counterfactual' into 'author:bottou year:2012 title:counterfactual'
+        #
+        #   - should be greedy e.g. act like '--top'
+        #
+        #   - bash completed for keys should be easy to implement and useful.
+
+        if args.top:
+            args.pager = 'none'
+            limit = 1
+
         if cmd == 'search':
-            results = index.search(query, limit=limit)
+            results = index.search(query)
+
+        elif cmd == 'key':
+            p = bibkey(query)
+            if p:
+                q = 'author:%s year:%s title:%s' % p
+                print q
+                results = index.search(q)
+            else:
+                results = []
+
         elif cmd == 'similar':
             results = Document(query).similar(limit=limit)
         elif cmd == 'ls':
@@ -322,6 +336,8 @@ def main():
         if cmd == 'ls' and args.by == 'relevance':
             sortwith = added
         results.sort(key=sortwith, reverse=True)
+
+        nresults = len(results)
 
         # limit number of search results
         results = results[:limit]
@@ -339,16 +355,22 @@ def main():
                 show.remove(x)
 
         with pager(args.pager):
-
-            if args.format == 'org':
-                if limit and len(results) >= limit:
-                    print '# showing top %s results' % limit
-
-            else:
-                if limit and len(results) >= limit:
-                    print yellow % 'showing top %s results' % limit
-
+            if limit and len(results) >= limit:
+                if args.format == 'org':
+                    print '# showing top %s of %s results' % (min(limit, nresults), nresults)
+                else:
+                    print yellow % 'showing top %s of %s results' % (min(limit, nresults), nresults)
             format(results, show=show)
+
+        if args.top:
+            assert len(results) <= 1
+            if not results:
+                print red % 'Nothing found'
+                return
+            [top] = results
+            # open cached document and user notes
+            os.system('gnome-open %s' % top.cached)
+#            os.system('gnome-open %s' % top.cached + '.d/notes.org')
 
 
     elif cmd == 'add':
