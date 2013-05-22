@@ -238,8 +238,8 @@ def authors():
             for x in authors:
                 ix[simplify(x)].append(d)
 
-    for author, ds in sorted(ix.items(), key=lambda x: len(x[1]), reverse=True):
-        print yellow % '%s (%s)' % (author, len(ds))
+    for a, ds in sorted(ix.items(), key=lambda x: len(x[1]), reverse=True):
+        print yellow % '%s (%s)' % (a, len(ds))
         for d in ds:
             print ' ', d.meta['title'], magenta % ('(file://%s)' % d.cached)
 
@@ -370,8 +370,7 @@ def main():
             [top] = results
             # open cached document and user notes
             os.system('gnome-open %s' % top.cached)
-#            os.system('gnome-open %s' % top.cached + '.d/notes.org')
-
+#            os.system('$EDITOR %s' % top.cached + '.d/notes.org')
 
     elif cmd == 'add':
         p = ArgumentParser()
