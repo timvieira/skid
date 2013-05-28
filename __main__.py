@@ -312,14 +312,14 @@ def main():
         if cmd == 'search':
             results = index.search(query)
 
-        elif cmd == 'key':
-            p = bibkey(query)
-            if p:
-                q = 'author:%s year:%s title:%s' % p
-                print q
-                results = index.search(q)
-            else:
-                results = []
+#        elif cmd == 'key':
+#            p = bibkey(query)
+#           if p:
+#               q = 'author:%s year:%s title:%s' % p
+#               print q
+#               results = index.search(q)
+#           else:
+#               results = []
 
         elif cmd == 'similar':
             results = Document(query).similar(limit=limit)

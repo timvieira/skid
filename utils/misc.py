@@ -1,6 +1,16 @@
 # -*- coding: utf-8 -*-
 import re
 from fabulous.color import fg256
+from whoosh.analysis import STOP_WORDS
+
+
+re_stopwords = re.compile(r'\b(%s)\b\s*' % '|'.join(STOP_WORDS), re.I)
+def remove_stopwords(x):
+    """
+    >>> remove_stopwords('A man saw the boy with his telescope.')
+    'man saw boy his telescope.'
+    """
+    return re_stopwords.sub('', x)
 
 
 def lastname(name):

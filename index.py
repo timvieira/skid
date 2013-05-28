@@ -12,6 +12,7 @@ from whoosh.fields import Schema, TEXT, ID, DATETIME
 from whoosh.qparser import QueryParser, MultifieldParser
 from whoosh.analysis import KeywordAnalyzer, STOP_WORDS
 
+from skid.utils import remove_stopwords
 from skid.config import ROOT, CACHE
 from skid.add import Document
 
@@ -52,7 +53,7 @@ def search(q, limit=None):
                               schema=ix.schema)
 
         # Whoosh chokes on queries with stop words, so remove them.
-        q = re.sub(r'\b(%s)\b' % '|'.join(STOP_WORDS), '', q)
+        q = remove_stopwords(q)
 
         q = qp.parse(q)
         for hit in searcher.search(q, limit=limit):
