@@ -1,4 +1,4 @@
-SKID: bookmarks, simply kept in directories
+bookmarks, simply kept in directories (SKID)
 
 * Motivation
 
@@ -28,6 +28,11 @@ and personal notes.
 With the basic setup we can quick write tools for maintaining, accessing, and
 analyzing the repository of documents.
 
+
+* Installing
+
+My python [[https://github.com/timvieira/arsenal][arsenal]], pdftotext, and the following python packages path.py, Whoosh,
+pdfminer.
 
 * FAQ
 
