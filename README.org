@@ -16,193 +16,26 @@ Article advocates
     linux geek), but they talk about using simple programs rather large
     monolithic programs.
 
-=skid= stores all documents in a single directory called the cache
-(=~/.skid/marks/=). Each file in the cache has a directory associated with it
-where metadata and other associated data will live. These directories are named
-after the cached document with a '.d' suffix (for example, cached document
-=Cookbook.pdf= has a directory =Cookbook.pdf.d/=). The most important file
-living in this directory is =notes.org=. This file is where users annotated
-documents with bibliographic metadata (e.g. title, author, year), personal
-notes, and system information (e.g. source from which it was downloaded).
+=skid= stores all documents in a single directory called "the cache". Each file
+in the cache has a directory associated with it where metadata will live
+(e.g. user notes, bibliographic information, text extraction). These directories
+are named after the cached document with a simple '.d' suffix (for example,
+cached document =Cookbook.pdf= has a directory =Cookbook.pdf.d/=). The most
+important file living in this directory is =notes.org=. This file is where the
+user annotates documents with bibliographic metadata (e.g. title, author, year),
+and personal notes.
+
+With the basic setup we can quick write tools for maintaining, accessing, and
+analyzing the repository of documents.
 
 
-* Explanation
-
-** How is data stored?
-
-Documents (or links to documents) go in cache.
-
-Each document has a directory right next to it, which will hold metadata. For
-example.
-
-: cache/
-:     somefile.ext
-:     somefile.ext.d/
-:         bibtex
-:         notes.org
-:         data/
-:             text
-:             hash
-
-Now, we can write command-line scripts which will query this data set.
-
-Examples include:
-
- - keyword search: over the plaintext content or descriptions. This might
-   require building an inverted index (only to be super efficient). Grep (or
-   preferably [[http://betterthangrep.com/][ack]]) works surprisingly fast and get you most of the way there.
-
- - metadata: light markup for metadata title, tags, source
-
- - plaintext: for searching with grep, ack, or whoosh index.
-
- - information displays: Show we know about a particular file. E.g. title,
-   bibtex data, tags, and comments for research papers.
-
-
-* Things I fumble about trying to do
-
- - looking up a paper's directory so that I could copy files into its folder
-
-   - TODO: what about =skid attach <doc> [files+]=?
-
-   - proposed solution: add links to .d and notes.org; nice terminals make these
-     links clickable.
-
- - narrowing search: keyword search returns too many results. I want to "pick"
-   one paper (pick can mean open, take notes, grab metadata).
-
-   * auto-complete/suggestion: (todo: could look at discriminating words between
-     results)
-
-   * Pagination of results.
-
-   * Auto-complete/suggestion might require an interactive command-line
-     interface (or possibly a web app, not sure how I feel about a web app).
-
-     - interaction idea: drop-down list; use up and down arrow keys to select
-       options -- this is how google does it.
-
-* Outstanding issues
+* FAQ
 
  - What if I don't want to write notes about a specific single paper, but rather
-   on a topic or something ... for example the learn directories...
+   on a topic or something?
 
- - Reference structure:
-   - It might be nice to leverage/standardize the way documents cite, at least
-     in the notes.org file. (I'm pretty sure we want to avoid automatic citation
-     extraction)
+   Create an empty document and write your notes it's notes.org file.
 
- - Attachments:
-   - maybe single documents is too flat.
-   - Should attachments be indexed?
-
-* Markup language
-
-Need to evaluate alternatives here.
-
-org-mode seems to want something like the following for 'proper' metadata
-
-: #+title: Meta-Syntactic Variables
-:
-: :PROPERTIES:
-:   :title: Meta-Syntactic Variables
-:   :author: Foo B. Baz
-:   :year: 2012
-: :END:
-
-This is pretty ugly.. Why do you have to be so 90s org-mode? I love that
-org-mode works so well in emacs, but the syntax is not as nice as other markup
-languages.
-
-
-* Ideas for future work
-
-** Misc
-
-- too many tools for messing around with pdfs {pstotext, pdftotext, pdftothtml,
-  pdfminer}
-
-- export metadata to org-mode buffer for quick browsing and editing..
-
-** archive/crawl entire webpages, for offline reading and indexing
-
-Sometimes we only get a useless homepage with little or no content.
-
-For example, the 'learn you a haskell for great good!' tutorial, is something
-you might want to read offline or index beyond the homepage.
-
-This might be a tought problem... We can try to keep it to really simple wget
-options. I've done a few times to download course webpages... Maybe this is just
-hoarding...
-
-** Automatic metadata extration
-
- - author and title classifiers
-
- - interface/workflow for quickly checking and correcting classifier output.
-
-** Simple heuristics for finding duplicates
-
-** Recommendation
-
-find related stuff, suggest tags
-
-* TODO
-
-- Show top-5 most similar documents: (use whoosh) when adding a new document;
-  helps find duplicates and related tags.
-
-  - TODO: (implementation roadblock) how do I get top-5 most similary in the
-    Whoosh API without adding the document first.
-
-- results pagination: piping results thru less is not ideal, navigating results
-  is also less than ideal -- it's in the terminal, I shouldn't have to click on
-  stuff.
-
-  - a curses or emacs interface might work well. I'd like to have keyboard
-    shortcuts to move up and down in the results list and to open source, cache,
-    directory, notes, etc.
-
-- more data: I believe =skid= is prepared to index more types of text-like data
-  including arbitrary notes and emails. The big difference this files frequently
-  change, unlike most pdfs.
-
-  - probably need to mark documents as "volatile" so that skid can cache and
-    index the latest version.
-
-- information extraction: I'd like to extract authors and avoid repeatedly
-  making the same types of mistakes. The ideal setup will include automated
-  tests and online learning (e.g. a simple perceptron learner).
-
-- utils/gscholar.py: clever little script! We might want to plug it into our
-  default pipeline. We can use it to retrieve BibTeX and validate against.
-
-- recommendation: find most similar documents and notes.
-
-- auto-completion:
-
-  - smarter: look at string so far see if there is a "title:" or "author:"
-    preceding the current word.
-
-  - faster: cache lexicon to file so we don't have to ask Whoosh. It's ok for he
-    lexicon to be a little out-of-date. We can force updates with =skid update=.
-
-- look into Andrej Karpathy's "research pooler"
-  https://sites.google.com/site/researchpooler/
-
-  - he also has a NIPS paper browser
-    http://cs.stanford.edu/~karpathy/nipspreview/
-    https://github.com/karpathy/nipspreview
-
-* Fun
-
-- citation analysis: grab the text following a line "References" or
-  "Bibliography" try to link segments against our database. (For efficiently and
-  precision, We can prune segments so that they only occur at punctuation).
-
-- document exploration: multidimensional scaling scatter plot. Might want to
-  play around with ClusterLDA and vanilla LDA.
 
 * Org-mode configuration
 
