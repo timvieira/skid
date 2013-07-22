@@ -34,6 +34,9 @@ analyzing the repository of documents.
 My python [[https://github.com/timvieira/arsenal][arsenal]], pdftotext, and the following python packages path.py, Whoosh,
 pdfminer.
 
+: $ pip install path.py whoosh pdfminer fabulous numpy pandas ipython
+
+
 * FAQ
 
  - What if I don't want to write notes about a specific single paper, but rather
