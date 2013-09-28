@@ -1,1 +1,0 @@
-Collection of assorted tricks for processing pdfs and bibtex data.
