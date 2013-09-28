@@ -1,0 +1,89 @@
+* Ideas for future work
+
+** Misc
+
+- too many tools for messing around with pdfs {pstotext, pdftotext, pdftothtml,
+  pdfminer}
+
+- export metadata to org-mode buffer for quick browsing and editing..
+
+** archive/crawl entire webpages, for offline reading and indexing
+
+Sometimes we only get a useless homepage with little or no content.
+
+For example, the 'learn you a haskell for great good!' tutorial, is something
+you might want to read offline or index beyond the homepage.
+
+This might be a tought problem... We can try to keep it to really simple wget
+options. I've done a few times to download course webpages... Maybe this is just
+hoarding...
+
+** Automatic metadata extration
+
+- author and title classifiers
+
+- interface/workflow for quickly checking and correcting classifier output.
+
+** Simple heuristics for finding duplicates
+
+** Recommendation
+
+find related stuff, suggest tags
+
+* TODO
+
+- script to convert old notes format to new
+
+- Show top-5 most similar documents: (use whoosh) when adding a new document;
+  helps find duplicates and related tags.
+
+  - (implementation roadblock) how do I get top-5 most similary in the Whoosh
+    API without adding the document first.
+
+- results pagination: piping results thru less is not ideal, navigating results
+  is also less than ideal -- it's in the terminal, I shouldn't have to click on
+  stuff.
+
+  - a curses or emacs interface might work well. I'd like to have keyboard
+    shortcuts to move up and down in the results list and to open source, cache,
+    directory, notes, etc.
+
+- more data: I believe =skid= is prepared to index more types of text-like data
+  including arbitrary notes and emails. The big difference this files frequently
+  change, unlike most pdfs.
+
+  - probably need to mark documents as "volatile" so that skid can cache and
+    index the latest version.
+
+- information extraction: I'd like to extract authors and avoid repeatedly
+  making the same types of mistakes. The ideal setup will include automated
+  tests and online learning (e.g. a simple perceptron learner).
+
+- utils/gscholar.py: clever little script! We might want to plug it into our
+  default pipeline. We can use it to retrieve BibTeX and validate against.
+
+- recommendation: find most similar documents and notes.
+
+- auto-completion:
+
+  - smarter: look at string so far see if there is a "title:" or "author:"
+    preceding the current word.
+
+  - faster: cache lexicon to file so we don't have to ask Whoosh. It's ok for he
+    lexicon to be a little out-of-date. We can force updates with =skid update=.
+
+- look into Andrej Karpathy's "research pooler"
+  https://sites.google.com/site/researchpooler/
+
+  - he also has a NIPS paper browser
+    http://cs.stanford.edu/~karpathy/nipspreview/
+    https://github.com/karpathy/nipspreview
+
+* Fun
+
+- citation analysis: grab the text following a line "References" or
+  "Bibliography" try to link segments against our database. (For efficiently and
+  precision, We can prune segments so that they only occur at punctuation).
+
+- document exploration: multidimensional scaling scatter plot. Might want to
+  play around with ClusterLDA and vanilla LDA.

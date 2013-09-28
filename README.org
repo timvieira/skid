@@ -31,16 +31,28 @@ analyzing the repository of documents.
 
 * Installing
 
-My python [[https://github.com/timvieira/arsenal][arsenal]], pdftotext, and the following python packages path.py, Whoosh,
-pdfminer.
+** Dependencies
+
+Pdf utilities:
 
 : $ apt-get install pdftotext
-: $ pip install path.py whoosh pdfminer fabulous numpy pandas ipython
+
+Python modules:
+
+: $ pip path.py whoosh pdfminer numpy pandas ipython
+
+My python [[https://github.com/timvieira/arsenal][arsenal]]
 
 
-* Org-mode configuration
+** Setup
 
-Support for 'skid:' direction in org-mode links
+: python setup.py install
+
+
+** Org-mode configuration
+
+Support for 'skid:' direction in org-mode links, add the following to emacs
+configuration.
 
 : ;;------------------------------------------------------------------------------
 : ;; Support for skid links
