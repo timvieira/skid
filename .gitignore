@@ -1,6 +1,3 @@
-# globs:
-syntax: glob
-
 *.elc
 *.pyc
 *.class
@@ -17,6 +14,3 @@ sandbox/*
 MANIFEST
 skid.egg-info/
 dist/*
-
-# regex:
-syntax: regexp
