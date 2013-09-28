@@ -1,6 +1,20 @@
 # -*- coding: utf-8 -*-
 import re
-from fabulous.color import fg256
+
+try:
+    from fabulous.color import fg256
+except ImportError:
+    pass
+else:
+    def color(c, x):
+        "Colorize numbers in [0,1] based on value; darker means smaller value."
+        a, b = 238, 255   # 232, 255
+        w = b - a
+        offset = x*w
+        offset = int(round(offset))
+        return unicode(fg256(a + offset, c)).encode('utf8')
+
+
 from whoosh.analysis import STOP_WORDS
 
 
@@ -60,15 +74,6 @@ def shingle(x, n=3):
     ['abc', 'bcd', 'cde', 'def']
     """
     return [x[i:i+n] for i in xrange(0, len(x) - n+1)]
-
-
-def color(c, x):
-    "Colorize numbers in [0,1] based on value; darker means smaller value."
-    a, b = 238, 255   # 232, 255
-    w = b - a
-    offset = x*w
-    offset = int(round(offset))
-    return unicode(fg256(a + offset, c)).encode('utf8')
 
 
 def bibkey(x):

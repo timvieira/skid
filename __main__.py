@@ -78,7 +78,8 @@ def display(results, limit=None, show=('author', 'title', 'link', 'link:notes'))
                 print (magenta % '(%s)' % a).encode('utf8'),
 
         if 'title' in show:
-            print hit['title'].replace('\n', ' ').encode('utf8')
+            print re.sub('\[[A-Z]+\]$', lambda x: yellow % x.group(0),
+                         hit['title'].strip()).replace('\n', ' ').encode('utf8')
 
         if 'source' in show:
             print cyan % link(hit['source'])
@@ -287,8 +288,10 @@ def main():
                        help='output format')
         p.add_argument('--by', choices=('relevance', 'modified', 'added'), default='relevance',
                        help='Sort results by')
-
-        p.add_argument('--top', action='store_true', default=False)
+        p.add_argument('--top', action='store_true',
+                       help='Only show top hit.')
+        p.add_argument('--no-open', action='store_false',
+                       help='do not open top hit')
 
         args = p.parse_args()
 
@@ -369,7 +372,10 @@ def main():
                 return
             [top] = results
             # open cached document and user notes
-            os.system('gnome-open %s' % top.cached)
+#            os.system('gnome-open %s' % top.cached)
+            if args.no_open:
+                from subprocess import Popen
+                Popen(['gnome-open', top.cached])
 #            os.system('$EDITOR %s' % top.cached + '.d/notes.org')
 
     elif cmd == 'add':

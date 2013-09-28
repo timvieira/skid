@@ -2,13 +2,6 @@
 # -*- coding: utf-8 -*-
 """
 Add document to skid (cache document, extract text, create metadata files).
-
-
-- TODO: date added. (is there a way to hide/collapse certain data in org-mode?
-  should we just use file creation time?)
-
-   - timv: my solution for "hiding" is to put stuff in that `{cached}.d/data/`
-
 """
 import re, os, subprocess
 from path import path

@@ -189,9 +189,13 @@ def pdfminer(f):
     interpreter = PDFPageInterpreter(rsrcmgr, device)
     for page in doc.get_pages():
         worked = False
-        with ignore_error():
+#        with ignore_error():
+        try:
             interpreter.process_page(page)
             worked = True
+        except AssertionError:
+            pass
+
         if not worked:
             return
         layout = device.get_result()
@@ -430,6 +434,9 @@ def extract_title(filename, extra=True):
 #        meta = d.parse_notes()
 #        print meta.get(u'title', None)
 #        print meta.get(u'author', None)
+
+    if not pdf:
+        return
 
     page = pdf.pages[0].items
 

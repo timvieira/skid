@@ -34,15 +34,8 @@ analyzing the repository of documents.
 My python [[https://github.com/timvieira/arsenal][arsenal]], pdftotext, and the following python packages path.py, Whoosh,
 pdfminer.
 
+: $ apt-get install pdftotext
 : $ pip install path.py whoosh pdfminer fabulous numpy pandas ipython
-
-
-* FAQ
-
- - What if I don't want to write notes about a specific single paper, but rather
-   on a topic or something?
-
-   Create an empty document and write your notes it's notes.org file.
 
 
 * Org-mode configuration
@@ -64,11 +57,8 @@ Support for 'skid:' direction in org-mode links
 : ;;  (skid-search "machine learning")
 : ;;
 : ;; org-mode reference http://orgmode.org/org.html#Adding-hyperlink-types
-:
 : (require 'org)
-:
 : (org-add-link-type "skid" 'skid-search)
-:
 : (defun skid-search (query)
 :   "skid tag search."
 :   (interactive)
