@@ -32,6 +32,8 @@ find related stuff, suggest tags
 
 * TODO
 
+- add arsenal as a git submodule
+
 - script to convert old notes format to new
 
 - Show top-5 most similar documents: (use whoosh) when adding a new document;

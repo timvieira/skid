@@ -31,27 +31,33 @@ analyzing the repository of documents.
 
 * Installing
 
-** Dependencies
+Manually installed dependencies
 
-Pdf utilities:
+  1. PDF utils
 
-: $ apt-get install pdftotext
+     : $ apt-get install pdftotext
 
-Python modules:
+  2. My python [[https://github.com/timvieira/arsenal][arsenal]]
 
-: $ pip path.py whoosh pdfminer numpy pandas ipython
+Install remaining deps and this package
 
-My python [[https://github.com/timvieira/arsenal][arsenal]]
-
-
-** Setup
-
-Use pip to install
-
-: pip install -e .
+  : pip install -e .
 
 
-** Org-mode configuration
+(Optional) bash completion
+
+Add the following to bash configuration
+
+: function _optcomplete {
+:     COMPREPLY=( $( \
+:         COMP_LINE=$COMP_LINE  COMP_POINT=$COMP_POINT \
+:         COMP_WORDS="${COMP_WORDS[*]}"  COMP_CWORD=$COMP_CWORD \
+:         $1 ) )
+: }
+: complete -F _optcomplete skid
+
+
+(Optional) Org-mode configuration
 
 Support for 'skid:' direction in org-mode links, add the following to emacs
 configuration.
