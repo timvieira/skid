@@ -46,7 +46,9 @@ My python [[https://github.com/timvieira/arsenal][arsenal]]
 
 ** Setup
 
-: python setup.py install
+Use pip to install
+
+: pip install -e .
 
 
 ** Org-mode configuration

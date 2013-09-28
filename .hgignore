@@ -14,8 +14,9 @@ tmp/*
 *~
 semantic.cache
 sandbox/*
+MANIFEST
+skid.egg-info/
+dist/*
 
 # regex:
 syntax: regexp
-
-
