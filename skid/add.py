@@ -235,12 +235,11 @@ class Document(object):
 
     def note_template(self, x):
         others = set(x) - set('title author year source cached tags notes'.split())
-        attrs = '\n'.join((':%s: %s' % (k, x[k])).strip() for k in others).strip()
+        attrs = u'\n'.join((u':%s: %s' % (k, x[k])).strip() for k in others).strip()
         if attrs:
             attrs += '\n'
         newdata = TEMPLATE.format(attrs=attrs, **x)
-#        newdata = whitespace_cleanup(newdata)
-        return force_unicode(newdata).encode('utf8') #.strip() + '\n'
+        return force_unicode(newdata).encode('utf8')
 
     # TODO: do not like...
     def note_content(self):
@@ -314,7 +313,7 @@ TEMPLATE = u"""\
 :tags:   {tags}
 {attrs}
 {notes}
-"""
+""".encode('utf8')
 
 
 # TODO: move to pdfhacks
