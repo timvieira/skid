@@ -132,6 +132,7 @@ def f1(name, data, w):
         f.report(i, predict(w, x.features), x.label)
     f.scores()
 
+
 def errors(name, data, w):
     print
     print 'ERRORS:', name
@@ -141,10 +142,8 @@ def errors(name, data, w):
             pass
         else:
             print ' ', green % '%-6s' % x.label, red % '%-6s' % y, [k for k in x.attributes if k.startswith('text')] #x.features
-
             l = x.label
             print '   ', ' '.join('%s%s' % (k, magenta % '(%g)' % w) for _, w, k in sorted([(-abs(w[l][k]), w[l][k], k) for k in x.features]))
-
             l = y
             print '   ', ' '.join('%s%s' % (k, magenta % '(%g)' % w) for _, w, k in sorted([(-abs(w[l][k]), w[l][k], k) for k in x.features]))
 
@@ -155,18 +154,66 @@ def main():
     train, test = traintest(datafile)
     print 'train: %s, test: %s' % (len(train), len(test))
 
+
+    from scipy.sparse import dok_matrix
+    from sklearn import linear_model
+    from sklearn.svm import SVC
+    from arsenal.alphabet import Alphabet
+
+    N_FEATURES = 100000
+
+    alphabet = Alphabet()
+    label = Alphabet()
+
+    def _f1(name, data, c):
+        print
+        print name
+        f = F1()
+        for (i, x) in enumerate(data):
+
+            phi = dok_matrix((1, N_FEATURES))
+            for k in x.features:
+                phi[0, alphabet[k] % N_FEATURES] = 1.0
+
+            f.report(i, label.lookup(int(c.predict(phi))), x.label)
+        f.scores()
+
+    X = dok_matrix((len(train), N_FEATURES))
+
+    Y = []
+    W = []
+    X = dok_matrix((len(train), N_FEATURES))
+    for i, x in enumerate(train):
+
+        # binary features
+        for k in x.features:
+            X[i, alphabet[k] % N_FEATURES] = 1.0
+
+        Y.append(label[x.label])
+
+    #c = SVC()
+    c = linear_model.SGDClassifier()
+
+    c.fit(X.tocsc(), Y)
+
+    _f1('train', train, c)
+    _f1('test', test, c)
+
+
     w = learn(train, test)
     save(w, 'weights.pkl~')
 
     f1('train', train, w)
     f1('test', test, w)
 
-    errors('train', train, w)
-    errors('test', test, w)
+    if 0:
+        errors('train', train, w)
+        errors('test', test, w)
 
-    for _, w, label, k in sorted([(abs(w[y][k]), w[y][k], y, k) for y in w for k in w[y] if w[y][k] != 0.0]):
-        if w > 0:
-            print '%8g  %5s  %s' % (w, label, k)
+    if 0:
+        for _, w, label, k in sorted([(abs(w[y][k]), w[y][k], y, k) for y in w for k in w[y] if w[y][k] != 0.0]):
+            if w > 0:
+                print '%8g  %5s  %s' % (w, label, k)
 
 
 if __name__ == '__main__':

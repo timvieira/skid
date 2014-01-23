@@ -4,7 +4,9 @@ import re
 try:
     from fabulous.color import fg256
 except ImportError:
-    pass
+    def color(c, x):
+        "Colorize numbers in [0,1] based on value; darker means smaller value."
+        return unicode(x).encode('utf8')
 else:
     def color(c, x):
         "Colorize numbers in [0,1] based on value; darker means smaller value."
@@ -63,7 +65,7 @@ def author(x):
     elif len(last) == 2:
         return '%s & %s' % (last[0], last[1])
     else:
-        return '%s et al.' % (last[0])
+        return '%s+' % (last[0])
 
 
 def shingle(x, n=3):

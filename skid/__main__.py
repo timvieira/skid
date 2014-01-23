@@ -6,6 +6,7 @@ import re, os, sys
 from argparse import ArgumentParser
 from itertools import islice
 from contextlib import contextmanager
+from collections import defaultdict
 
 from skid import index
 from skid import add as _add
@@ -77,7 +78,10 @@ def display(results, limit=None, show=('author', 'title', 'link', 'link:notes'))
                 print (magenta % '(%s)' % a).encode('utf8'),
 
         if 'title' in show:
-            print re.sub('\[[A-Z]+\]$', lambda x: yellow % x.group(0),
+            #print
+            #print 'latin1:', hit['title'].encode('latin1')
+            #print 'utf8:  ', hit['title'].encode('utf8')
+            print re.sub('\[\S+\]', lambda x: yellow % x.group(0),
                          hit['title'].strip()).replace('\n', ' ').encode('utf8')
 
         if 'source' in show:
@@ -220,8 +224,6 @@ def lexicon(field):
 
 def authors():
 
-    from collections import defaultdict
-
     def simplify(x):
         # simplify name: remove single initial, lowercase, convert to ascii
         return re.sub(r'\b[a-z]\.\s*', '', x.strip().lower()).encode('ascii', 'ignore')
@@ -245,7 +247,6 @@ def authors():
 
 
 def tags():
-    from collections import defaultdict
     ix = defaultdict(list)
 
     for filename in config.CACHE.glob('*.pdf'):

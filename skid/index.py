@@ -45,11 +45,11 @@ def search(q, limit=None):
     ix = open_dir(DIRECTORY, NAME)
     with ix.searcher() as searcher:
         qp = MultifieldParser(fieldnames=['title', 'author', 'tags', 'notes', 'text'],
-                              fieldboosts={'title': 5,
-                                           'author': 5,
-                                           'tags': 5,
-                                           'notes': 2,
-                                           'text': 1},
+                              fieldboosts={'title':  7,
+                                           'author': 10,
+                                           'tags':   4,
+                                           'notes':  2,
+                                           'text':   1},
                               schema=ix.schema)
 
         # Whoosh chokes on queries with stop words, so remove them.
