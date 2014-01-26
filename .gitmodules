@@ -1,0 +1,3 @@
+[submodule "arsenal"]
+	path = arsenal
+	url = git@github.com:timvieira/arsenal.git
