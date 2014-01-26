@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Heuristics title extractor.
+Heuristic title extractor.
 
 There is also a bunch of junk in here to visualize the output of
 pdfminer. Eventually, this will amount to a feature development/debugger for a
@@ -455,6 +455,10 @@ def extract_title(filename, extra=True):
         return
 
     title = ' '.join(x.text for x in g[max(g)])
+
+    # Clean up case if all caps
+    if title.isupper():
+        title = title.title()
 
     print yellow % title.encode('utf8')
 
