@@ -11,6 +11,7 @@ from skid import config
 from skid.add import Document
 from skid.utils import lastname, remove_stopwords
 from arsenal.misc import ctx_redirect_io
+from arsenal.terminal import yellow
 
 def dump():
 
@@ -57,10 +58,8 @@ if __name__ == '__main__':
         with file(d) as f:
             matches = list(main(args.filters, f.readlines(), color=args.action != 'complete'))
             for m in matches:
-                print m
+                print yellow % m
 
-
-"""
                 [a, y, t] = m.split('-')
 
                 q = ''
@@ -76,4 +75,3 @@ if __name__ == '__main__':
 
                 import os
                 os.system(skidq)
-"""
