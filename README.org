@@ -1,6 +1,6 @@
-bookmarks, simply kept in directories (SKID)
+* bookmarks, simply kept in directories (SKID)
 
-* Motivation
+** Motivation
 
 Great post by GradHacker: [[http://www.gradhacker.org/2012/08/13/towards-better-pdf-management-with-the-filesystem/][Towards Better PDF Management with the Filesystem]].
 
@@ -29,7 +29,7 @@ With the basic setup we can quick write tools for maintaining, accessing, and
 analyzing the repository of documents.
 
 
-* Installing
+** Quickstart
 
 Manually installed dependencies
 
@@ -43,10 +43,11 @@ Install remaining deps and this package
 
   : pip install -e .
 
+** Optional
 
-(Optional) bash completion
+*** bash completion
 
-Add the following to bash configuration
+Add the following to bash configuration:
 
 : function _optcomplete {
 :     COMPREPLY=( $( \
@@ -57,10 +58,10 @@ Add the following to bash configuration
 : complete -F _optcomplete skid
 
 
-(Optional) Org-mode configuration
+*** Org-mode configuration
 
-Support for 'skid:' direction in org-mode links, add the following to emacs
-configuration.
+Enable org-mode link directive (`skid:`), add the following to emacs
+configuration:
 
 : ;;------------------------------------------------------------------------------
 : ;; Support for skid links
@@ -73,8 +74,7 @@ configuration.
 : ;;
 : ;; Programmatic
 : ;;
-: ;;  (skid-search "tags:related:discrete-backprop")
-: ;;  (skid-search "machine learning")
+: ;;  (skid-search "Jason Eisner tags:thesis")
 : ;;
 : ;; org-mode reference http://orgmode.org/org.html#Adding-hyperlink-types
 : (require 'org)
