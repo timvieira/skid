@@ -24,32 +24,10 @@ from whoosh.searching import Hit
 # the prompt "skid similar doc.pdf" and "skid hash doc.pdf" checks for hash
 # equality (do we want to download the paper and all that?).
 
-def serve():
-    "Fire-up web interface."
-    from skid.sandbox.web.serve import run
-    run()
-
 
 def add(source):
     "Add document from source. Sources can be urls or filenames."
     return _add.document(source, interactive=True)
-
-
-def ack(x):
-    """
-    Search notes for pattern.
-
-    TODO: not sure if this is any better than ``search``..
-           - simple program; no need to update indexes
-
-           - matches patterns: instead of keywords for more precise queries
-             (lower recall), but does have some issues with multi-line.
-
-           - Is this generally slower than equivalent keyword search?
-
-    TODO: might want to ack text, not just notes.
-    """
-    os.system("find %s -name notes.org |xargs ack '%s'" % (config.CACHE, x))
 
 
 def display(results, limit=None, show=('author', 'title', 'link', 'link:notes')):
@@ -219,7 +197,7 @@ def ls(q, **kwargs):
 
 def lexicon(field):
     for x in index.lexicon(field):
-        print x.encode('utf8')
+        print x #.encode('utf8')
 
 
 def authors():
@@ -393,26 +371,14 @@ def main():
     elif cmd == 'update':
         update()
 
-    elif cmd == 'drop':
-        drop()
-
     elif cmd == 'push':
         push()
-
-    elif cmd == 'serve':
-        serve()
 
     elif cmd == 'authors':
         authors()
 
     elif cmd == 'tags':
         tags()
-
-    elif cmd == 'ack':
-        p = ArgumentParser()
-        p.add_argument('query')
-        args = p.parse_args()
-        ack(args.query)
 
     elif cmd == 'lexicon':
         p = ArgumentParser()

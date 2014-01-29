@@ -2,8 +2,6 @@
 
 ** Motivation
 
-Great post by GradHacker: [[http://www.gradhacker.org/2012/08/13/towards-better-pdf-management-with-the-filesystem/][Towards Better PDF Management with the Filesystem]].
-
 Tools for organizing your PDFs are restrictive and proprietary (in the sense
 that information is kept hostage inside the software).
 
@@ -12,14 +10,12 @@ Article advocates
  2. flat structure: keeping a single (flat) directory of all your papers
  3. tags over folders: well-known problem we all faced before gmail.
  4. conventions: naming conventions, tagging conventions
- 5. simple scripts: they don't say it directly (author is a mac user, not a
-    linux geek), but they talk about using simple programs rather large
-    monolithic programs.
+ 5. simple scripts: use many simple programs rather large monolithic programs.
 
 =skid= stores all documents in a single directory called "the cache". Each file
 in the cache has a directory associated with it where metadata will live
 (e.g. user notes, bibliographic information, text extraction). These directories
-are named after the cached document with a simple '.d' suffix (for example,
+are named after the cached document with a simple =.d= suffix (for example,
 cached document =Cookbook.pdf= has a directory =Cookbook.pdf.d/=). The most
 important file living in this directory is =notes.org=. This file is where the
 user annotates documents with bibliographic metadata (e.g. title, author, year),
@@ -28,24 +24,43 @@ and personal notes.
 With the basic setup we can quick write tools for maintaining, accessing, and
 analyzing the repository of documents.
 
+See also: a great post by GradHacker: [[http://www.gradhacker.org/2012/08/13/towards-better-pdf-management-with-the-filesystem/][Towards Better PDF Management with the
+Filesystem]].
+
 
 ** Quickstart
 
-Manually installed dependencies
+Manually install dependencies
 
-  1. PDF utils
+  : $ apt-get install pdftotext
 
-     : $ apt-get install pdftotext
+Install remaining python deps and this package
 
-  2. My python [[https://github.com/timvieira/arsenal][arsenal]]
+  : $ git clone git@github.com:timvieira/skid.git
+  : $ cd skid
+  : $ pip install -e .
 
-Install remaining deps and this package
+Add your first document
 
-  : pip install -e .
+  : $ skid add https://github.com/timvieira/skid
+
+This will fire up your text editor with a new =notes.org= file. Write some notes
+about the file, which will help you find it later or remember why you bookmarked
+it to begin with!
+
+Update the skid index so that this document will show up in searches
+
+  : $ skid update
+  : $ skid search timvieira
+
+Further reading:
+
+  : $ skid [command] -h
+
 
 ** Optional
 
-*** bash completion
+*** Bash completion
 
 Add the following to bash configuration:
 
