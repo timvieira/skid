@@ -1,10 +1,9 @@
-from distutils.core import setup
+from setuptools import setup, find_packages
 
 setup(name='skid',
       version='1.0',
       description='Skid: bookmarks, simply kept in directories',
-      author='Tim Vieira',
       url='https://github.com/timvieira/skid/',
-      packages=['skid'],
+      packages= find_packages(),
       scripts=['bin/skid'],
-      install_requires=['whoosh', 'pdfminer', 'pandas'])
+      install_requires=['whoosh', 'pdfminer', 'pandas', 'arsenal'])
