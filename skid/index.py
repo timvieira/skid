@@ -44,8 +44,16 @@ def search(q, limit=None):
     q = unicode(q.decode('utf8'))
     ix = open_dir(DIRECTORY, NAME)
     with ix.searcher() as searcher:
-        qp = MultifieldParser(fieldnames=['title', 'author', 'tags', 'notes', 'text'],
+        qp = MultifieldParser(fieldnames=['title',
+                                          'author',
+                                          'tags',
+                                          'notes',
+                                          'text',
+                                          'source',
+                                          'cached',
+                                          'year'],
                               fieldboosts={'title':  7,
+                                           'year':   6,
                                            'author': 10,
                                            'tags':   4,
                                            'notes':  2,
