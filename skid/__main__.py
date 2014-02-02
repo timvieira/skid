@@ -110,8 +110,26 @@ def org(results, limit=None, **kwargs):
             print ' ', ' '.join('[[skid:tags:%s][%s]]' % (x,x) for x in hit['tags']).encode('utf8').strip()
 
 
+def terminal_size(fd=1):
+    """
+    Returns height and width of current terminal. First tries to get
+    size via termios.TIOCGWINSZ, then from environment. Defaults to 25
+    lines x 80 columns if both methods fail.
+
+    :param fd: file descriptor (default: 1=stdout)
+    """
+    try:
+        import fcntl, termios, struct
+        return struct.unpack('hh', fcntl.ioctl(fd, termios.TIOCGWINSZ, '1234'))
+    except ImportError:
+        try:
+            return (os.environ['LINES'], os.environ['COLUMNS'])
+        except KeyError:
+            return (25, 80)
+
+
 @contextmanager
-def pager(name='none'):
+def pager(name='none', always=False):
     """
     Wraps call to search_org. Redirects output to file and opens it in emacs.
     """
@@ -131,10 +149,22 @@ def pager(name='none'):
             # make sure we stdout revert back
             sys.stdout = sys.__stdout__
 
-        if name == 'less':
-            os.system("less -RS %s" % f.name)
-        elif name == 'emacs':
-            os.system("emacs -nw %s -e 'org-mode'" % f.name)
+        with file(f.name) as f:
+            lines = f.readlines()
+
+        # TODO: what about lines that are too long? I don't think we can break
+        # up file://links to multiple lines
+        (h, _) = terminal_size()
+
+        if len(lines) + 4 > h or always:
+            if name == 'less':
+                os.system("less -RS %s" % f.name)
+            elif name == 'emacs':
+                os.system("emacs -nw %s -e 'org-mode'" % f.name)
+        else:
+            print
+            print ''.join(lines).strip()
+            print
 
 
 def update():
