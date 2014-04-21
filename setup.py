@@ -5,5 +5,6 @@ setup(name='skid',
       description='Skid: bookmarks, simply kept in directories',
       url='https://github.com/timvieira/skid/',
       packages= find_packages(),
-      scripts=['bin/skid'],
+      scripts=['bin/skid',
+               'skid/utils/gscholar.py'],
       install_requires=['whoosh', 'pdfminer', 'pandas', 'arsenal'])
