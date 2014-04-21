@@ -266,6 +266,12 @@ def markup_pdf(filename):
 
 
 if __name__ == '__main__':
-    from arsenal.automain import automain
-    automain(available=[markup_pdf, main])
-    #main()
+    from argparse import ArgumentParser
+    parser = ArgumentParser()
+    parser.add_argument('action', choices=('markup_pdf', 'main'))
+    parser.add_argument('--filename')
+    args = parser.parse_args()
+    if args.action == 'markup_pdf':
+        markup_pdf(args.filename)
+    elif args.action == 'main':
+        main()

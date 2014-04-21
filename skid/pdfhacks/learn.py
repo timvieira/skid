@@ -66,8 +66,8 @@ def traintest(datafile):
 #    c = Counter(k for x in data for k in x.features)
 #    freq_filter(a, c)
 
-    c = Counter((x.label, k) for x in data for k in x.features)
-    feature_label_freq_filter(a, c, threshold=5)
+#    c = Counter((x.label, k) for x in data for k in x.features)
+#    feature_label_freq_filter(a, c, threshold=5)
 
 #    print 'conjunctions..'
 #    for x in iterview(data):
@@ -165,9 +165,10 @@ def main():
     alphabet = Alphabet()
     label = Alphabet()
 
-    def _f1(name, data, c):
-        print
-        print name
+    def _f1(name, data, c, verbose=True):
+        if verbose:
+            print
+            print name
         f = F1()
         for (i, x) in enumerate(data):
 
@@ -176,12 +177,12 @@ def main():
                 phi[0, alphabet[k] % N_FEATURES] = 1.0
 
             f.report(i, label.lookup(int(c.predict(phi))), x.label)
-        f.scores()
+        f.scores(verbose=verbose)
+        return f
 
     X = dok_matrix((len(train), N_FEATURES))
 
     Y = []
-    W = []
     X = dok_matrix((len(train), N_FEATURES))
     for i, x in enumerate(train):
 
@@ -191,29 +192,72 @@ def main():
 
         Y.append(label[x.label])
 
-    #c = SVC()
-    c = linear_model.SGDClassifier()
 
-    c.fit(X.tocsc(), Y)
+    import numpy as np
+    import matplotlib.pyplot as pl
+    from mpl_toolkits.mplot3d import Axes3D
+    ax = pl.figure().add_subplot(111, projection='3d')
 
-    _f1('train', train, c)
-    _f1('test', test, c)
+    pl.ion()
+    pl.show()
+
+    data = []
+
+    #for author_weight in np.arange(1, 5, 1.0):
+    #    for title_weight in np.arange(1, 5, 1.0):
+
+    for (author_weight, title_weight) in np.random.uniform(1, 10, size=(100, 2)):
+
+        print
+        print 'params:', (author_weight, title_weight)
+
+        # compute new example weights
+        W = []
+        for i, x in enumerate(train):
+            if x.label == 'author':
+                w = author_weight
+            elif x.label == 'title':
+                w = title_weight
+            else:
+                w = 1.0
+            W.append(w)
+
+        #c = SVC()
+        c = linear_model.SGDClassifier()
+        c.fit(X.tocsc(), Y, sample_weight=np.array(W))
+
+        #_f1('train', train, c)
+        ff = _f1('test', test, c, verbose=0)
+
+        score = sum(x for (_, _, _, _, x) in ff.scores(verbose=0))
+
+        data.append((author_weight, title_weight, score))
+        print 'score:', score
+
+        x,y,z=zip(*data)
+        ax.clear()
+        ax.scatter(x,y,z)
+        ax.figure.canvas.draw()
 
 
-    w = learn(train, test)
-    save(w, 'weights.pkl~')
+    print 'done'
+    pl.ioff()
+    pl.show()
 
-    f1('train', train, w)
-    f1('test', test, w)
+    #w = learn(train, test)
+    #save(w, 'weights.pkl~')
 
-    if 0:
-        errors('train', train, w)
-        errors('test', test, w)
+    #f1('train', train, w)
+    #f1('test', test, w)
 
-    if 0:
-        for _, w, label, k in sorted([(abs(w[y][k]), w[y][k], y, k) for y in w for k in w[y] if w[y][k] != 0.0]):
-            if w > 0:
-                print '%8g  %5s  %s' % (w, label, k)
+    #if 0:
+    #    errors('train', train, w)
+    #    errors('test', test, w)
+
+    #if 0:
+    #    for _, w, label, k in sorted([(abs(w[y][k]), w[y][k], y, k) for y in w for k in w[y] if w[y][k] != 0.0]):
+    #        if w > 0:
+    #            print '%8g  %5s  %s' % (w, label, k)
 
 
 if __name__ == '__main__':

@@ -97,6 +97,7 @@ def delete(cached):
             print 'Cached file %r not found in index.' % cached
         elif len(results) == 1:
             w.delete_document(results[0].docnum)
+            return True
         else:
             assert False, 'This should never happen. ' \
                 'Multiple (%s) results for %r found for cached file.' % (len(results), cached)

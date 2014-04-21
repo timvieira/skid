@@ -44,6 +44,10 @@ def display(results, limit=None, show=('author', 'title', 'link', 'link:notes'))
 
         hit = doc.parse_notes()
 
+# if whoosh reader is closed we can't access highlights
+#        if hasattr(doc, 'hit'):
+#            print doc.hit.highlights('text', top=5)
+
         if 'score' in show:
             print yellow % ('[%.2f]' % doc.score),
 
@@ -184,7 +188,42 @@ def push():
     os.system('rsync --progress -a %s/. %s/marks/.' % (config.CACHE, config.REMOTE))
 
 
-def rm(cached):
+def rm(q):
+    "Remove skid-mark associated with cached file."
+
+    cached = q.strip()
+    cached = re.sub('^file://', '', cached)   # remove "file://" prefix
+
+    if cached.startswith(config.CACHE):
+        # remove cached file
+        os.system('rm -f %s' % cached)
+        # remove corresponding '.d' directory and its contents
+        os.system('rm -rf %s.d' % cached)
+        # remove file from whoosh index.
+        index.delete(cached)
+
+    else:
+        from skid.index import search
+        results = [dict(x) for x in search(q)]
+        if len(results) == 0:
+            # Should only happen if user hasn't done run skid-update since
+            # adding the paper being deleted.
+            print 'No matches. Make sure skid is up-to-date by running `skid update`.'
+        elif len(results) == 1:
+            [hit] = results
+            print
+            print hit['title']
+            print green % "Are you sure you'd like to delete this document [Y/n]?",
+            if raw_input().strip().lower() in ('y','yes',''):
+                if rm_cached(hit['cached']):
+                    print yellow % 'Successfully deleted.'
+        else:
+            assert False, 'Multiple (%s) results found for query %r. ' \
+                'Refine query and try again.' \
+                % (len(results), q)
+
+
+def rm_cached(cached):
     "Remove skid-mark associated with cached file."
 
     cached = cached.strip()
@@ -197,7 +236,7 @@ def rm(cached):
     os.system('rm -rf %s.d' % cached)  # remove .d directory and all it's contents
 
     # remove file from whoosh index.
-    index.delete(cached)
+    return index.delete(cached)
 
 
 # TODO: use mtime/added in Whoosh index instead if "ls -t" and date-added file? (requires "skid update")
@@ -214,6 +253,7 @@ def todoc(d):
     if isinstance(d, Hit):
         doc = Document(d['cached'])
         doc.score = d.score
+        doc.hit = d
         return doc
     return d
 

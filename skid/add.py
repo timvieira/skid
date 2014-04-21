@@ -318,6 +318,8 @@ TEMPLATE = u"""\
 if __name__ == '__main__':
     # use test environment
     from skid import config
+    from pprint import pprint
+
     ROOT = config.ROOT = path('~/.skid-test').expand()
     CACHE = config.CACHE = ROOT / 'marks'
 
@@ -330,6 +332,4 @@ if __name__ == '__main__':
     print test_doc
 
     test = Document(test_cached)
-#    from arsenal.debug import ip; ip()
-    from pprint import pprint
     pprint(test.parse_notes())
