@@ -6,5 +6,6 @@ setup(name='skid',
       url='https://github.com/timvieira/skid/',
       packages= find_packages(),
       scripts=['bin/skid',
+               'bin/pdf-hammer.py',
                'skid/utils/gscholar.py'],
       install_requires=['whoosh', 'pdfminer', 'pandas', 'arsenal'])

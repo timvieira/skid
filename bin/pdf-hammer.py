@@ -10,6 +10,8 @@ def hammer(filename):
 
     f = path(filename)
 
+    assert f.exists(), 'Input file `%s` does not exist.' % f
+
     # desired output filename
     out = f.dirname() / f.namebase + '.pdf'
 
@@ -43,7 +45,10 @@ def main():
     parser = ArgumentParser()
     parser.add_argument('filename')
     args = parser.parse_args()
-    print 'wrote', hammer(args.filename)
+    out = hammer(args.filename)
+    assert path(out).exists(), 'Something went wrong.' \
+        'File `%s` does not exist.' % out
+    print 'wrote', out
 
 
 if __name__ == '__main__':
