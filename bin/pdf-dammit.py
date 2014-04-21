@@ -1,42 +1,50 @@
-import os
+#!/usr/bin/env python
+from os import system
+from path import path
 
-# convert {ppt, odf} to pdf
-#libreoffice --headless --invisible --convert-to pdf
-
-# convert djvu to pdf
-#ddjvu -format=pdf -quality=85 -verbose "$1" "$1.pdf"
-
-# covert ps to pdf
-#ps2pdf
 
 # TODO: check if text extraction is any good
-
-
-# TODO: move to pdfhacks
-# XXX: untested
-# TODO: use me....
-# TODO: use path.py
-def to_pdf(filename):
+# TODO: check if required executables exist.
+def hammer(filename):
     """ Hammer almost anything into a pdf. """
 
-    s = filename.split('.')
-    ext = s[-1]
-    base = '.'.join(s[:-1])
+    f = path(filename)
 
-    if ext in ('ppt', 'odf'):
+    # desired output filename
+    out = f.dirname() / f.namebase + '.pdf'
+
+    if f.ext in ['.ppt', '.odf']:
         # convert 'ppt' and 'odf' to pdf
-        assert 0 == os.system('libreoffice --headless --invisible --convert-to pdf %s' % filename)
-        return base + '.pdf'
+        assert 0 == system('libreoffice --headless --invisible' \
+                           ' --convert-to pdf %s --outdir %s' % (f, f.dirname()))
+        return out
 
-    elif ext in ('ps',):
+    elif f.ext in ['.ps', '.eps']:
         # convert postscript to pdf
-        assert 0 == os.system('ps2pdf %s' % filename)
-        return base + '.pdf'
+        assert 0 == system('ps2pdf %s %s' % (filename, out))
+        return out
 
-    elif ext in ('ps.gz',):
+    elif f.ext in ['.ps.gz']:
         # TODO: convert ps.gz to pdf
-        assert 0 == os.system('zcat %s > /tmp/tmp.ps' % filename)
-        return to_pdf('/tmp/tmp.ps')
+        assert 0 == system('zcat %s > /tmp/tmp.ps' % filename)
+        return hammer('/tmp/tmp.ps')
+
+    elif f.ext in ['.djvu']:
+        # convert djvu to pdf
+        #ddjvu -format=pdf -quality=85 -verbose "$1" "$1.pdf"
+        assert False, 'djvu not conversion not yet supported.'
 
     else:
         assert False, 'Unsupported file format.'
+
+
+def main():
+    from argparse import ArgumentParser
+    parser = ArgumentParser()
+    parser.add_argument('filename')
+    args = parser.parse_args()
+    print 'wrote', hammer(args.filename)
+
+
+if __name__ == '__main__':
+    main()
