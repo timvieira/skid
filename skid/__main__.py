@@ -45,8 +45,8 @@ def display(results, limit=None, show=('author', 'title', 'link', 'link:notes'))
         hit = doc.parse_notes()
 
 # if whoosh reader is closed we can't access highlights
-#        if hasattr(doc, 'hit'):
-#            print doc.hit.highlights('text', top=5)
+        if hasattr(doc, 'highlights'):
+            print doc.highlights.encode('utf8')
 
         if 'score' in show:
             print yellow % ('[%.2f]' % doc.score),
@@ -254,7 +254,14 @@ def todoc(d):
         doc = Document(d['cached'])
         doc.score = d.score
         doc.hit = d
+
+# very slow...
+#        doc.highlights = re.sub('<b class="match.*?>([\w\W]+?)</b>',
+#                                r'\033[31m\1\033[0m',
+#                                d.highlights('text', top=3))
+
         return doc
+
     return d
 
 
