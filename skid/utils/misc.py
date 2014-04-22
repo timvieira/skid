@@ -94,7 +94,7 @@ def bibkey(x):
 
     """
     try:
-        [(author, year, title)] = re.findall('([a-z]+)(\d{4}|\d{2})([a-z]*)', x)
+        [(author, year, title)] = re.findall('([A-Za-z]+)[+\s]*(\d{4}|\d{2})\s*([a-z]*)', x)
         if len(year) == 2:
             year = '*' + year
         return (author, year, title)

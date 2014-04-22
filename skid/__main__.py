@@ -354,15 +354,6 @@ def main():
 
         limit = args.limit if args.limit > 0 else None
 
-
-        # todo: support for bibtex key style search, e.g. 'bottou12counterfactual'
-        #
-        #   - convert 'bottou12counterfactual' into 'author:bottou year:2012 title:counterfactual'
-        #
-        #   - should be greedy e.g. act like '--top'
-        #
-        #   - bash completed for keys should be easy to implement and useful.
-
         if args.top:
             args.pager = 'none'
             limit = 1
@@ -370,14 +361,26 @@ def main():
         if cmd == 'search':
             results = index.search(query)
 
-#        elif cmd == 'key':
-#            p = bibkey(query)
-#           if p:
-#               q = 'author:%s year:%s title:%s' % p
-#               print q
-#               results = index.search(q)
-#           else:
-#               results = []
+        elif cmd == 'key':
+            # Supports bibtex key search, e.g. 'bottou12counterfactual'
+            #
+            #  Example key
+            #
+            #   'bottou12counterfactual'
+            #   -> 'author:bottou year:2012 title:counterfactual'
+            #
+            #   - should be greedy e.g. act like '--top'
+            #
+            #   - bash completion for keys should be easy to implement and useful.
+            #
+            p = bibkey(query)
+            if p:
+                # TODO: this version doesn't search for papers where author is first-author
+                q = ' '.join('%s:%s' % (k,v) for (k,v) in zip(['author', 'year', 'title'], p) if v)
+                print q
+                results = index.search(q)
+            else:
+                results = []
 
         elif cmd == 'similar':
             results = Document(query).similar(limit=limit)
