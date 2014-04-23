@@ -1,13 +1,25 @@
-#!/bin/sh
+#!/bin/bash
 
 # bash tut: http://linuxconfig.org/bash-scripting-tutorial
 # Linux PDF,OCR: http://blog.konradvoelkel.de/2013/03/scan-to-pdfa/
 
-y="`pwd`/$1"
+function check {
+  command -v $1 >/dev/null 2>&1 || { echo >&2 "Error: $1 required."; exit 1; }
+}
+
+check tesseract
+check gs
+
+# requires one argument
+[ "$#" -ne "1" ] && { echo "Specify a file."; exit 1; }
+
+#y="`pwd`/$1"
+y="$1"
 echo "Extract text from PDF $y using optical character recognition"
 
 x=`basename "$y"`
-name=${x%.*}
+#name=${x%.*}
+name="$y.ocr"
 
 mkdir "$name"
 cd "$name"
