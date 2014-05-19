@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 # TODO: some stuff in sandbox uses scikits-learn
 
 setup(name='skid',
-      version='1.0',
+      version='1.1',
       description='Skid: bookmarks, simply kept in directories',
       url='https://github.com/timvieira/skid/',
       packages= find_packages(),
