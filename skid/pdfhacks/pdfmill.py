@@ -28,7 +28,8 @@ from skid.pdfhacks.conversion import pdf2image
 
 # pdfminer
 from pdfminer.layout import LAParams, LTPage, LTTextLine
-from pdfminer.pdfparser import PDFParser, PDFDocument, PDFSyntaxError
+from pdfminer.pdfparser import PDFParser, PDFSyntaxError
+from pdfminer.pdfdocument import PDFDocument
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import PDFPageAggregator
 
