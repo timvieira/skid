@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import skid.completion
+from skid.config import *
 
 import re, os, sys
 from argparse import ArgumentParser
@@ -324,12 +325,12 @@ def tags():
 def main():
 
     if len(sys.argv) <= 1:
-        print config.commands
+        print ', '.join(sorted(CMDS))
         return
 
     cmd = sys.argv.pop(1)
 
-    if cmd in ('search', 'ls', 'similar', 'key'):
+    if cmd in (SEARCH, LS, SIMILAR, KEY):
 
         p = ArgumentParser()
         p.add_argument('query', nargs='*')
@@ -358,10 +359,10 @@ def main():
             args.pager = 'none'
             limit = 1
 
-        if cmd == 'search':
+        if cmd == SEARCH:
             results = index.search(query)
 
-        elif cmd == 'key':
+        elif cmd == KEY:
             # Supports bibtex key search, e.g. 'bottou12counterfactual'
             #
             #  Example key
@@ -382,9 +383,9 @@ def main():
             else:
                 results = []
 
-        elif cmd == 'similar':
+        elif cmd == SIMILAR:
             results = Document(query).similar(limit=limit)
-        elif cmd == 'ls':
+        elif cmd == LS:
             results = ls(query)
         else:
             assert False, 'Unrecognized command %s' % cmd
@@ -394,7 +395,7 @@ def main():
 
         # sort documents according to '--by' criteria'
         sortwith = {'relevance': score, 'modified': modified, 'added': added}[args.by]
-        if cmd == 'ls' and args.by == 'relevance':
+        if cmd == LS and args.by == 'relevance':
             sortwith = added
         results.sort(key=sortwith, reverse=True)
 
@@ -404,9 +405,9 @@ def main():
         results = results[:limit]
 
         if args.format == 'org':
-            format = org
+            fmt = org
         else:
-            format = display
+            fmt = display
 
         # process display options
         show = {'author', 'title', 'link', 'link:notes'}   # defaults
@@ -421,7 +422,7 @@ def main():
                     print '# showing top %s of %s results' % (min(limit, nresults), nresults)
                 else:
                     print yellow % 'showing top %s of %s results' % (min(limit, nresults), nresults)
-            format(results, show=show)
+            fmt(results, show=show)
 
         if args.top:
             assert len(results) <= 1
@@ -436,38 +437,38 @@ def main():
                 Popen(['gnome-open', top.cached])
 #            os.system('$EDITOR %s' % top.cached + '.d/notes.org')
 
-    elif cmd == 'add':
+    elif cmd == ADD:
         p = ArgumentParser()
         p.add_argument('source')
         args = p.parse_args()
         add(args.source)
 
-    elif cmd == 'rm':
+    elif cmd == RM:
         p = ArgumentParser()
         p.add_argument('cached')
         args = p.parse_args()
         rm(args.cached)
 
-    elif cmd == 'update':
+    elif cmd == UPDATE:
         update()
 
-    elif cmd == 'push':
+    elif cmd == PUSH:
         push()
 
-    elif cmd == 'authors':
+    elif cmd == AUTHORS:
         authors()
 
-    elif cmd == 'tags':
+    elif cmd == TAGS:
         tags()
 
-    elif cmd == 'lexicon':
+    elif cmd == LEXICON:
         p = ArgumentParser()
         p.add_argument('field')
         args = p.parse_args()
         lexicon(args.field)
 
-    elif cmd == 'title':
-        # doesn't require adding the document
+    elif cmd == TITLE:
+        # doesn't require adding the document, just finds the title.
         from skid.pdfhacks.pdfmill import extract_title
         p = ArgumentParser()
         p.add_argument('pdf')
@@ -476,7 +477,7 @@ def main():
         extract_title(args.pdf, extra=args.extra)
 
     else:
-        print config.commands
+        print ', '.join(sorted(CMDS))
 
 
 if __name__ == '__main__':

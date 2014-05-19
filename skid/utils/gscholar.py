@@ -174,10 +174,10 @@ def main():
                         help="show debugging output")
     parser.add_argument("-r", "--rename", action="store_true",
                         help="rename file (asks before doing it)")
-    parser.add_argument("-f", "--outputformat", dest='output',
+    parser.add_argument("-o", "--output",
                         choices=('bibtex','endnote','refman','wenxianwang'),
                         default="bibtex",
-                        help="Output format. Available formats are: bibtex, endnote, refman, wenxianwang [default: %default]")
+                        help="Output format. [default: %(default)s]")
 
     parser.add_argument('query', nargs='+')
 

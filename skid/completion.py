@@ -6,6 +6,7 @@ from skid import config
 from glob import glob
 from path import path
 
+
 if 'COMP_WORDS' in environ and config.completion:
 
     def completion():
@@ -18,8 +19,7 @@ if 'COMP_WORDS' in environ and config.completion:
 
         if cword < 2:
             # second words is one of the skid commands like 'search' or 'add'
-            cmds = config.commands.split(', ')
-            possible = cmds
+            possible = config.CMDS
 
         else:
             prefix = cwords[-1]

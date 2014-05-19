@@ -14,4 +14,4 @@ setup(name='skid',
                'bin/ocr-pdf-searchable',
                'bin/ocr-pdf-extract-text',
                'skid/utils/gscholar.py'],
-      install_requires=['whoosh', 'pdfminer', 'pandas', 'arsenal'])
+      install_requires=['whoosh', 'pdfminer', 'pandas', 'path.py', 'arsenal'])

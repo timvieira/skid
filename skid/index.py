@@ -149,6 +149,9 @@ def update():
                                       d.cached,
                                       'file://' + d.d/'notes.org')
 
+            # TODO: consider using two fields: display name and searchable
+            # name. to avoid the issues with accents
+
             w.update_document(source = meta['source'],
                               cached = unicode(d.cached),
                               hash = d.hash(),

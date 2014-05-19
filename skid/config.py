@@ -22,4 +22,7 @@ if not CACHE.exists():
 #  need to add "complete -F _optcomplete skid" to bashrc
 completion = True
 
-commands = 'search, add, rm, update, lexicon, ls'
+# commands
+CMDS = [AUTHORS, PUSH, UPDATE, RM, ADD, TAGS,
+        LEXICON, TITLE, SIMILAR, LS, SEARCH, KEY] = \
+    'authors push update rm add tags lexicon title similar ls search key'.split()

@@ -1,0 +1,15 @@
+--ignore-dir=data
+--ignore-dir=build
+--ignore-dir=arsenal
+--ignore-dir=skid.egg-info/
+
+--ignore-file=match:\.tsv$
+--ignore-file=match:\.c$
+--ignore-file=match:\.cpp$
+--ignore-file=match:\.html$
+--ignore-file=match:\.alphabet$
+--ignore-file=match:\.shelve$
+
+--color
+--sort-files
+--smart-case
