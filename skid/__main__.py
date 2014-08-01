@@ -126,7 +126,7 @@ def terminal_size(fd=1):
     try:
         import fcntl, termios, struct
         return struct.unpack('hh', fcntl.ioctl(fd, termios.TIOCGWINSZ, '1234'))
-    except ImportError:
+    except (IOError, ImportError):
         try:
             return (os.environ['LINES'], os.environ['COLUMNS'])
         except KeyError:

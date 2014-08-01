@@ -21,7 +21,6 @@ from pandas import DataFrame
 from arsenal.iterextras import groupby2
 from arsenal.text.utils import remove_ligatures
 from arsenal.misc import ignore_error
-from arsenal.debug import ip
 from arsenal.terminal import red, green, blue, yellow
 
 from skid.pdfhacks.conversion import pdf2image
