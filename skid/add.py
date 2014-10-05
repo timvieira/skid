@@ -10,7 +10,7 @@ from datetime import datetime
 from skid.config import CACHE
 from skid.pdfhacks import pdftotext, extract_title
 
-from arsenal.terminal import blue
+from arsenal.terminal import blue, magenta
 from arsenal.web.download import download
 from arsenal.text.utils import htmltotext, force_unicode, remove_ligatures
 from arsenal.fsutils import secure_filename
@@ -67,7 +67,7 @@ def cache_document(src):
         if dest.exists():
             # TODO: check if hash is the same. Suggest update methods or
             # renaming the file (possibly automatically, e.g. via hash).
-            raise Exception('File %r already exists' % dest)
+            raise SkidError('File %r already exists' % str(dest))
 
         src.copy2(dest)
 
@@ -127,6 +127,13 @@ def document(source, interactive=True):
 
     if interactive:
         d.edit_notes()
+
+    if 1:
+        # perform a Google scholar search based on the title.
+        from skid.utils import gscholar
+        print magenta % 'Google scholar results for title:'
+        for x in gscholar.query(meta['title'], allresults=False):
+            print x
 
     print "Don't forget to 'skid update'"
 

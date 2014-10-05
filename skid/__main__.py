@@ -12,7 +12,7 @@ from collections import defaultdict
 from skid import index
 from skid import add as _add
 from skid import config
-from skid.add import Document
+from skid.add import Document, SkidError
 from skid.utils import bibkey, author
 
 from arsenal.terminal import cyan, yellow, magenta, green, red
@@ -28,7 +28,10 @@ from whoosh.searching import Hit
 
 def add(source):
     "Add document from source. Sources can be urls or filenames."
-    return _add.document(source, interactive=True)
+    try:
+        return _add.document(source, interactive=True)
+    except SkidError as e:
+        print '[%s] %s' % (red % 'error', e)
 
 
 def display(results, limit=None, show=('author', 'title', 'link', 'link:notes')):

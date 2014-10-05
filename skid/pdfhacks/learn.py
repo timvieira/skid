@@ -162,8 +162,7 @@ def main():
 
     N_FEATURES = 100000
 
-    alphabet = Alphabet()
-    label = Alphabet()
+    alphabet = Alphabet(random_int=N_FEATURES)
 
     def _f1(name, data, c, verbose=True):
         if verbose:
@@ -176,73 +175,73 @@ def main():
             for k in x.features:
                 phi[0, alphabet[k] % N_FEATURES] = 1.0
 
-            f.report(i, label.lookup(int(c.predict(phi))), x.label)
+            [y] = c.predict(phi)
+            f.report(i, y, x.label)
         f.scores(verbose=verbose)
         return f
 
     X = dok_matrix((len(train), N_FEATURES))
 
-    Y = []
-    X = dok_matrix((len(train), N_FEATURES))
-    for i, x in enumerate(train):
+    M = len(train)
 
+    Y = []
+    X = dok_matrix((M, N_FEATURES))
+    for i, x in enumerate(train):
         # binary features
         for k in x.features:
             X[i, alphabet[k] % N_FEATURES] = 1.0
-
-        Y.append(label[x.label])
-
-
-    import numpy as np
-    import matplotlib.pyplot as pl
-    from mpl_toolkits.mplot3d import Axes3D
-    ax = pl.figure().add_subplot(111, projection='3d')
-
-    pl.ion()
-    pl.show()
-
-    data = []
-
-    #for author_weight in np.arange(1, 5, 1.0):
-    #    for title_weight in np.arange(1, 5, 1.0):
-
-    for (author_weight, title_weight) in np.random.uniform(1, 10, size=(100, 2)):
-
-        print
-        print 'params:', (author_weight, title_weight)
-
-        # compute new example weights
-        W = []
-        for i, x in enumerate(train):
-            if x.label == 'author':
-                w = author_weight
-            elif x.label == 'title':
-                w = title_weight
-            else:
-                w = 1.0
-            W.append(w)
-
-        #c = SVC()
-        c = linear_model.SGDClassifier()
-        c.fit(X.tocsc(), Y, sample_weight=np.array(W))
-
-        #_f1('train', train, c)
-        ff = _f1('test', test, c, verbose=0)
-
-        score = sum(x for (_, _, _, _, x) in ff.scores(verbose=0))
-
-        data.append((author_weight, title_weight, score))
-        print 'score:', score
-
-        x,y,z=zip(*data)
-        ax.clear()
-        ax.scatter(x,y,z)
-        ax.figure.canvas.draw()
+        Y.append(x.label)
+    X = X.tocsc()
 
 
-    print 'done'
-    pl.ioff()
-    pl.show()
+    c = SVC(class_weight={'author': 1000,
+                          'title': 1000,
+                          'other': 1.0},
+            verbose=1)
+
+    c.fit(X, Y)
+
+    _f1('train', train, c)
+    ff = _f1('test', test, c, verbose=1)
+
+    if 0:
+        import numpy as np
+        import matplotlib.pyplot as pl
+        from mpl_toolkits.mplot3d import Axes3D
+        ax = pl.figure().add_subplot(111, projection='3d')
+
+        pl.ion()
+
+        data = []
+
+        for (author_weight, title_weight) in iterview(np.random.uniform(1, 10, size=(100, 2))):
+            print
+            print 'params:', (author_weight, title_weight)
+
+            c = SVC(class_weight={'author': author_weight,
+                                  'title': title_weight,
+                                  'other': 1.0},
+                    verbose=1)
+
+            #c = linear_model.SGDClassifier()
+            c.fit(X, Y)
+
+            #_f1('train', train, c)
+            ff = _f1('test', test, c, verbose=1)
+
+            score = sum(x for (_, _, _, _, x) in ff.scores(verbose=0))
+
+            data.append((author_weight, title_weight, score))
+            print 'score:', score
+
+            x,y,z=zip(*data)
+            ax.clear()
+            ax.scatter(x,y,z)
+            ax.figure.canvas.draw()
+
+        print 'done'
+        pl.ioff()
+        pl.show()
 
     #w = learn(train, test)
     #save(w, 'weights.pkl~')

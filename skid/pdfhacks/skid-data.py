@@ -1,13 +1,12 @@
-"""
-Get training data for metadata extraction based on user notes.
+"""Get training data for metadata extraction based on user notes.
 
-Applies various hueristics because annotation is technically "out of band",
-whereas most machine learning techniques require "in band" annotation. In our
-case this means we want to know which boxes or chunks of text gave rise to the
-annotation.
+Applies various hueristics because annotation is "out of band" and extracted
+text is noisy. In our case this means we want to know which boxes or chunks of
+text gave rise to the annotation.
 
 This is slighly challenging because of noise in the pdf text extraction, many
 possible extraction sites, spelling variation.
+
 """
 
 import re
@@ -41,7 +40,12 @@ def data(verbose=True):
                 print ('%s: %s' % (yellow % 'meta', meta['title'])).encode('utf8')
                 print ('%s: %s' % (yellow % 'meta', ' ; '.join(meta['author']))).encode('utf8')
                 print
-            yield (meta, d, pdfminer(filename))
+            try:
+                yield (meta, d, pdfminer(filename))
+            except Exception:
+                # XXX: silently skips examples which cause pdfminer to throw an
+                # exception.
+                pass
 
 
 def find_authors(meta, d, pdf, output):

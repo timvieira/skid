@@ -55,7 +55,7 @@ FORMAT_REFMAN = 2
 FORMAT_WENXIANWANG = 5
 
 
-def query(searchstr, outformat, allresults=False):
+def query(searchstr, outformat=FORMAT_BIBTEX, allresults=False):
     """Return a list of bibtex items."""
     logging.debug("Query: %s" % searchstr)
     searchstr = '/scholar?q='+urllib2.quote(searchstr)

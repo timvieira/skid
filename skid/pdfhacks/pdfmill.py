@@ -354,6 +354,7 @@ template = Template("""
 </style>
 
 <script type="text/javascript" language="javascript" src="../misc/prototype.js"></script>
+<script type="text/javascript" language="javascript" src="../skid/pdfhacks/misc/prototype.js"></script>
 
 <script type="text/javascript" language="javascript">
 function add_tooltip(elem) {
@@ -419,6 +420,7 @@ def extract_title(filename, extra=True):
         pdf = filename
         filename = pdf.filename
     else:
+        filename = re.sub('^file://', '', filename)
         try:
             pdf = pdfminer(filename)
         except KeyboardInterrupt:
@@ -445,8 +447,15 @@ def extract_title(filename, extra=True):
             # considered a candidate for author or title.
             if re.findall('[A-Z][A-Za-z][A-Za-z]+', x.text)]
 
-    # TODO: titles tend not to have single initial, unlike names, (both title
-    # and author precede the word "abstract")
+    # Capitalization filter: Titles (almost) always have at least one
+    # capitalized three-letter word.
+    #
+    #  - TODO: discards multiline titles where the second line doesn't have any
+    #    capitalized words.
+
+    # TODO: Other observations to take advantage of: Titles tend not to have
+    # single initial, unlike names, (both title and author precede the word
+    # "abstract")
 
     g = groupby2(page, key=lambda x: x.fontsize)
 
@@ -464,22 +473,52 @@ def extract_title(filename, extra=True):
     if extra:
 
         # timv: this is sort of a proxy for author extraction. If it's easy to
-        # copy-paste the authors maybe we don't need to have automatic extraction.
+        # copy-paste the authors maybe we don't need to have automatic
+        # extraction.
         #
-        # authors often appear in a distinguishing (infrequent) font
+        #  - authors often appear in a distinguishing (infrequent) font.
+        #
+        #  - text of the document should be the most-frequent font (Although,
+        #    sometimes the authors aren't in a distinguished font).
+        #
         g = groupby2(page, key=lambda x: x.fontname)
 
         freq = [(len(v), k, v) for k,v in g.iteritems()]
 
         freq.sort()
-
         for count, key, items in freq:
             print
             print red % count, green % key
             for x in items[:10]:
                 print yellow % x.text.encode('utf8')
 
+        extract_year(freq)
+
     return title
+
+
+def extract_year(freq):
+    # not the most- or least- frequent font.
+    candidates = freq[:]
+    for (_, _, items) in candidates:
+
+        # simple reading order for multiline
+        items.sort(key=lambda x: x.y0)
+
+        text = '\n'.join(x.text for x in items)
+        year = re.findall('((?:Proceedings|Appear(?:ing|ed)) [\w\W]* ((?:19|20)[0-9][0-9])\\b.*)', text)
+
+        if not year:
+            year = re.findall('((?:Journal|arXiv) .*? \(?((?:19|20)[0-9][0-9])\)?\\b.*)', text)
+
+        if not year:
+            year = re.findall('((?:arXiv) .*? \(?((?:19|20)[0-9][0-9])\)?\\b.*)', text)
+
+        if len(year) == 1:
+            [(snippet, year)] = year
+            print
+            print '%s %s\n%s' % (green % 'Year ->', red % year, yellow % snippet)
+            print
 
 
 def main(filenames):
