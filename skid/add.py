@@ -10,7 +10,7 @@ from datetime import datetime
 from skid.config import CACHE
 from skid.pdfhacks import pdftotext, extract_title
 
-from arsenal.terminal import blue, magenta
+from arsenal.terminal import blue, magenta, yellow
 from arsenal.web.download import download
 from arsenal.text.utils import htmltotext, force_unicode, remove_ligatures
 from arsenal.fsutils import secure_filename
@@ -131,8 +131,15 @@ def document(source, interactive=True):
     if 1:
         # perform a Google scholar search based on the title.
         from skid.utils import gscholar
+        import urllib2
         print magenta % 'Google scholar results for title:'
-        for x in gscholar.query(meta['title'], allresults=False):
+        try:
+            results = gscholar.query(meta['title'], allresults=False)
+        except urllib2.URLError as e:
+            results = []
+            print '[%s] %s' % (yellow % 'warn', 'Google scholar search failed (error: %s)' % e)
+
+        for x in results:
             print x
 
     print "Don't forget to 'skid update'"
