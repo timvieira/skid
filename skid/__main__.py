@@ -479,6 +479,18 @@ def main():
         args = p.parse_args()
         extract_title(args.pdf, extra=args.extra)
 
+    elif cmd == SCHOLAR:
+        from skid.add import gscholar_bib
+        from skid.pdfhacks.pdfmill import extract_title
+        p = ArgumentParser()
+        p.add_argument('pdf')
+        p.add_argument('--no-extra', action='store_false', dest='extra')
+        args = p.parse_args()
+
+        # run google scholar search based on extracted title.
+        title = extract_title(args.pdf, extra=args.extra)
+        gscholar_bib(title=title)
+
     else:
         print ', '.join(sorted(CMDS))
 

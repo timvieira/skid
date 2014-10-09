@@ -121,30 +121,68 @@ def document(source, interactive=True):
         'cached': cached,
     }
 
-    d.store('notes.org', d.note_template(meta))
+    if 1:
+        bib = gscholar_bib(title=meta['title'])
 
+        # Ask user if the bib entry retrieved looks any good.
+        from arsenal.humanreadable import str2bool
+
+        while 1:
+            try:
+                if not str2bool(raw_input('Is this bib any good? [y/n]')):
+                    bib = {}
+            except ValueError:
+                pass
+            else:
+                break
+
+    meta.update(bib)
+
+    d.store('notes.org', d.note_template(meta))
     d.store('data/date-added', str(datetime.now()))
 
     if interactive:
         d.edit_notes()
 
-    if 1:
-        # perform a Google scholar search based on the title.
-        from skid.utils import gscholar
-        import urllib2
-        print magenta % 'Google scholar results for title:'
-        try:
-            results = gscholar.query(meta['title'], allresults=False)
-        except urllib2.URLError as e:
-            results = []
-            print '[%s] %s' % (yellow % 'warn', 'Google scholar search failed (error: %s)' % e)
-
-        for x in results:
-            print x
-
     print "Don't forget to 'skid update'"
 
     return d
+
+
+def gscholar_bib(title):
+    # perform a Google scholar search based on the title.
+    import urllib2
+    from skid.utils import gscholar
+    from pybtex.database.input import bibtex
+    from nameparser import HumanName
+    from cStringIO import StringIO
+
+    print magenta % 'Google scholar results for title:'
+    try:
+        results = gscholar.query(title, allresults=False)
+    except urllib2.URLError as e:
+        results = []
+        print '[%s] %s' % (yellow % 'warn', 'Google scholar search failed (error: %s)' % e)
+
+    for x in results:
+        print x
+        b = bibtex.Parser().parse_stream(StringIO(x))
+        [(_,e)] = b.entries.items()
+
+        #print yellow % (dict(e.fields),)
+        title = e.fields['title']
+        year = e.fields['year']
+        author = ' ; '.join(unicode(HumanName(x)) for x in e.fields['author'].split('and'))
+
+        print title
+        print year
+        print author
+        print
+
+        return {'title': title,
+                'year': year,
+                'author': author}
+
 
 
 # TODO: everything pertaining to Document should appear here probably including

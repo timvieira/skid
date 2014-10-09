@@ -24,5 +24,5 @@ completion = True
 
 # commands
 CMDS = [AUTHORS, PUSH, UPDATE, RM, ADD, TAGS,
-        LEXICON, TITLE, SIMILAR, LS, SEARCH, KEY] = \
-    'authors push update rm add tags lexicon title similar ls search key'.split()
+        LEXICON, TITLE, SIMILAR, LS, SEARCH, KEY, SCHOLAR] = \
+    'authors push update rm add tags lexicon title similar ls search key scholar'.split()
