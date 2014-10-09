@@ -1,11 +1,11 @@
 from setuptools import setup, find_packages
 
-# TODO: should check for other dependencies such as pdftotex
+# TODO: should check for other dependencies such as pdftotext
 
 # TODO: some stuff in sandbox uses scikits-learn
 
 setup(name='skid',
-      version='1.1',
+      version='1.2',
       description='Skid: bookmarks, simply kept in directories',
       url='https://github.com/timvieira/skid/',
       packages= find_packages(),
@@ -15,4 +15,5 @@ setup(name='skid',
                'bin/ocr-pdf-extract-text',
                'skid/utils/gscholar.py'],
       install_requires=['whoosh', 'pdfminer==20110515', 'pandas',
+                        'nameparser', 'pybtex',
                         'path.py', 'arsenal'])
