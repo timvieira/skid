@@ -49,7 +49,7 @@ def search(q, limit=None):
                                           'tags',
                                           'notes',
                                           'text',
-#                                          'source',
+                                          'source',
 #                                          'cached',
                                           'year'],
                               fieldboosts={'title':  7,

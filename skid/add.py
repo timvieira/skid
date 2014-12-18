@@ -19,6 +19,13 @@ from arsenal.fsutils import secure_filename
 class SkidError(Exception):
     pass
 
+class SkidErrorFileExists(SkidError):
+    def __init__(self, filename):
+        self.filename = filename
+    def __repr__(self):
+        return 'SkidErrorFileExists(%r)' % self.filename
+    def __str__(self):
+        return 'error: file %r already exists.'
 
 def uni(x):
     if isinstance(x, list):
@@ -28,6 +35,21 @@ def uni(x):
 
 def unicodify_dict(a):
     return {uni(k): uni(v) for k,v in a.iteritems()}
+
+
+from chardet.universaldetector import UniversalDetector
+def robust_read(filename, verbose=0):
+    detector = UniversalDetector()
+    for line in file(filename):
+        detector.feed(line)
+        if detector.done:
+            break
+    detector.close()
+    if verbose:
+        print 'encoding:', detector.result
+    encoding = detector.result['encoding']
+    with file(filename) as f:
+        return force_unicode(f.read().decode(encoding, 'replace').encode('utf8'))
 
 
 # TODO: use wget instead, it's more robust and has more bells and
@@ -40,7 +62,8 @@ def cache_url(url):
     """
     cached = CACHE / secure_filename(url)
 
-    assert not cached.exists(), 'File %s already exists.' % cached
+    if cached.exists():
+        raise SkidErrorFileExists(cached)
 
     # TODO: we should tell download where to store stuff explicitly... right now
     # we just both have the same convention.
@@ -102,44 +125,58 @@ def document(source, interactive=True):
     if source.exists():
         source = source.abspath()
 
-    cached = cache_document(source)
+    exists = False
+    try:
+        cached = cache_document(source)
 
-    print cached
+    except SkidErrorFileExists as e:
+        print '[%s] document already cached. using existing notes.' % yellow % 'warn'
+        cached = e.filename
+        exists = True
 
     d = Document(cached)
 
-    d.write_hash()
-    d.extract_plaintext()
+    if not exists:
+        d.write_hash()
+        d.extract_plaintext()
 
-    meta = {
-        'title': d.extract_title(),
-        'author': '',
-        'year': '',
-        'tags': '',
-        'notes': '',
-        'source': source,
-        'cached': cached,
-    }
+        meta = {
+            'title': d.extract_title(),
+            'author': '',
+            'year': '',
+            'tags': '',
+            'notes': '',
+            'source': source,
+            'cached': cached,
+        }
 
-    if 1:
-        bib = gscholar_bib(title=meta['title'])
+        if meta['title']:
 
-        # Ask user if the bib entry retrieved looks any good.
-        from arsenal.humanreadable import str2bool
-
-        while 1:
             try:
-                if not str2bool(raw_input('Is this bib any good? [y/n]')):
-                    bib = {}
-            except ValueError:
+                bib = gscholar_bib(title=meta['title'])
+            except KeyError: # TODO: fix encoding errors
                 pass
             else:
-                break
+                # Ask user if the bib entry retrieved looks any good.
+                from arsenal.humanreadable import str2bool
 
-    meta.update(bib)
+                while 1:
+                    try:
+                        if not str2bool(raw_input('Is this bib any good? [y/n] ')):
+                            bib = {}
+                    except ValueError:
+                        pass
+                    else:
+                        break
 
-    d.store('notes.org', d.note_template(meta))
-    d.store('data/date-added', str(datetime.now()))
+                if bib:
+                    meta.update(bib)
+
+        # TODO: gross hack.
+        meta = {k: v.decode('ascii', errors='ignore') for k,v in meta.items()}
+
+        d.store('notes.org', d.note_template(meta))
+        d.store('data/date-added', str(datetime.now()))
 
     if interactive:
         d.edit_notes()
@@ -160,7 +197,7 @@ def gscholar_bib(title):
     print magenta % 'Google scholar results for title:'
     try:
         results = gscholar.query(title, allresults=False)
-    except urllib2.URLError as e:
+    except (KeyboardInterrupt, urllib2.URLError) as e:
         results = []
         print '[%s] %s' % (yellow % 'warn', 'Google scholar search failed (error: %s)' % e)
 
@@ -171,7 +208,7 @@ def gscholar_bib(title):
 
         #print yellow % (dict(e.fields),)
         title = e.fields['title']
-        year = e.fields['year']
+        year = e.fields.get('year', '')
         author = ' ; '.join(unicode(HumanName(x)) for x in e.fields['author'].split('and'))
 
         print title
@@ -258,14 +295,14 @@ class Document(object):
 
         else:
             # assume it's HTML
-            x = re.findall('<title>(.*?)</title>', self.cached.text(), flags=re.I)
+            x = re.findall('<title>(.*?)</title>', robust_read(self.cached), flags=re.I)
             if x:
-                return x[0].strip()  # take the first title
+                return x[0].strip().encode('utf8')  # take the first title
             else:
                 return ''   # TODO: maybe take first line of the file?
 
     def text(self):
-        return (self.d / 'data' / 'text').text().decode('utf8')
+        return robust_read(self.d / 'data' / 'text')
 
     def extract_plaintext(self):
         "Extract plaintext from filename. Returns text, might cache."
@@ -276,7 +313,7 @@ class Document(object):
                              verbose=True, usecached=True)
 
         else:
-            text = self.cached.text()
+            text = robust_read(self.cached)
             text = force_unicode(text)
             text = htmltotext(text)      # clean up html
 
@@ -285,6 +322,7 @@ class Document(object):
         return self.store('data/text', text, overwrite=True)
 
     def note_template(self, x):
+        x = unicodify_dict(x)
         others = set(x) - set('title author year source cached tags notes'.split())
         attrs = u'\n'.join((u':%s: %s' % (k, x[k])).strip() for k in others).strip()
         if attrs:
@@ -292,12 +330,11 @@ class Document(object):
         newdata = TEMPLATE.format(attrs=attrs, **x)
         return force_unicode(newdata).encode('utf8')
 
-    # TODO: do not like...
     def note_content(self):
-        f = self.d / 'notes.org'
-        if not f.exists():
+        filename = self.d / 'notes.org'
+        if not filename.exists():
             raise SkidError('Note file missing for %r.' % self)
-        return f.text().decode('latin1')
+        return robust_read(filename)
 
     # TODO: use a lazy-loaded attribute?
     # TODO: better markup language? or better org-mode markup.
