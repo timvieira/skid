@@ -22,10 +22,8 @@ class SkidError(Exception):
 class SkidErrorFileExists(SkidError):
     def __init__(self, filename):
         self.filename = filename
-    def __repr__(self):
-        return 'SkidErrorFileExists(%r)' % self.filename
-    def __str__(self):
-        return 'error: file %r already exists.'
+        super(SkidErrorFileExists,self).__init__('file %r already exists' % filename)
+
 
 def uni(x):
     if isinstance(x, list):
@@ -90,7 +88,7 @@ def cache_document(src):
         if dest.exists():
             # TODO: check if hash is the same. Suggest update methods or
             # renaming the file (possibly automatically, e.g. via hash).
-            raise SkidError('File %r already exists' % str(dest))
+            raise SkidErrorFileExists(dest)
 
         src.copy2(dest)
 
@@ -98,7 +96,8 @@ def cache_document(src):
 
         return dest
 
-    raise SkidError("cache_document doesn't know what to do with source %s" % src)
+    raise SkidError("cache_document doesn't know what to do with source %r\n"
+                    "Trying to add a nonexistent file?" % str(src))
 
 
 # TODO:
@@ -137,46 +136,7 @@ def document(source, interactive=True):
     d = Document(cached)
 
     if not exists:
-        d.write_hash()
-        d.extract_plaintext()
-
-        meta = {
-            'title': d.extract_title(),
-            'author': '',
-            'year': '',
-            'tags': '',
-            'notes': '',
-            'source': source,
-            'cached': cached,
-        }
-
-        if meta['title']:
-
-            try:
-                bib = gscholar_bib(title=meta['title'])
-            except KeyError: # TODO: fix encoding errors
-                pass
-            else:
-                # Ask user if the bib entry retrieved looks any good.
-                from arsenal.humanreadable import str2bool
-
-                while 1:
-                    try:
-                        if not str2bool(raw_input('Is this bib any good? [y/n] ')):
-                            bib = {}
-                    except ValueError:
-                        pass
-                    else:
-                        break
-
-                if bib:
-                    meta.update(bib)
-
-        # TODO: gross hack.
-        meta = {k: v.decode('ascii', errors='ignore') for k,v in meta.items()}
-
-        d.store('notes.org', d.note_template(meta))
-        d.store('data/date-added', str(datetime.now()))
+        new_document(d, source, cached)
 
     if interactive:
         d.edit_notes()
@@ -186,10 +146,54 @@ def document(source, interactive=True):
     return d
 
 
+def new_document(d, source, cached):
+
+    d.write_hash()
+    d.extract_plaintext()
+
+    meta = {
+        'title': d.extract_title(),
+        'author': '',
+        'year': '',
+        'tags': '',
+        'notes': '',
+        'source': source,
+        'cached': cached,
+    }
+
+    if meta['title']:
+        try:
+            bib = gscholar_bib(title=meta['title'])
+        except KeyError: # TODO: fix encoding errors
+            pass
+        else:
+            # Ask user if the bib entry retrieved looks any good.
+            from arsenal.humanreadable import str2bool
+
+            while 1:
+                try:
+                    if not str2bool(raw_input('Is this bib any good? [y/n] ')):
+                        bib = {}
+                except ValueError:
+                    pass
+                else:
+                    break
+
+            if bib:
+                meta.update(bib)
+
+    # TODO: gross hack.
+    meta = {k: v.decode('ascii', errors='ignore') for k,v in meta.items()}
+
+    d.store('notes.org', d.note_template(meta))
+    d.store('data/date-added', str(datetime.now()))
+
+
 def gscholar_bib(title):
     # perform a Google scholar search based on the title.
     import urllib2
     from skid.utils import gscholar
+    import pybtex
     from pybtex.database.input import bibtex
     from nameparser import HumanName
     from cStringIO import StringIO
@@ -203,7 +207,13 @@ def gscholar_bib(title):
 
     for x in results:
         print x
-        b = bibtex.Parser().parse_stream(StringIO(x))
+
+        try:
+            b = bibtex.Parser().parse_stream(StringIO(x))
+        except pybtex.scanner.TokenRequired as e:
+            print 'failed to parse bibtex with error:', e
+            return
+
         [(_,e)] = b.entries.items()
 
         #print yellow % (dict(e.fields),)
