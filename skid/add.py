@@ -197,6 +197,7 @@ def gscholar_bib(title):
     from pybtex.database.input import bibtex
     from nameparser import HumanName
     from cStringIO import StringIO
+    import latexcodec
 
     print magenta % 'Google scholar results for title:'
     try:
@@ -219,7 +220,10 @@ def gscholar_bib(title):
         #print yellow % (dict(e.fields),)
         title = e.fields['title']
         year = e.fields.get('year', '')
-        author = ' ; '.join(unicode(HumanName(x)) for x in e.fields['author'].split('and'))
+        author = ' ; '.join(unicode(HumanName(x)) for x in re.split(r'\band\b', e.fields['author']))
+
+        title = title.decode('latex')
+        author = author.decode('latex')#.replace('{','').replace('}','')
 
         print title
         print year

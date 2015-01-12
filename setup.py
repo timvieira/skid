@@ -15,5 +15,5 @@ setup(name='skid',
                'bin/ocr-pdf-extract-text',
                'skid/utils/gscholar.py'],
       install_requires=['whoosh', 'pdfminer==20110515', 'pandas',
-                        'nameparser', 'pybtex',
+                        'latexcodec', 'nameparser', 'pybtex',
                         'path.py', 'arsenal'])
