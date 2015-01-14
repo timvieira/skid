@@ -351,6 +351,8 @@ def main():
                        help='Only show top hit.')
         p.add_argument('--no-open', action='store_false',
                        help='do not open top hit')
+        p.add_argument('--note', action='store_true',
+                       help='Open note for top hit in editor.')
 
         args = p.parse_args()
 
@@ -433,12 +435,16 @@ def main():
                 print red % 'Nothing found'
                 return
             [top] = results
-            # open cached document and user notes
-#            os.system('gnome-open %s' % top.cached)
+            # open top hit
             if args.no_open:
-                from subprocess import Popen
-                Popen(['gnome-open', top.cached])
-#            os.system('$EDITOR %s' % top.cached + '.d/notes.org')
+                if args.note:
+                    # open user's note in editor
+                    os.system('$EDITOR %s' % top.cached + '.d/notes.org')
+                else:
+                    from subprocess import Popen
+                    # open cached document
+                    # TODO: read from config file
+                    Popen(['gnome-open', top.cached])
 
     elif cmd == ADD:
         p = ArgumentParser()

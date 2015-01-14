@@ -74,4 +74,5 @@ if __name__ == '__main__':
                 skidq = 'skid search --pager=none %s' % q
 
                 import os
-                os.system(skidq)
+                if os.system(skidq):
+                    break
