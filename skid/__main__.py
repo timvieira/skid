@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 import skid.completion
-from skid.config import *
+from skid import config
+from skid.config import (CMDS, SEARCH, LS, SIMILAR, KEY, ADD, UPDATE, PUSH,
+                         LEXICON, TAGS, RM, TITLE, SCHOLAR, AUTHORS)
 
 import re, os, sys
 from argparse import ArgumentParser
@@ -11,14 +14,11 @@ from collections import defaultdict
 
 from skid import index
 from skid import add as _add
-from skid import config
 from skid.add import Document, SkidError
 from skid.utils import bibkey, author
 
 from arsenal.terminal import cyan, yellow, magenta, green, red
-
 from whoosh.searching import Hit
-
 
 # TODO: I'd like to quickly check if I've added a paper before. Not sure hash
 # equality is enough, but it's a start. Should have a quick way to do this at
@@ -43,12 +43,11 @@ def display(results, limit=None, show=('author', 'title', 'link', 'link:notes'))
             return 'file://' + x
         return x
 
-
     for doc in islice(results, limit):
 
         hit = doc.parse_notes()
 
-# if whoosh reader is closed we can't access highlights
+        # if whoosh reader is closed we can't access highlights
         if hasattr(doc, 'highlights'):
             print doc.highlights.encode('utf8')
 
@@ -259,10 +258,10 @@ def todoc(d):
         doc.score = d.score
         doc.hit = d
 
-# very slow...
-#        doc.highlights = re.sub('<b class="match.*?>([\w\W]+?)</b>',
-#                                r'\033[31m\1\033[0m',
-#                                d.highlights('text', top=3))
+        # very slow...
+        #doc.highlights = re.sub('<b class="match.*?>([\w\W]+?)</b>',
+        #                        r'\033[31m\1\033[0m',
+        #                        d.highlights('text', top=3)).replace('\n', ' ') + '\n'
 
         return doc
 
@@ -290,14 +289,17 @@ def authors():
     ix = defaultdict(list)
     docs = []  # documents with authors annotated
 
+    collisions = defaultdict(set)
+
     for filename in config.CACHE.glob('*.pdf'):
         d = Document(filename)
         d.meta = d.parse_notes()
-        authors = d.meta['author']
-        if authors:
+        A = d.meta['author']
+        if A:
             docs.append(d)
-            for x in authors:
+            for x in A:
                 ix[simplify(x)].append(d)
+                collisions[simplify(x)].add(x)
 
     for a, ds in sorted(ix.items(), key=lambda x: len(x[1]), reverse=True):
         print yellow % '%s (%s)' % (a, len(ds))
@@ -311,9 +313,9 @@ def tags():
     for filename in config.CACHE.glob('*.pdf'):
         d = Document(filename)
         d.meta = d.parse_notes()
-        tags = d.meta['tags']
-        if authors:
-            for x in tags:
+        T = d.meta['tags']
+        if T:
+            for x in T:
                 ix[x.lower()].append(d)
 
     for tag, ds in sorted(ix.items(), key=lambda x: len(x[1]), reverse=True):
@@ -444,7 +446,7 @@ def main():
                     from subprocess import Popen
                     # open cached document
                     # TODO: read from config file
-                    Popen(['gnome-open', top.cached])
+                    Popen(['xdg-open', top.cached])
 
     elif cmd == ADD:
         p = ArgumentParser()

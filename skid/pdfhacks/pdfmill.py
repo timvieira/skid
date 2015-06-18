@@ -14,14 +14,14 @@ the bottom of the lowest box above it.
 
 """
 
+from __future__ import division
+
 import re, os, sys, pprint, urllib
 from collections import Counter
-from pandas import DataFrame
-
 from arsenal.iterextras import groupby2
 from arsenal.text.utils import remove_ligatures
-from arsenal.misc import ignore_error
-from arsenal.terminal import red, green, blue, yellow
+#from arsenal.misc import ignore_error
+from arsenal.terminal import red, green, yellow
 
 from skid.pdfhacks.conversion import pdf2image
 
@@ -31,13 +31,6 @@ from pdfminer.pdfparser import PDFParser, PDFSyntaxError, PDFDocument
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import PDFPageAggregator
 
-try:
-    # mako for html output template
-    from mako.template import Template
-    from mako.runtime import Context
-except ImportError:
-    def Template(*args):
-        return
 
 run_feature_extraction = 1
 
@@ -217,6 +210,7 @@ class HTMLConverter(object):
         self.current_page = None
 
     def data_frame(self):
+        from pandas import DataFrame
         items = self.pages[0].items
         for x in items:
             x.attributes['obj'] = x
@@ -335,7 +329,11 @@ class HTMLConverter(object):
                     self.render(child)
 
 
-template = Template("""
+def template():
+    # mako for html output template
+    from mako.template import Template
+
+    return Template("""
 <html>
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -416,6 +414,10 @@ function add_tooltips() {
 
 def extract_title(filename, extra=True):
 
+    EXPERIMENTAL_AUTHOR_EXTRACTION = 1
+    if EXPERIMENTAL_AUTHOR_EXTRACTION:
+        A = authors_set()
+
     if not isinstance(filename, basestring):
         pdf = filename
         filename = pdf.filename
@@ -489,8 +491,18 @@ def extract_title(filename, extra=True):
         for count, key, items in freq:
             print
             print red % count, green % key
-            for x in items[:10]:
-                print yellow % x.text.encode('utf8')
+            for x in items[:15]:
+                x = x.text.encode('utf8')
+
+                if EXPERIMENTAL_AUTHOR_EXTRACTION:
+                    # similarity to existing list of authors
+                    aa = [(sim(a, simplify(x), n=3), a) for a in A]
+                    aa = [(s, a) for s, a in aa if s > 0.2]
+                    aa.sort(reverse=1)
+                    print yellow % x, ('%s %s' % (red % '->', aa[:5])) if aa else ''
+                else:
+                    print yellow % x
+
 
         extract_year(freq)
 
@@ -558,11 +570,49 @@ def main(filenames):
                 item.yoffset += yoffset
         yoffset += p.height
 
+    from mako.runtime import Context
     with file(outfile, 'wb') as f:
-        template.render_context(Context(f, pages=pages))
+        template().render_context(Context(f, pages=pages))
 
-    import webbrowser
-    webbrowser.open(outfile)
+    if 0:
+        import webbrowser
+        webbrowser.open(outfile)
+    else:
+        print 'wrote', outfile
+
+
+from collections import defaultdict
+
+def simplify(x):
+    # simplify name: remove single initial, lowercase, convert to ascii
+    return re.sub(r'\b[a-z]\.\s*', '', x.strip().lower()).encode('ascii', 'ignore')
+
+def shingles(a, n):
+    return [a[i:i+n] for i in range(len(a)-n)]
+
+def sim(a, b, n):
+    A = set(shingles(a, n=n))
+    B = set(shingles(b, n=n))
+    return len(A & B) * 1.0 / len(A | B)
+
+# TODO: probably faster ways to do this using Whoosh index.
+def authors_set():
+    from skid import config
+    from skid.add import Document, SkidError
+    A = defaultdict(set)
+    for filename in config.CACHE.glob('*.pdf'):
+        try:
+            d = Document(filename)
+            meta = d.parse_notes()
+            authors = meta['author']
+        except SkidError:
+            # throws SkidError if notes file doesn't exist, which will happen if
+            # we're in the middle of adding a file.
+            continue
+        if authors:
+            for x in authors:
+                A[simplify(x)].add(x)
+    return A
 
 
 if __name__ == '__main__':
@@ -572,8 +622,3 @@ if __name__ == '__main__':
         sys.exit(1)
 
     main(sys.argv[1:])
-
-#    for filename in sys.argv[1:]:
-#        if os.path.isdir(filename):
-#            continue
-#        process_file(filename)

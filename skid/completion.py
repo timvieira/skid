@@ -22,28 +22,35 @@ if 'COMP_WORDS' in environ and config.completion:
             possible = config.CMDS
 
         else:
-            prefix = cwords[-1]
-            if len(cwords) == 2:
-                prefix = ''
 
-            if prefix.startswith('-'):
+            command = cwords[1]
+            #if command == 'rm':
+            #possible = config.CACHE.glob('*')
+            #else:
+            if 1:
 
-                # technically, only available under prefix 'skid search'
-                possible = ['--limit',
-                            '--show',
-                            '--hide',
-                            '--pager',
-                            '--format',
-                            '--by',
-                            '--top',
-                            '--no-open',
-                            '--note']
-
-            else:
-                possible = glob(prefix + '*')
-                possible = [x + '/' if x.isdir() else x for x in map(path, possible)]
-                if len(possible) == 1 and possible[0].isdir():  # only a directory left
-                    possible = possible[0].glob('*')
+                prefix = cwords[-1]
+                if len(cwords) == 2:
+                    prefix = ''
+    
+                if prefix.startswith('-'):
+    
+                    # technically, only available under prefix 'skid search'
+                    possible = ['--limit',
+                                '--show',
+                                '--hide',
+                                '--pager',
+                                '--format',
+                                '--by',
+                                '--top',
+                                '--no-open',
+                                '--note']
+    
+                else:
+                    possible = glob(prefix + '*')
+                    possible = [x + '/' if x.isdir() else x for x in map(path, possible)]
+                    if len(possible) == 1 and possible[0].isdir():  # only a directory left
+                        possible = possible[0].glob('*')
 
         if currword:
             possible = [x for x in possible if x.startswith(currword) and len(x) >= len(currword)]

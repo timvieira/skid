@@ -5,12 +5,11 @@ Index skid-marks to support efficient search over attributes including
 full-text.
 """
 
-import re, os
-
+import os
 from whoosh.index import create_in, open_dir
 from whoosh.fields import Schema, TEXT, ID, DATETIME
 from whoosh.qparser import QueryParser, MultifieldParser
-from whoosh.analysis import KeywordAnalyzer, STOP_WORDS
+from whoosh.analysis import KeywordAnalyzer
 
 from skid.utils import remove_stopwords
 from skid.config import ROOT, CACHE

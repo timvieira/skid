@@ -10,19 +10,25 @@ from datetime import datetime
 from skid.config import CACHE
 from skid.pdfhacks import pdftotext, extract_title
 
-from arsenal.terminal import blue, magenta, yellow
+from arsenal.terminal import red, blue, magenta, yellow
 from arsenal.web.download import download
 from arsenal.text.utils import htmltotext, force_unicode, remove_ligatures
 from arsenal.fsutils import secure_filename
+from arsenal.humanreadable import str2bool
 
 
 class SkidError(Exception):
     pass
 
-class SkidErrorFileExists(SkidError):
+
+class SkidDownloadError(SkidError):
+    pass
+
+
+class SkidFileExists(SkidError):
     def __init__(self, filename):
         self.filename = filename
-        super(SkidErrorFileExists,self).__init__('file %r already exists' % filename)
+        super(SkidFileExists,self).__init__('file %r already exists' % filename)
 
 
 def uni(x):
@@ -45,9 +51,23 @@ def robust_read(filename, verbose=0):
     detector.close()
     if verbose:
         print 'encoding:', detector.result
-    encoding = detector.result['encoding']
+    encoding = detector.result['encoding'] or 'utf8'
     with file(filename) as f:
         return force_unicode(f.read().decode(encoding, 'replace').encode('utf8'))
+
+
+from cStringIO import StringIO
+def robust_read_string(x, verbose=0):
+    detector = UniversalDetector()
+    #for line in StringIO(x):
+    detector.feed(x)
+    #if detector.done:
+    #    break
+    detector.close()
+    if verbose:
+        print 'encoding:', detector.result
+    encoding = detector.result['encoding'] or 'utf8'
+    return force_unicode(x.decode(encoding, 'replace').encode('utf8'))
 
 
 # TODO: use wget instead, it's more robust and has more bells and
@@ -61,12 +81,12 @@ def cache_url(url):
     cached = CACHE / secure_filename(url)
 
     if cached.exists():
-        raise SkidErrorFileExists(cached)
+        raise SkidFileExists(cached)
 
     # TODO: we should tell download where to store stuff explicitly... right now
     # we just both have the same convention.
     if not download(url, timeout=60, usecache=False, cached=cached):
-        raise Exception('Failed to download %s.' % url)
+        raise SkidDownloadError(url)
 
     return cached
 
@@ -88,7 +108,7 @@ def cache_document(src):
         if dest.exists():
             # TODO: check if hash is the same. Suggest update methods or
             # renaming the file (possibly automatically, e.g. via hash).
-            raise SkidErrorFileExists(dest)
+            raise SkidFileExists(dest)
 
         src.copy2(dest)
 
@@ -128,10 +148,14 @@ def document(source, interactive=True):
     try:
         cached = cache_document(source)
 
-    except SkidErrorFileExists as e:
+    except SkidFileExists as e:
         print '[%s] document already cached. using existing notes.' % yellow % 'warn'
         cached = e.filename
         exists = True
+
+    except SkidDownloadError as e:
+        print '[%s] Failed to download (%s).' % (red % 'error', e)
+        return
 
     d = Document(cached)
 
@@ -162,28 +186,29 @@ def new_document(d, source, cached):
     }
 
     if meta['title']:
+        bib = {}
         try:
-            bib = gscholar_bib(title=meta['title'])
+            bib = gscholar_bib(title=meta['title']) or {}
         except KeyError: # TODO: fix encoding errors
             pass
         else:
             # Ask user if the bib entry retrieved looks any good.
-            from arsenal.humanreadable import str2bool
-
-            while 1:
-                try:
-                    if not str2bool(raw_input('Is this bib any good? [y/n] ')):
-                        bib = {}
-                except ValueError:
-                    pass
-                else:
-                    break
+            if bib.get('title'):
+                while 1:
+                    try:
+                        if not str2bool(raw_input('Is this bib any good? [y/n] ')):
+                            bib = {}
+                    except ValueError:
+                        pass
+                    else:
+                        break
 
             if bib:
                 meta.update(bib)
 
     # TODO: gross hack.
-    meta = {k: v.decode('ascii', errors='ignore') for k,v in meta.items()}
+    #meta = {k: robust_read_string(v) for k,v in meta.items()}
+    meta = {k: (v or '').decode('ascii', errors='ignore') for k,v in meta.items()}
 
     d.store('notes.org', d.note_template(meta))
     d.store('data/date-added', str(datetime.now()))
@@ -196,8 +221,7 @@ def gscholar_bib(title):
     import pybtex
     from pybtex.database.input import bibtex
     from nameparser import HumanName
-    from cStringIO import StringIO
-    import latexcodec
+    #import latexcodec
 
     print magenta % 'Google scholar results for title:'
     try:
@@ -208,6 +232,8 @@ def gscholar_bib(title):
 
     for x in results:
         print x
+
+        x = robust_read_string(x)
 
         try:
             b = bibtex.Parser().parse_stream(StringIO(x))
@@ -222,8 +248,8 @@ def gscholar_bib(title):
         year = e.fields.get('year', '')
         author = ' ; '.join(unicode(HumanName(x)) for x in re.split(r'\band\b', e.fields['author']))
 
-        title = title.decode('latex')
-        author = author.decode('latex')#.replace('{','').replace('}','')
+        #title = title.decode('latex')
+        #author = author.decode('latex').replace('{','').replace('}','')
 
         print title
         print year
@@ -348,7 +374,10 @@ class Document(object):
         filename = self.d / 'notes.org'
         if not filename.exists():
             raise SkidError('Note file missing for %r.' % self)
-        return robust_read(filename)
+
+        # notes should always be utf-8...
+        return file(filename).read().decode('utf8','ignore')
+        #return robust_read(filename)
 
     # TODO: use a lazy-loaded attribute?
     # TODO: better markup language? or better org-mode markup.
@@ -423,10 +452,10 @@ if __name__ == '__main__':
     from skid import config
     from pprint import pprint
 
-    ROOT = config.ROOT = path('~/.skid-test').expand()
+    ROOT = config.ROOT = path('/tmp/skid-test').expand()
     CACHE = config.CACHE = ROOT / 'marks'
 
-    os.system('rm -rf /home/timv/.skid-test/marks/POPL2013-abstract.pdf*')
+    os.system('rm -rf /tmp/skid-test/marks/POPL2013-abstract.pdf*')
 
     test_src = '/home/timv/Desktop/POPL2013-abstract.pdf'
     test_cached = CACHE / 'POPL2013-abstract.pdf'
