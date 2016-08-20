@@ -50,9 +50,6 @@ HEADERS = {'User-Agent' : 'Mozilla/5.0',
         'Cookie' : 'GSP=ID=%s' % google_id }
 
 FORMAT_BIBTEX = 4
-FORMAT_ENDNOTE = 3
-FORMAT_REFMAN = 2
-FORMAT_WENXIANWANG = 5
 
 
 def query(searchstr, outformat=FORMAT_BIBTEX, allresults=False):
@@ -66,6 +63,7 @@ def query(searchstr, outformat=FORMAT_BIBTEX, allresults=False):
     response = urllib2.urlopen(request)
     html = response.read()
     html.decode('ascii', 'ignore')
+
     # grab the links
     tmp = get_links(html, outformat)
 
@@ -74,7 +72,8 @@ def query(searchstr, outformat=FORMAT_BIBTEX, allresults=False):
     if allresults == False:
         tmp = tmp[:1]
     for link in tmp:
-        url = GOOGLE_SCHOLAR_URL+link
+#        url = GOOGLE_SCHOLAR_URL+link
+        url = link
         request = urllib2.Request(url, headers=header)
         response = urllib2.urlopen(request)
         bib = response.read()
@@ -84,16 +83,10 @@ def query(searchstr, outformat=FORMAT_BIBTEX, allresults=False):
 
 def get_links(html, outformat):
     """Return a list of reference links from the html."""
-    if outformat == FORMAT_BIBTEX:
-        refre = re.compile(r'<a href="(/scholar\.bib\?[^"]*)')
-    elif outformat == FORMAT_ENDNOTE:
-        refre = re.compile(r'<a href="(/scholar\.enw\?[^"]*)"')
-    elif outformat == FORMAT_REFMAN:
-        refre = re.compile(r'<a href="(/scholar\.ris\?[^"]*)"')
-    elif outformat == FORMAT_WENXIANWANG:
-        refre = re.compile(r'<a href="(/scholar\.ral\?[^"]*)"')
+    assert outformat == FORMAT_BIBTEX
+    refre = re.compile(r'<a href="([^"]*?/scholar\.bib\?[^"]*)')
     reflist = refre.findall(html)
-    # escape html enteties
+    # escape html entities
     reflist = [re.sub('&(%s);' % '|'.join(name2codepoint), lambda m:
         unichr(name2codepoint[m.group(1)]), s) for s in reflist]
     return reflist
@@ -188,14 +181,7 @@ def main():
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
 
-    if args.output == 'bibtex':
-        outformat = FORMAT_BIBTEX
-    elif args.output == 'endnote':
-        outformat = FORMAT_ENDNOTE
-    elif args.output == 'refman':
-        outformat = FORMAT_REFMAN
-    elif args.output == 'wenxianwang':
-        outformat = FORMAT_WENXIANWANG
+    outformat = FORMAT_BIBTEX
 
     pdfmode = False
     if os.path.exists(args.query):
