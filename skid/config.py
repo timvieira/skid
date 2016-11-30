@@ -8,8 +8,6 @@ ROOT = path('~/.skid').expand()    # feel free to use environment variables
 #ROOT = path('~/skid-test').expand()    # feel free to use environment variables
 
 CACHE = ROOT / 'marks'
-REMOTE = 'login.clsp.jhu.edu:~/papers'
-
 LIMIT = 10
 
 if not ROOT.exists():
@@ -23,6 +21,6 @@ if not CACHE.exists():
 completion = True
 
 # commands
-CMDS = [AUTHORS, PUSH, UPDATE, RM, ADD, TAGS,
-        LEXICON, TITLE, SIMILAR, LS, SEARCH, KEY, SCHOLAR] = \
-    'authors push update rm add tags lexicon title similar ls search key scholar'.split()
+class cmd:
+    ALL = [add, authors, drop, key, lexicon, ls, rm, scholar, similar, search, tags, title, update] = \
+          'add, authors, drop, key, lexicon, ls, rm, scholar, similar, search, tags, title, update'.split(', ')

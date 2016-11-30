@@ -3,8 +3,7 @@
 
 import skid.completion
 from skid import config
-from skid.config import (CMDS, SEARCH, LS, SIMILAR, KEY, ADD, UPDATE, PUSH,
-                         LEXICON, TAGS, RM, TITLE, SCHOLAR, AUTHORS)
+from skid.config import cmd
 
 import re, os, sys
 from argparse import ArgumentParser
@@ -63,9 +62,6 @@ def display(results, limit=None, show=('author', 'title', 'link', 'link:notes'))
                 print (magenta % '(%s)' % a).encode('utf8'),
 
         if 'title' in show:
-            #print
-            #print 'latin1:', hit['title'].encode('latin1')
-            #print 'utf8:  ', hit['title'].encode('utf8')
             print re.sub('\[\S+\]', lambda x: yellow % x.group(0),
                          hit['title'].strip()).replace('\n', ' ').encode('utf8')
 
@@ -86,7 +82,6 @@ def display(results, limit=None, show=('author', 'title', 'link', 'link:notes'))
             print cyan % link(hit['cached'] + '.d/notes.org')
 
         if 'tags' in show:
-            #print '%s%s%s' % (yellow % '[', (yellow % ', ').join(magenta % x for x in hit['tags']), yellow % ']')
             if hit['tags']:
                 print (magenta % ', ').join(magenta % x for x in hit['tags'])
 
@@ -174,23 +169,6 @@ def pager(name='none', always=False):
             print
 
 
-def update():
-    """ Update search index. """
-    index.update()
-
-
-def drop():
-    "Drop search index. Don't worry you can always make another one by calling update."
-    index.drop()
-
-
-# Experimental: not sure what the best way to shuttle data around is nor how we
-# want to do it.
-def push():
-    "Use rsync to push data to remote machine."
-    os.system('rsync --progress -a %s/. %s/marks/.' % (config.CACHE, config.REMOTE))
-
-
 def rm(q):
     "Remove skid-mark associated with cached file."
 
@@ -257,14 +235,11 @@ def todoc(d):
         doc = Document(d['cached'])
         doc.score = d.score
         doc.hit = d
-
         # very slow...
         #doc.highlights = re.sub('<b class="match.*?>([\w\W]+?)</b>',
         #                        r'\033[31m\1\033[0m',
         #                        d.highlights('text', top=3)).replace('\n', ' ') + '\n'
-
         return doc
-
     return d
 
 
@@ -330,12 +305,12 @@ def tags():
 def main():
 
     if len(sys.argv) <= 1:
-        print ', '.join(sorted(CMDS))
+        print ', '.join(sorted(cmd.ALL))
         return
 
-    cmd = sys.argv.pop(1)
+    command = sys.argv.pop(1)
 
-    if cmd in (SEARCH, LS, SIMILAR, KEY):
+    if command in (cmd.search, cmd.ls, cmd.similar, cmd.key):
 
         p = ArgumentParser()
         p.add_argument('query', nargs='*')
@@ -366,10 +341,10 @@ def main():
             args.pager = 'none'
             limit = 1
 
-        if cmd == SEARCH:
+        if command == cmd.search:
             results = index.search(query)
 
-        elif cmd == KEY:
+        elif command == cmd.key:
             # Supports bibtex key search, e.g. 'bottou12counterfactual'
             #
             #  Example key
@@ -390,19 +365,19 @@ def main():
             else:
                 results = []
 
-        elif cmd == SIMILAR:
+        elif command == cmd.similar:
             results = Document(query).similar(limit=limit)
-        elif cmd == LS:
+        elif command == cmd.ls:
             results = ls(query)
         else:
-            assert False, 'Unrecognized command %s' % cmd
+            assert False, 'Unrecognized command %s' % command
 
         # convert results to list and convert Whoosh.searching.Hit to skid.Document
         results = list(map(todoc, results))
 
         # sort documents according to '--by' criteria'
         sortwith = {'relevance': score, 'modified': modified, 'added': added}[args.by]
-        if cmd == LS and args.by == 'relevance':
+        if command == cmd.ls and args.by == 'relevance':
             sortwith = added
         results.sort(key=sortwith, reverse=True)
 
@@ -448,37 +423,38 @@ def main():
                     # TODO: read from config file
                     Popen(['xdg-open', top.cached])
 
-    elif cmd == ADD:
+    elif command == cmd.add:
         p = ArgumentParser()
         p.add_argument('source')
         args = p.parse_args()
         add(args.source)
 
-    elif cmd == RM:
+    elif command == cmd.rm:
         p = ArgumentParser()
         p.add_argument('cached')
         args = p.parse_args()
         rm(args.cached)
 
-    elif cmd == UPDATE:
-        update()
+    elif command == cmd.update:
+        index.update()
 
-    elif cmd == PUSH:
-        push()
-
-    elif cmd == AUTHORS:
+    elif command == cmd.authors:
         authors()
 
-    elif cmd == TAGS:
+    elif command == cmd.tags:
         tags()
 
-    elif cmd == LEXICON:
+    elif command == cmd.drop:
+        print yellow % 'Dropping search index... To build a fresh one run\n$ skid update'
+        index.drop()
+
+    elif command == cmd.lexicon:
         p = ArgumentParser()
         p.add_argument('field')
         args = p.parse_args()
         lexicon(args.field)
 
-    elif cmd == TITLE:
+    elif command == cmd.title:
         # doesn't require adding the document, just finds the title.
         from skid.pdfhacks.pdfmill import extract_title
         p = ArgumentParser()
@@ -487,7 +463,7 @@ def main():
         args = p.parse_args()
         extract_title(args.pdf, extra=args.extra)
 
-    elif cmd == SCHOLAR:
+    elif command == cmd.scholar:
         from skid.add import gscholar_bib
         from skid.pdfhacks.pdfmill import extract_title
         p = ArgumentParser()
@@ -500,7 +476,7 @@ def main():
         gscholar_bib(title=title)
 
     else:
-        print ', '.join(sorted(CMDS))
+        print ', '.join(sorted(cmd.ALL))
 
 
 if __name__ == '__main__':

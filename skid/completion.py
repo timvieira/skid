@@ -19,7 +19,7 @@ if 'COMP_WORDS' in environ and config.completion:
 
         if cword < 2:
             # second words is one of the skid commands like 'search' or 'add'
-            possible = config.CMDS
+            possible = config.cmd.ALL
 
         else:
 
