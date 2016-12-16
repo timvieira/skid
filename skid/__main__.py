@@ -25,10 +25,10 @@ from whoosh.searching import Hit
 # equality (do we want to download the paper and all that?).
 
 
-def add(source):
+def add(source, dest):
     "Add document from source. Sources can be urls or filenames."
     try:
-        return _add.document(source, interactive=True)
+        return _add.document(source, dest=dest, interactive=True)
     except SkidError as e:
         print '[%s] %s' % (red % 'error', e)
 
@@ -426,8 +426,9 @@ def main():
     elif command == cmd.add:
         p = ArgumentParser()
         p.add_argument('source')
+        p.add_argument('--name')
         args = p.parse_args()
-        add(args.source)
+        add(args.source, dest=args.name)
 
     elif command == cmd.rm:
         p = ArgumentParser()

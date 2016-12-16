@@ -73,52 +73,53 @@ def robust_read_string(x, verbose=0):
 # TODO: use wget instead, it's more robust and has more bells and
 # whistles.. e.g. handling redirects, ftp, timeouts, and all sorts of silly
 # things that happen when downloading a file.
-def cache_url(url):
+def cache_url(url, dest):
     """
     Download url, write contents to file. Return filename of contents, None on
     failure to download.
     """
-    cached = CACHE / secure_filename(url)
-
-    if cached.exists():
-        raise SkidFileExists(cached)
 
     # TODO: we should tell download where to store stuff explicitly... right now
     # we just both have the same convention.
-    if not download(url, timeout=60, usecache=False, cached=cached):
+    if not download(url, timeout=60, usecache=False, cached=dest):
         raise SkidDownloadError(url)
 
-    return cached
+
+def is_url(src):
+    return src.startswith('https://') or src.startswith('http://') or src.startswith('ftp://')
 
 
-def cache_document(src):
-    "Cache a document, return filename of the cached file."
+def cache_document(src, dest=None):
+    "Cache a document, return filename of the dest file."
 
-    # TODO: use staging area
-
+    # TODO: use a staging area in case something breaks in the middle of adding.
     src = path(src)
 
-    if src.startswith('https:') or src.startswith('http:') or src.startswith('ftp:'):    # cache links
-        return cache_url(src)
+    if dest is None:
+        # Find a reasonable filename if dest isn't specified
+        if is_url(src):
+            dest = CACHE / secure_filename(src)
+        else:
+            dest = CACHE / src.basename()
+    else:
+        dest = CACHE / dest
+
+    if dest.exists():
+        # TODO: Suggest update methods or renaming the file
+        raise SkidFileExists(dest)
+
+    if is_url(src):
+        cache_url(src, dest)
 
     elif src.exists():   # is this something on disk?
-
-        dest = CACHE / src.basename()
-
-        if dest.exists():
-            # TODO: check if hash is the same. Suggest update methods or
-            # renaming the file (possibly automatically, e.g. via hash).
-            raise SkidFileExists(dest)
-
         src.copy2(dest)
-
         print 'copy:', src, '->', dest
 
-        return dest
+    else:
+        raise SkidError("cache_document doesn't know what to do with source %r\n"
+                        "Trying to add a nonexistent file?" % str(src))
 
-    raise SkidError("cache_document doesn't know what to do with source %r\n"
-                    "Trying to add a nonexistent file?" % str(src))
-
+    return dest
 
 # TODO:
 #
@@ -128,13 +129,18 @@ def cache_document(src):
 #
 # - If it's a pdf we should try to get a bibtex entry for it.
 #
-def document(source, interactive=True):
+def document(source, dest=None, interactive=True):
     """
     Import document from ``source``. Procedure will download/cache the file,
     create a directory to store metadta.
     """
 
     assert ' ' not in source
+
+    if dest is not None:
+        assert re.match('^[a-zA-Z0-9\-_.]+$', dest), \
+            '%r is not a valid name for a skid document.' % dest
+        dest = path(dest)
 
     source = path(source)
 
@@ -146,7 +152,7 @@ def document(source, interactive=True):
 
     exists = False
     try:
-        cached = cache_document(source)
+        cached = cache_document(source, dest=dest)
 
     except SkidFileExists as e:
         print '[%s] document already cached. using existing notes.' % yellow % 'warn'
