@@ -200,14 +200,34 @@ def new_document(d, source, cached):
         else:
             # Ask user if the bib entry retrieved looks any good.
             if bib.get('title'):
-                while 1:
-                    try:
-                        if not str2bool(raw_input('Is this bib any good? [y/n] ')):
-                            bib = {}
-                    except ValueError:
-                        pass
-                    else:
-                        break
+
+                #xx = bib.get('title').lower()
+                #yy = meta['title'].lower()
+
+                #from arsenal.nlp.similarity.levenstein import damerau_levenshtein as edit_distance
+                #dist = edit_distance(xx, yy)
+                #sim = 1 - dist / max(len(xx), len(yy))
+                #print yellow % 'title similarity: %.2f%%' % (sim)
+
+                msg = 'Initialize note file with above bib info?'
+                #if sim < 0.75:
+                #    print msg + ' [y/%s]' % red % 'N'
+                #    print '-> Similarity too low, will not use.'
+                #else:
+                if 1:
+                    while 1:
+                        try:
+                            s = raw_input(msg + ' [y/N] ').strip()
+                            if not s:
+                                bib = {}
+                                break
+                            s = str2bool(s)
+                            if not s:
+                                bib = {}
+                            break
+                        except ValueError:
+                            pass
+
 
             if bib:
                 meta.update(bib)
