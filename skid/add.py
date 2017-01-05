@@ -259,7 +259,7 @@ def gscholar_bib(title):
     for x in results:
         print x
 
-        x = robust_read_string(x)
+        x = x.decode('ascii', errors='ignore')
 
         try:
             b = bibtex.Parser().parse_stream(StringIO(x))
