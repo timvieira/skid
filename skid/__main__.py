@@ -73,7 +73,10 @@ def display(results, limit=None, show=('author', 'title', 'link', 'link:notes'))
 
         if 'link' in show:
 
-            if hit['source'].startswith('http') and not hit['source'].endswith('.pdf'):
+            if (hit['source'].startswith('http')           # show source for webpages,
+                and not hit['cached'].endswith('.pdf')     # but not if it's a link to a pdf!
+                and not hit['source'].endswith('.pdf')
+            ):
                 print cyan % link(hit['source'])
             else:
                 print cyan % link(hit['cached'])
