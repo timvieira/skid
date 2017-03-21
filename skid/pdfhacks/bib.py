@@ -15,11 +15,11 @@ from collections import defaultdict
 
 # github.com/timvieira/python-extras
 from arsenal.fsutils import cd
-from arsenal.text.utils import force_unicode
 from arsenal.iterextras import take
 from arsenal.terminal import green, blue, red, yellow
 
 from skid.pdfhacks.conversion import pdftotext
+from skid.utils.text import force_unicode
 
 # pybtex - http://packages.python.org/pybtex/manual.html
 from pybtex.database.input import bibtex

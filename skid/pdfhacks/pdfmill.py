@@ -19,10 +19,10 @@ from __future__ import division
 import re, os, sys, pprint, urllib
 from collections import Counter
 from arsenal.iterextras import groupby2
-from arsenal.text.utils import remove_ligatures
 #from arsenal.misc import ignore_error
 from arsenal.terminal import red, green, yellow
 
+from skid.utils.text import remove_ligatures
 from skid.pdfhacks.conversion import pdf2image
 
 # pdfminer
@@ -32,7 +32,7 @@ from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import PDFPageAggregator
 
 
-run_feature_extraction = 1
+run_feature_extraction = 0
 
 if run_feature_extraction:
     from skid.pdfhacks import features

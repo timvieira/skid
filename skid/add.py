@@ -9,10 +9,10 @@ from datetime import datetime
 
 from skid.config import CACHE
 from skid.pdfhacks import pdftotext, extract_title
+from skid.utils.text import htmltotext, force_unicode, remove_ligatures
 
 from arsenal.terminal import red, blue, magenta, yellow
 from arsenal.web.download import download
-from arsenal.text.utils import htmltotext, force_unicode, remove_ligatures
 from arsenal.fsutils import secure_filename
 from arsenal.humanreadable import str2bool
 
