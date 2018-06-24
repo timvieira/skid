@@ -3,16 +3,16 @@
 """
 Add document to skid (cache document, extract text, create metadata files).
 """
-import re, os, subprocess
-from path import path
+import re, os, socket, subprocess
+from path import Path
 from datetime import datetime
 
 from skid.config import CACHE
 from skid.pdfhacks import pdftotext, extract_title
-from skid.utils.text import htmltotext, force_unicode, remove_ligatures
+from skid.utils.text import htmltotext, remove_ligatures
 
-from arsenal.terminal import red, blue, magenta, yellow
-from arsenal.web.download import download
+from arsenal.terminal import colors
+from arsenal.download import download
 from arsenal.fsutils import secure_filename
 from arsenal.humanreadable import str2bool
 
@@ -33,30 +33,30 @@ class SkidFileExists(SkidError):
 
 def uni(x):
     if isinstance(x, list):
-        return map(uni, x)
-    assert isinstance(x, basestring), x
-    return force_unicode(x)
+        return list(map(uni, x))
+    assert isinstance(x, str), x
+    return x
 
 def unicodify_dict(a):
-    return {uni(k): uni(v) for k,v in a.iteritems()}
+    return {uni(k): uni(v) for k,v in list(a.items())}
 
 
 from chardet.universaldetector import UniversalDetector
 def robust_read(filename, verbose=0):
     detector = UniversalDetector()
-    for line in file(filename):
+    for line in open(filename, mode='rb'):
         detector.feed(line)
         if detector.done:
             break
     detector.close()
     if verbose:
-        print 'encoding:', detector.result
+        print('encoding:', detector.result)
     encoding = detector.result['encoding'] or 'utf8'
-    with file(filename) as f:
-        return force_unicode(f.read().decode(encoding, 'replace').encode('utf8'))
+    with open(filename, mode='r', encoding=encoding, errors='ignore') as f:
+        return f.read()
 
 
-from cStringIO import StringIO
+from io import StringIO
 def robust_read_string(x, verbose=0):
     detector = UniversalDetector()
     #for line in StringIO(x):
@@ -65,9 +65,9 @@ def robust_read_string(x, verbose=0):
     #    break
     detector.close()
     if verbose:
-        print 'encoding:', detector.result
+        print('encoding:', detector.result)
     encoding = detector.result['encoding'] or 'utf8'
-    return force_unicode(x.decode(encoding, 'replace').encode('utf8'))
+    return x.decode(encoding, 'replace').encode('utf8')
 
 
 # TODO: use wget instead, it's more robust and has more bells and
@@ -93,7 +93,7 @@ def cache_document(src, dest=None):
     "Cache a document, return filename of the dest file."
 
     # TODO: use a staging area in case something breaks in the middle of adding.
-    src = path(src)
+    src = Path(src)
 
     if dest is None:
         # Find a reasonable filename if dest isn't specified
@@ -113,7 +113,7 @@ def cache_document(src, dest=None):
 
     elif src.exists():   # is this something on disk?
         src.copy2(dest)
-        print 'copy:', src, '->', dest
+        print('copy:', src, '->', dest)
 
     else:
         raise SkidError("cache_document doesn't know what to do with source %r\n"
@@ -140,11 +140,11 @@ def document(source, dest=None, interactive=True):
     if dest is not None:
         assert re.match('^[a-zA-Z0-9\-_.]+$', dest), \
             '%r is not a valid name for a skid document.' % dest
-        dest = path(dest)
+        dest = Path(dest)
 
-    source = path(source)
+    source = Path(source)
 
-    print blue % 'adding %s' % source
+    print(colors.blue % 'adding %s' % source)
 
     # store the absolute path for local files.
     if source.exists():
@@ -155,12 +155,12 @@ def document(source, dest=None, interactive=True):
         cached = cache_document(source, dest=dest)
 
     except SkidFileExists as e:
-        print '[%s] document already cached. using existing notes.' % yellow % 'warn'
+        print('[%s] document already cached. using existing notes.' % colors.yellow % 'warn')
         cached = e.filename
         exists = True
 
     except SkidDownloadError as e:
-        print '[%s] Failed to download (%s).' % (red % 'error', e)
+        print('[%s] Failed to download (%s).' % (colors.red % 'error', e))
         return
 
     d = Document(cached)
@@ -171,7 +171,7 @@ def document(source, dest=None, interactive=True):
     if interactive:
         d.edit_notes()
 
-    print "Don't forget to 'skid update'"
+    print("Don't forget to 'skid update'")
 
     return d
 
@@ -195,8 +195,12 @@ def new_document(d, source, cached):
         bib = {}
         try:
             bib = gscholar_bib(title=meta['title']) or {}
-        except KeyError: # TODO: fix encoding errors
-            pass
+        except Exception as e:
+            raise e
+#        except KeyError: # TODO: fix encoding errors
+#            pass
+#        except socket.error as e:
+#            print(colors.yellow % '[gscholar] error %s' % e)
         else:
             # Ask user if the bib entry retrieved looks any good.
             if bib.get('title'):
@@ -207,17 +211,17 @@ def new_document(d, source, cached):
                 #from arsenal.nlp.similarity.levenstein import damerau_levenshtein as edit_distance
                 #dist = edit_distance(xx, yy)
                 #sim = 1 - dist / max(len(xx), len(yy))
-                #print yellow % 'title similarity: %.2f%%' % (sim)
+                #print colors.yellow % 'title similarity: %.2f%%' % (sim)
 
                 msg = 'Initialize note file with above bib info?'
                 #if sim < 0.75:
-                #    print msg + ' [y/%s]' % red % 'N'
+                #    print msg + ' [y/%s]' % colors.red % 'N'
                 #    print '-> Similarity too low, will not use.'
                 #else:
                 if 1:
                     while 1:
                         try:
-                            s = raw_input(msg + ' [y/N] ').strip()
+                            s = input(msg + ' [y/N] ').strip()
                             if not s:
                                 bib = {}
                                 break
@@ -234,7 +238,7 @@ def new_document(d, source, cached):
 
     # TODO: gross hack.
     #meta = {k: robust_read_string(v) for k,v in meta.items()}
-    meta = {k: (v or '').decode('ascii', errors='ignore') for k,v in meta.items()}
+    meta = {k: (v or '') for k,v in list(meta.items())}
 
     d.store('notes.org', d.note_template(meta))
     d.store('data/date-added', str(datetime.now()))
@@ -242,45 +246,46 @@ def new_document(d, source, cached):
 
 def gscholar_bib(title):
     # perform a Google scholar search based on the title.
-    import urllib2
+    import urllib.request, urllib.error, urllib.parse
     from skid.utils import gscholar
     import pybtex
     from pybtex.database.input import bibtex
     from nameparser import HumanName
     #import latexcodec
 
-    print magenta % 'Google scholar results for title:'
+    print(colors.magenta % 'Google scholar results for title:')
     try:
         results = gscholar.query(title, allresults=False)
-    except (KeyboardInterrupt, urllib2.URLError) as e:
+    except (KeyboardInterrupt, urllib.error.URLError) as e:
         results = []
-        print '[%s] %s' % (yellow % 'warn', 'Google scholar search failed (error: %s)' % e)
+        print('[%s] %s' % (colors.yellow % 'warn', 'Google scholar search failed (error: %s)' % e))
+        raise e
 
     for x in results:
-        print x
+        print(x)
 
         x = x.decode('ascii', errors='ignore')
 
         try:
             b = bibtex.Parser().parse_stream(StringIO(x))
         except pybtex.scanner.TokenRequired as e:
-            print 'failed to parse bibtex with error:', e
+            print('failed to parse bibtex with error:', e)
             return
 
-        [(_,e)] = b.entries.items()
+        [(_,e)] = list(b.entries.items())
 
-        #print yellow % (dict(e.fields),)
+        #print colors.yellow % (dict(e.fields),)
         title = e.fields['title']
         year = e.fields.get('year', '')
-        author = ' ; '.join(unicode(HumanName(x)) for x in re.split(r'\band\b', e.fields['author']))
+        author = ' ; '.join(str(HumanName(x)) for x in re.split(r'\band\b', e.fields['author']))
 
         #title = title.decode('latex')
         #author = author.decode('latex').replace('{','').replace('}','')
 
-        print title
-        print year
-        print author
-        print
+        print(title)
+        print(year)
+        print(author)
+        print()
 
         return {'title': title,
                 'year': year,
@@ -312,7 +317,7 @@ class Document(object):
         if cached.startswith('file://'):
             cached = cached[7:]
 
-        self.cached = path(cached).expand().abspath()
+        self.cached = Path(cached).expand().abspath()
         assert self.cached.exists(), 'File %r does not exist' % self.cached
         self.d = self.cached + '.d'
 
@@ -341,18 +346,19 @@ class Document(object):
     def store(self, name, content, overwrite=False):
         t = self.d / name
         assert overwrite or not t.exists(), name + ' already exists!'
-        with file(t, 'wb') as f:
-            content = force_unicode(content)
-            content = content.encode('utf8')
-            f.write(content)
-            f.write('\n')    # new line at end of file
+        with open(t, 'wb') as f:
+            if hasattr(content, 'encode'):
+                f.write(content.encode('utf-8'))
+            else:
+                f.write(content)
+            f.write(b'\n')    # new line at end of file
         return content
 
     def write_hash(self):
         return self.store('data/hash', self.cached.read_hexhash('sha1'), overwrite=True)
 
     def hash(self):
-        return unicode((self.d / 'data' / 'hash').text().decode('utf8'))
+        return str((self.d / 'data' / 'hash').text())
 
     def extract_title(self):
 
@@ -380,7 +386,6 @@ class Document(object):
 
         else:
             text = robust_read(self.cached)
-            text = force_unicode(text)
             text = htmltotext(text)      # clean up html
 
         text = remove_ligatures(text)
@@ -390,11 +395,11 @@ class Document(object):
     def note_template(self, x):
         x = unicodify_dict(x)
         others = set(x) - set('title author year source cached tags notes'.split())
-        attrs = u'\n'.join((u':%s: %s' % (k, x[k])).strip() for k in others).strip()
+        attrs = '\n'.join((':%s: %s' % (k, x[k])).strip() for k in others).strip()
         if attrs:
             attrs += '\n'
         newdata = TEMPLATE.format(attrs=attrs, **x)
-        return force_unicode(newdata).encode('utf8')
+        return newdata.encode('utf8')
 
     def note_content(self):
         filename = self.d / 'notes.org'
@@ -402,7 +407,7 @@ class Document(object):
             raise SkidError('Note file missing for %r.' % self)
 
         # notes should always be utf-8...
-        return file(filename).read().decode('utf8','ignore')
+        return open(filename).read().encode('utf8','ignore').decode('utf8','ignore')
         #return robust_read(filename)
 
     # TODO: use a lazy-loaded attribute?
@@ -444,7 +449,7 @@ class Document(object):
 
         # split authors and tags
         x['tags'] = x['tags'].strip().split()
-        x['author'] = filter(None, [a.strip() for a in x['author'].strip().split(';')])
+        x['author'] = [_f for _f in [a.strip() for a in x['author'].strip().split(';')] if _f]
 
         [d] = re.findall('\n([^:#][\w\W]*$|$)', content)
         x['notes'] = d.strip()
@@ -456,13 +461,13 @@ class Document(object):
         from skid import index
         ix = index.open_dir(index.DIRECTORY, index.NAME)
         with ix.searcher() as searcher:
-            results = searcher.find('cached', unicode(self.cached))
+            results = searcher.find('cached', str(self.cached))
             result = results[0]
             for hit in result.more_like_this(top=limit, numterms=numterms, fieldname=fieldname):
                 yield hit
 
 
-TEMPLATE = u"""\
+TEMPLATE = """\
 #+title: {title}
 :author: {author}
 :year:   {year}
@@ -470,7 +475,7 @@ TEMPLATE = u"""\
 :tags:   {tags}
 {attrs}
 {notes}
-""".encode('utf8')
+"""
 
 
 if __name__ == '__main__':
@@ -478,7 +483,7 @@ if __name__ == '__main__':
     from skid import config
     from pprint import pprint
 
-    ROOT = config.ROOT = path('/tmp/skid-test').expand()
+    ROOT = config.ROOT = Path('/tmp/skid-test').expand()
     CACHE = config.CACHE = ROOT / 'marks'
 
     os.system('rm -rf /tmp/skid-test/marks/POPL2013-abstract.pdf*')
@@ -487,7 +492,7 @@ if __name__ == '__main__':
     test_cached = CACHE / 'POPL2013-abstract.pdf'
     test_doc = document(test_src, interactive=False)
 
-    print test_doc
+    print(test_doc)
 
     test = Document(test_cached)
     pprint(test.parse_notes())

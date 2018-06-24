@@ -16,7 +16,7 @@ from skid import add as _add
 from skid.add import Document, SkidError
 from skid.utils import bibkey, author
 
-from arsenal.terminal import cyan, yellow, magenta, green, red
+from arsenal.terminal import colors
 from whoosh.searching import Hit
 
 # TODO: I'd like to quickly check if I've added a paper before. Not sure hash
@@ -30,7 +30,7 @@ def add(source, dest):
     try:
         return _add.document(source, dest=dest, interactive=True)
     except SkidError as e:
-        print '[%s] %s' % (red % 'error', e)
+        print('[%s] %s' % (colors.red % 'error', e))
 
 
 def display(results, limit=None, show=('author', 'title', 'link', 'link:notes')):
@@ -48,10 +48,10 @@ def display(results, limit=None, show=('author', 'title', 'link', 'link:notes'))
 
         # if whoosh reader is closed we can't access highlights
         if hasattr(doc, 'highlights'):
-            print doc.highlights.encode('utf8')
+            print(doc.highlights.encode('utf8'))
 
         if 'score' in show:
-            print yellow % ('[%.2f]' % doc.score),
+            print(colors.yellow % ('[%.2f]' % doc.score), end=' ')
 
         if 'author' in show:
             a = author(hit['author'])
@@ -59,17 +59,17 @@ def display(results, limit=None, show=('author', 'title', 'link', 'link:notes'))
                 year = hit.get('year', '')
                 if year:
                     a = '%s, %s' % (a, year)
-                print (magenta % '(%s)' % a).encode('utf8'),
+                print((colors.magenta % '(%s)' % a), end=' ')
 
         if 'title' in show:
-            print re.sub('\[\S+\]', lambda x: yellow % x.group(0),
-                         hit['title'].strip()).replace('\n', ' ').encode('utf8')
+            print(re.sub('\[\S+\]', lambda x: colors.yellow % x.group(0),
+                         hit['title'].strip()).replace('\n', ' '))
 
         if 'source' in show:
-            print cyan % link(hit['source'])
+            print(colors.cyan % link(hit['source']))
 
         if 'cached' in show:
-            print cyan % link(hit['cached'])
+            print(colors.cyan % link(hit['cached']))
 
         if 'link' in show:
 
@@ -77,42 +77,42 @@ def display(results, limit=None, show=('author', 'title', 'link', 'link:notes'))
                 and not hit['cached'].endswith('.pdf')     # but not if it's a link to a pdf!
                 and not hit['source'].endswith('.pdf')
             ):
-                print cyan % link(hit['source'])
+                print(colors.cyan % link(hit['source']))
             else:
-                print cyan % link(hit['cached'])
+                print(colors.cyan % link(hit['cached']))
 
         if 'link:notes' in show:
-            print cyan % link(hit['cached'] + '.d/notes.org')
+            print(colors.cyan % link(hit['cached'] + '.d/notes.org'))
 
         if 'tags' in show:
             if hit['tags']:
-                print (magenta % ', ').join(magenta % x for x in hit['tags'])
+                print((colors.magenta % ', ').join(colors.magenta % x for x in hit['tags']))
 
         if 'notes' in show:
             notes = hit['notes'].strip()
             if notes:
                 for line in notes.split('\n'):
-                    print yellow % ' |', line
+                    print(colors.yellow % ' |', line)
 
-        print
-    print
+        print()
+    print()
 
 
-def org(results, limit=None, **kwargs):
-    "Format results in org-mode markup."
-    print
-    for doc in islice(results, limit):
-        hit = doc.parse_notes()
-        source = hit['source']
-        cached = hit['cached']
-        d = cached + '.d'
-        notes = d + '/notes.org'
-        print ('\n+ %s' % hit['title']).encode('utf8')
-        if hit['author']:
-            print ('  ' + ' ; '.join('[[skid:author:"\'{0}\'"][{0}]]'.format(x) for x in hit['author'])).encode('utf8')
-        print ('  [[%s][directory]] | [[%s][source]] | [[%s][cache]] | [[%s][notes]]' % (d, source, cached, notes)).encode('utf8')
-        if hit['tags']:
-            print ' ', ' '.join('[[skid:tags:%s][%s]]' % (x,x) for x in hit['tags']).encode('utf8').strip()
+#def org(results, limit=None, **kwargs):
+#    "Format results in org-mode markup."
+#    print()
+#    for doc in islice(results, limit):
+#        hit = doc.parse_notes()
+#        source = hit['source']
+#        cached = hit['cached']
+#        d = cached + '.d'
+#        notes = d + '/notes.org'
+#        print(('\n+ %s' % hit['title']).encode('utf8'))
+#        if hit['author']:
+#            print(('  ' + ' ; '.join('[[skid:author:"\'{0}\'"][{0}]]'.format(x) for x in hit['author'])).encode('utf8'))
+#        print(('  [[%s][directory]] | [[%s][source]] | [[%s][cache]] | [[%s][notes]]' % (d, source, cached, notes)).encode('utf8'))
+#        if hit['tags']:
+#            print(' ', ' '.join('[[skid:tags:%s][%s]]' % (x,x) for x in hit['tags']).encode('utf8').strip())
 
 
 def terminal_size(fd=1):
@@ -138,6 +138,7 @@ def pager(name='none', always=False):
     """
     Wraps call to search_org. Redirects output to file and opens it in emacs.
     """
+    from tempfile import NamedTemporaryFile
 
     if not name or name == 'none':
         yield
@@ -147,29 +148,35 @@ def pager(name='none', always=False):
             raise Exception('Unknown option for pager %r' % name)
 
         try:
-            with file('/tmp/foo', 'wb') as f:
+            #with open('/tmp/foo', 'wb') as f:
+            with NamedTemporaryFile(delete=0) as f:
                 sys.stdout = f
                 yield
         finally:
             # make sure we stdout revert back
             sys.stdout = sys.__stdout__
 
-        with file(f.name) as f:
-            lines = f.readlines()
+        try:
+            with open(f.name) as f:
+                lines = f.readlines()
 
-        # TODO: what about lines that are too long? I don't think we can break
-        # up file://links to multiple lines
-        (h, _) = terminal_size()
+            # TODO: what about lines that are too long? I don't think we can
+            # break up file://links to multiple lines
+            (h, _) = terminal_size()
 
-        if len(lines) + 4 > h or always:
-            if name == 'less':
-                os.system("less -RS %s" % f.name)
-            elif name == 'emacs':
-                os.system("emacs -nw %s -e 'org-mode'" % f.name)
-        else:
-            print
-            print ''.join(lines).strip()
-            print
+            if len(lines) + 4 > h or always:
+                if name == 'less':
+                    os.system("less -RS %s" % f.name)
+                elif name == 'emacs':
+                    os.system("emacs -nw %s -e 'org-mode'" % f.name)
+            else:
+                print()
+                print(''.join(lines).strip())
+                print()
+
+        finally:
+            if os.path.exists(f.name):
+                os.unlink(f.name)
 
 
 def rm(q):
@@ -192,15 +199,15 @@ def rm(q):
         if len(results) == 0:
             # Should only happen if user hasn't done run skid-update since
             # adding the paper being deleted.
-            print 'No matches. Make sure skid is up-to-date by running `skid update`.'
+            print('No matches. Make sure skid is up-to-date by running `skid update`.')
         elif len(results) == 1:
             [hit] = results
-            print
-            print hit['title']
-            print green % "Are you sure you'd like to delete this document [Y/n]?",
-            if raw_input().strip().lower() in ('y','yes',''):
+            print()
+            print(hit['title'])
+            print(colors.green % "Are you sure you'd like to delete this document [Y/n]?", end=' ')
+            if input().strip().lower() in ('y','yes',''):
                 if rm_cached(hit['cached']):
-                    print yellow % 'Successfully deleted.'
+                    print(colors.yellow % 'Successfully deleted.')
         else:
             assert False, 'Multiple (%s) results found for query %r. ' \
                 'Refine query and try again.' \
@@ -255,14 +262,14 @@ def ls(q, **kwargs):
 
 def lexicon(field):
     for x in index.lexicon(field):
-        print x #.encode('utf8')
+        print(x.decode('utf-8'))
 
 
 def authors():
 
     def simplify(x):
         # simplify name: remove single initial, lowercase, convert to ascii
-        return re.sub(r'\b[a-z]\.\s*', '', x.strip().lower()).encode('ascii', 'ignore')
+        return re.sub(r'\b[a-z]\.\s*', '', x.strip().lower()).encode('ascii', 'ignore').decode('ascii')
 
     ix = defaultdict(list)
     docs = []  # documents with authors annotated
@@ -279,10 +286,10 @@ def authors():
                 ix[simplify(x)].append(d)
                 collisions[simplify(x)].add(x)
 
-    for a, ds in sorted(ix.items(), key=lambda x: len(x[1]), reverse=True):
-        print yellow % '%s (%s)' % (a, len(ds))
+    for a, ds in sorted(list(ix.items()), key=lambda x: len(x[1]), reverse=True):
+        print(colors.yellow % '%s (%s)' % (a, len(ds)))
         for d in ds:
-            print ' ', d.meta['title'], magenta % ('(file://%s)' % d.cached)
+            print(' ', d.meta['title'], colors.magenta % ('(file://%s)' % d.cached))
 
 
 def tags():
@@ -296,10 +303,10 @@ def tags():
             for x in T:
                 ix[x.lower()].append(d)
 
-    for tag, ds in sorted(ix.items(), key=lambda x: len(x[1]), reverse=True):
-        print yellow % '%s (%s)' % (tag, len(ds))
+    for tag, ds in sorted(list(ix.items()), key=lambda x: len(x[1]), reverse=True):
+        print(colors.yellow % '%s (%s)' % (tag, len(ds)))
         for d in ds:
-            print ' ', d.meta['title'], magenta % ('(file://%s)' % (d.cached + '.d/notes.org'))
+            print(' ', d.meta['title'], colors.magenta % ('(file://%s)' % (d.cached + '.d/notes.org')))
 
 
 
@@ -308,7 +315,7 @@ def tags():
 def main():
 
     if len(sys.argv) <= 1:
-        print ', '.join(sorted(cmd.ALL))
+        print(', '.join(sorted(cmd.ALL)))
         return
 
     command = sys.argv.pop(1)
@@ -321,8 +328,14 @@ def main():
                        help='query limit (use 0 for no limit)')
         p.add_argument('--show', default='', help='display options')
         p.add_argument('--hide', default='', help='display options')
-        p.add_argument('--pager', choices=('none', 'less', 'emacs'), default='less',
+
+        # TODO: pager temporarily disabled because of transition to python3
+#        p.add_argument('--pager', choices=('none', 'less', 'emacs'), default='less',
+#                       help='pager for results')
+        p.add_argument('--pager', choices=('none',), default='none',
                        help='pager for results')
+
+
         p.add_argument('--format', choices=('standard', 'org'), default='standard',
                        help='output format')
         p.add_argument('--by', choices=('relevance', 'modified', 'added'), default='relevance',
@@ -363,7 +376,7 @@ def main():
             if p:
                 # TODO: this version doesn't search for papers where author is first-author
                 q = ' '.join('%s:%s' % (k,v) for (k,v) in zip(['author', 'year', 'title'], p) if v)
-                print q
+                print(q)
                 results = index.search(q)
             else:
                 results = []
@@ -404,15 +417,15 @@ def main():
         with pager(args.pager):
             if limit and len(results) >= limit:
                 if args.format == 'org':
-                    print '# showing top %s of %s results' % (min(limit, nresults), nresults)
+                    print('# showing top %s of %s results' % (min(limit, nresults), nresults))
                 else:
-                    print yellow % 'showing top %s of %s results' % (min(limit, nresults), nresults)
+                    print(colors.yellow % 'showing top %s of %s results' % (min(limit, nresults), nresults))
             fmt(results, show=show)
 
         if args.top:
             assert len(results) <= 1
             if not results:
-                print red % 'Nothing found'
+                print(colors.red % 'Nothing found')
                 return
             [top] = results
             # open top hit
@@ -449,7 +462,7 @@ def main():
         tags()
 
     elif command == cmd.drop:
-        print yellow % 'Dropping search index... To build a fresh one run\n$ skid update'
+        print(colors.yellow % 'Dropping search index... To build a fresh one run\n$ skid update')
         index.drop()
 
     elif command == cmd.lexicon:
@@ -480,7 +493,7 @@ def main():
         gscholar_bib(title=title)
 
     else:
-        print ', '.join(sorted(cmd.ALL))
+        print(', '.join(sorted(cmd.ALL)))
 
 
 if __name__ == '__main__':

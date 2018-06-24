@@ -11,7 +11,7 @@ from skid import config
 from skid.add import Document
 from skid.utils import lastname, remove_stopwords
 from arsenal.misc import ctx_redirect_io
-from arsenal.terminal import yellow
+from arsenal.terminal import colors
 
 def dump():
 
@@ -37,7 +37,7 @@ def dump():
 
         key = '%s-%s-%s' % (author, year, title)
         key = key.lower()
-        print key.encode('utf8')
+        print(key.encode('utf8'))
 
 
 if __name__ == '__main__':
@@ -49,16 +49,16 @@ if __name__ == '__main__':
 
     d = config.ROOT / 'bibkeys'
     if args.action == 'dump':
-        with ctx_redirect_io(file(d, 'wb')) as f:
+        with ctx_redirect_io(open(d, 'wb')) as f:
             dump()
 
     else:
         # TODO: consider ordered completions "author - year - title"
         from env.bin.filter import main
-        with file(d) as f:
+        with open(d) as f:
             matches = list(main(args.filters, f.readlines(), color=args.action != 'complete'))
             for m in matches:
-                print yellow % m
+                print(colors.yellow % m)
 
                 [a, y, t] = m.split('-')
 

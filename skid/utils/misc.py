@@ -6,7 +6,7 @@ try:
 except ImportError:
     def color(c, x):
         "Colorize numbers in [0,1] based on value; darker means smaller value."
-        return unicode(x).encode('utf8')
+        return str(x).encode('utf8')
 else:
     def color(c, x):
         "Colorize numbers in [0,1] based on value; darker means smaller value."
@@ -14,7 +14,7 @@ else:
         w = b - a
         offset = x*w
         offset = int(round(offset))
-        return unicode(fg256(a + offset, c)).encode('utf8')
+        return str(fg256(a + offset, c)).encode('utf8')
 
 
 from whoosh.analysis import STOP_WORDS
@@ -58,7 +58,7 @@ def author(x):
     if not x:
         return ''
 
-    last = map(lastname, x)
+    last = list(map(lastname, x))
 
     if len(last) == 1:
         return '%s' % last[0]
@@ -75,7 +75,7 @@ def shingle(x, n=3):
     >>> shingle("abcdef", n=3)
     ['abc', 'bcd', 'cde', 'def']
     """
-    return [x[i:i+n] for i in xrange(0, len(x) - n+1)]
+    return [x[i:i+n] for i in range(0, len(x) - n+1)]
 
 
 def bibkey(x):

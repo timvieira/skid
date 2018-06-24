@@ -1,7 +1,7 @@
-from __future__ import division
-import sys, cPickle as pickle
+
+import sys, pickle as pickle
 from collections import defaultdict, Counter
-from arsenal.terminal import red, green, magenta
+from arsenal.terminal import colors
 from arsenal.nlp.evaluation import F1
 from arsenal.iterextras import iterview
 
@@ -12,10 +12,10 @@ def features(x):
 
 def attributes(x):
     "Vector of active boolean attributes. Note these aren't features yet. Use features for that."
-    for k, v in x.attributes.items():
+    for k, v in list(x.attributes.items()):
         if k == 'label':
             continue
-        if isinstance(v, (bool, basestring, int)):
+        if isinstance(v, (bool, str, int)):
             yield ('%s=%s' % (k,v)).replace('\n','').replace('\t','').encode('utf8')
         elif isinstance(v, list):
             for x in v:
@@ -31,7 +31,7 @@ class Instance(object):
         self.features = None
 
 def load_data(filename):
-    with file(filename) as f:
+    with open(filename) as f:
         for line in f:
             line = line.strip().split('\t')
             label = line[0]
@@ -40,7 +40,7 @@ def load_data(filename):
 
 def conjunctions(phi):
     phi = list(phi)
-    return ['(%s & %s)' % (phi[i], phi[j]) for i in xrange(len(phi)) for j in xrange(i+1)]
+    return ['(%s & %s)' % (phi[i], phi[j]) for i in range(len(phi)) for j in range(i+1)]
 
 def freq_filter(data, c, threshold=5):
     for x in data:
@@ -89,12 +89,12 @@ def predict(w, phi):
     return argmaxd(scores(w, phi))
 
 def argmaxd(x):
-    return max(zip(x.values(), x.keys()))[1]
+    return max(list(zip(list(x.values()), list(x.keys()))))[1]
 
 def learn(data, test):
     labels = {x.label for x in data}
     w = {y: defaultdict(float) for y in labels}
-    for t in iterview(xrange(10), every=1):
+    for t in iterview(range(10), every=1):
 
 #        print
 #        print
@@ -114,19 +114,19 @@ def learn(data, test):
     return w
 
 def save(weights, filename):
-    with file(filename, 'wb') as f:
+    with open(filename, 'wb') as f:
         pickle.dump(weights, f)
 
 def load(filename):
-    with file(filename) as f:
+    with open(filename) as f:
         return pickle.load(f)
 
 # ___________________
 # error analysis
 
 def f1(name, data, w):
-    print
-    print name
+    print()
+    print(name)
     f = F1()
     for (i, x) in enumerate(data):
         f.report(i, predict(w, x.features), x.label)
@@ -134,25 +134,25 @@ def f1(name, data, w):
 
 
 def errors(name, data, w):
-    print
-    print 'ERRORS:', name
+    print()
+    print('ERRORS:', name)
     for x in data:
         y = predict(w, x.features)
         if y == x.label:
             pass
         else:
-            print ' ', green % '%-6s' % x.label, red % '%-6s' % y, [k for k in x.attributes if k.startswith('text')] #x.features
+            print(' ', colors.green % '%-6s' % x.label, colors.red % '%-6s' % y, [k for k in x.attributes if k.startswith('text')]) #x.features
             l = x.label
-            print '   ', ' '.join('%s%s' % (k, magenta % '(%g)' % w) for _, w, k in sorted([(-abs(w[l][k]), w[l][k], k) for k in x.features]))
+            print('   ', ' '.join('%s%s' % (k, colors.magenta % '(%g)' % w) for _, w, k in sorted([(-abs(w[l][k]), w[l][k], k) for k in x.features])))
             l = y
-            print '   ', ' '.join('%s%s' % (k, magenta % '(%g)' % w) for _, w, k in sorted([(-abs(w[l][k]), w[l][k], k) for k in x.features]))
+            print('   ', ' '.join('%s%s' % (k, colors.magenta % '(%g)' % w) for _, w, k in sorted([(-abs(w[l][k]), w[l][k], k) for k in x.features])))
 
 
 def main():
     datafile = sys.argv[1]
 
     train, test = traintest(datafile)
-    print 'train: %s, test: %s' % (len(train), len(test))
+    print('train: %s, test: %s' % (len(train), len(test)))
 
 
     from scipy.sparse import dok_matrix
@@ -166,8 +166,8 @@ def main():
 
     def _f1(name, data, c, verbose=True):
         if verbose:
-            print
-            print name
+            print()
+            print(name)
         f = F1()
         for (i, x) in enumerate(data):
 
@@ -215,8 +215,8 @@ def main():
         data = []
 
         for (author_weight, title_weight) in iterview(np.random.uniform(1, 10, size=(100, 2))):
-            print
-            print 'params:', (author_weight, title_weight)
+            print()
+            print('params:', (author_weight, title_weight))
 
             c = SVC(class_weight={'author': author_weight,
                                   'title': title_weight,
@@ -232,14 +232,14 @@ def main():
             score = sum(x for (_, _, _, _, x) in ff.scores(verbose=0))
 
             data.append((author_weight, title_weight, score))
-            print 'score:', score
+            print('score:', score)
 
-            x,y,z=zip(*data)
+            x,y,z=list(zip(*data))
             ax.clear()
             ax.scatter(x,y,z)
             ax.figure.canvas.draw()
 
-        print 'done'
+        print('done')
         pl.ioff()
         pl.show()
 

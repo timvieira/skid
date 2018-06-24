@@ -10,14 +10,14 @@ possible extraction sites, spelling variation.
 """
 
 import re
-from path import path
+from path import Path
 
 from skid.add import Document
 from skid.config import CACHE
 from skid.pdfhacks.pdfmill import pdfminer, gs, template, Context
 
 from arsenal.iterextras import iterview, islice
-from arsenal.terminal import red, green, yellow, blue, magenta
+from arsenal.terminal import colors
 
 from skid.pdfhacks.learn import predict, load, features
 from skid.utils.misc import color, shingle
@@ -33,13 +33,13 @@ def data(verbose=True):
         if meta['author']:
             if verbose:
                 ff = ' file://' + filename
-                print
-                print red % ('#' + '_' *len(ff))
-                print red % ('#' + ff)
-                print
-                print ('%s: %s' % (yellow % 'meta', meta['title'])).encode('utf8')
-                print ('%s: %s' % (yellow % 'meta', ' ; '.join(meta['author']))).encode('utf8')
-                print
+                print()
+                print(colors.red % ('#' + '_' *len(ff)))
+                print(colors.red % ('#' + ff))
+                print()
+                print(('%s: %s' % (colors.yellow % 'meta', meta['title'])).encode('utf8'))
+                print(('%s: %s' % (colors.yellow % 'meta', ' ; '.join(meta['author']))).encode('utf8'))
+                print()
             try:
                 yield (meta, d, pdfminer(filename))
             except Exception:
@@ -91,7 +91,7 @@ def find_authors(meta, d, pdf, output):
         author_candidates.append(((distance, -x.fontsize), x))
 
     if not author_candidates or not title_candidates:
-        print red % 'Sorry, no lines in the document :-('
+        print(colors.red % 'Sorry, no lines in the document :-(')
         return
 
     for x in items:
@@ -106,7 +106,7 @@ def find_authors(meta, d, pdf, output):
         x.style['background-color'] = 'rgba(0,255,0,0.2)'
 
     # dump training data to file.
-    with file(output, 'a') as f:
+    with open(output, 'a') as f:
         for item in items:
             f.write(item.attributes['label'])
             f.write('\t')
@@ -115,7 +115,7 @@ def find_authors(meta, d, pdf, output):
             f.write('\t'.join(features(item)))
             f.write('\n')
 
-    print
+    print()
 
     return True
 
@@ -134,24 +134,24 @@ def heuristic(target, candidates):
     fontname = candidates[0][1].fontname
     fontsize = candidates[0][1].fontsize
 
-    print
-    print 'Candidates:'
+    print()
+    print('Candidates:')
     for (distance, _), item in candidates[:10]:  # most similar lines
         x = item.attributes
-        print '  %6.4f' % distance,
+        print('  %6.4f' % distance, end=' ')
 
         text = item.text.encode('utf8')
         info = x.copy()
         info.pop('text')
 
         if item.fontname == fontname and item.fontsize == fontsize:
-            print green % text, info
+            print(colors.green % text, info)
             extracted.append(item)
         else:
-            print red % text, info
+            print(colors.red % text, info)
 
     if not extracted:
-        print red % 'failed to extract anything relevant :-('
+        print(colors.red % 'failed to extract anything relevant :-(')
         return
 
     extracted_text = ' '.join(x.text for x in extracted).encode('utf8')
@@ -160,17 +160,17 @@ def heuristic(target, candidates):
     c = set(shingle(extracted_text, n=size))
 
     tally = [0]*len(target)
-    for i in xrange(len(target)):
+    for i in range(len(target)):
         if target[i:i+size] in c:
-            for j in xrange(i, i+size):
+            for j in range(i, i+size):
                 tally[j] += 1
 
-    print ''.join(color(c, 1 - x*1.0/3) for c, x in zip(target, tally))
+    print(''.join(color(c, 1 - x*1.0/3) for c, x in zip(target, tally)))
 
     return extracted
 
 
-outdir = path('tmp')              # html output and cached ghostscript images to here
+outdir = Path('tmp')              # html output and cached ghostscript images to here
 outfile = outdir / 'output.html'
 
 def main(output='data.tsv'):
@@ -182,13 +182,13 @@ def main(output='data.tsv'):
     """
 
     # create file, we'll be appending to it as we go along
-    with file(output, 'wb') as f:
+    with open(output, 'wb') as f:
         f.write('')
 
     try:
         w = load('weights.pkl~')
     except IOError:
-        print 'failed to load file'
+        print('failed to load file')
         w = None
 
     pages = []
@@ -202,8 +202,8 @@ def main(output='data.tsv'):
                     y = predict(w, {k: 1.0 for k in features(x)})
                     if y != 'other':
                         x.style['border'] = '2px solid %s' % {'author': 'green', 'title': 'blue'}[y]
-                        c = {'author': magenta, 'title': blue}[y]
-                        print '%s: %s' % (c % y, x.text)
+                        c = {'author': colors.magenta, 'title': colors.blue}[y]
+                        print('%s: %s' % (c % y, x.text))
 
     # if we want to draw the first pages of many pdfs on one html document we
     # have to lie to the items -- tell them they are on pages other than the
@@ -215,7 +215,7 @@ def main(output='data.tsv'):
                 item.yoffset += yoffset
         yoffset += p.height
 
-    with file(outfile, 'wb') as f:
+    with open(outfile, 'wb') as f:
         template.render_context(Context(f, pages=pages))
 
     import webbrowser
@@ -232,12 +232,12 @@ def markup_pdf(filename):
     try:
         w = load('weights.pkl~')
     except IOError:
-        print 'failed to load file'
+        print('failed to load file')
         w = None
 
     pages = []
 
-    filename = path(filename)
+    filename = Path(filename)
 
     pdf = pdfminer(filename)
 
@@ -249,8 +249,8 @@ def markup_pdf(filename):
             y = predict(w, {k: 1.0 for k in features(x)})
             if y != 'other':
                 x.style['border'] = '2px solid %s' % {'author': 'magenta', 'title': 'blue'}[y]
-                c = {'author': magenta, 'title': blue}[y]
-                print '%s: %s' % (c % y, x.text)
+                c = {'author': colors.magenta, 'title': colors.blue}[y]
+                print('%s: %s' % (c % y, x.text))
 
     # if we want to draw the first pages of many pdfs on one html document we
     # have to lie to the items -- tell them they are on pages other than the
@@ -262,7 +262,7 @@ def markup_pdf(filename):
                 item.yoffset += yoffset
         yoffset += p.height
 
-    with file(outfile, 'wb') as f:
+    with open(outfile, 'wb') as f:
         template.render_context(Context(f, pages=pages))
 
     import webbrowser

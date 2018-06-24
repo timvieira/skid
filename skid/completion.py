@@ -4,7 +4,7 @@
 from os import environ
 from skid import config
 from glob import glob
-from path import path
+from path import Path
 
 
 if 'COMP_WORDS' in environ and config.completion:
@@ -48,14 +48,14 @@ if 'COMP_WORDS' in environ and config.completion:
     
                 else:
                     possible = glob(prefix + '*')
-                    possible = [x + '/' if x.isdir() else x for x in map(path, possible)]
+                    possible = [x + '/' if x.isdir() else x for x in map(Path, possible)]
                     if len(possible) == 1 and possible[0].isdir():  # only a directory left
                         possible = possible[0].glob('*')
 
         if currword:
             possible = [x for x in possible if x.startswith(currword) and len(x) >= len(currword)]
 
-        print ' '.join(possible).encode('utf8')
+        print(' '.join(possible))
 
     completion()
     exit(1)

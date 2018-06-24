@@ -15,13 +15,13 @@ def verbose():
     except:
         raise
     else:
-        print colors.yellow % io.getvalue()
+        print(colors.yellow % io.getvalue())
     finally:
         DEBUG = 0
 
         sys.stdout.flush()
 
-import arsenal.terminal.colors as colors
+import arsenal.terminal import colors
 Fail = colors.red % 'FAIL'
 Pass = colors.green % 'pass'
 YES = colors.bold % '  = YES ==='
@@ -55,7 +55,7 @@ def url(text): return bool(URL_RE.match(text))
 
 
 def get_lexicon(x):
-    return frozenset(x.strip().split() if isinstance(x, (str, unicode)) else x)
+    return frozenset(x.strip().split() if isinstance(x, str) else x)
 
 # Name lexicon features
 from arsenal.nlp.lexicon.names import male, female, last
@@ -71,7 +71,7 @@ def is_stopword(w):
 def not_stopword(w):
     return not is_stopword(w)
 def remove_stopwords(text):
-    return filter(not_stopword, text.split())
+    return list(filter(not_stopword, text.split()))
 
 from arsenal.nlp.lexicon.honorifics import honorifics
 honorifics = honorifics.__contains__
@@ -233,16 +233,16 @@ def letter_pattern(text):
 def is_university(x):
     w = normalize_university(x)
     if DEBUG:
-        print '      * normalized:', w
+        print('      * normalized:', w)
 
     if 'univ' in w or 'college' in w:
         if DEBUG:
-            print '      * SPECIAL CASE:'
+            print('      * SPECIAL CASE:')
         # TODO: do this more efficiently
         for x in universities:
             if len(w.intersection(x)) > 1:
                 if DEBUG:
-                    print '       ', w, x, w.intersection(x)
+                    print('       ', w, x, w.intersection(x))
                 return True
         return False
     return w in universities
@@ -250,12 +250,12 @@ def is_university(x):
 #________________________
 # titles
 def title_shaped(text):   # XXX: should single words be a special case?
-    if isinstance(text, basestring):
+    if isinstance(text, str):
         text = text.strip()
     nostop = remove_stopwords(text)
     if DEBUG:
-        print '      * no-stopwords:', nostop
-        print '      * isupper-w[0]:', [w[0].isupper() for w in nostop]
+        print('      * no-stopwords:', nostop)
+        print('      * isupper-w[0]:', [w[0].isupper() for w in nostop])
     if len(nostop) < 1 or not nostop[0][0].isupper():
         return False
     return all(w[0].isupper() for w in nostop if w.isalpha())
@@ -274,9 +274,9 @@ class FeaturesTests(unittest.TestCase):
         result = f(*args)
 
         if result == target:
-            print '  %-65r' % args[0], Pass
+            print('  %-65r' % args[0], Pass)
         else:
-            print '  %-65r' % args[0], Fail
+            print('  %-65r' % args[0], Fail)
 
         if result != target:
             with verbose():
@@ -284,12 +284,12 @@ class FeaturesTests(unittest.TestCase):
         return result == target
 
     def yes_no_template(self, f, yes, no):
-        print
-        print f.__name__
-        print YES
+        print()
+        print(f.__name__)
+        print(YES)
         for x in yes:
             self.assertEQ(f, x, True)
-        print NO
+        print(NO)
         for x in no:
             self.assertEQ(f, x, False)
 

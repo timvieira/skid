@@ -7,7 +7,7 @@ then the pdf standard made it difficult to pull the text out! Doubly corrupted.)
 """
 
 import re, os, sys
-from StringIO import StringIO
+from io import StringIO
 from os import path
 from hashlib import sha1
 from subprocess import Popen, PIPE
@@ -16,7 +16,7 @@ from collections import defaultdict
 # github.com/timvieira/python-extras
 from arsenal.fsutils import cd
 from arsenal.iterextras import take
-from arsenal.terminal import green, blue, red, yellow
+from arsenal.terminal import colors
 
 from skid.pdfhacks.conversion import pdftotext
 from skid.utils.text import force_unicode
@@ -55,9 +55,9 @@ def bib2txt(bib, style='plain', workingdir='tmp/bibhacks'):
     """Given a BibTeX entries generate a plaintext reference section."""
     prefix = sha1(bib).hexdigest()
     with cd(workingdir):
-        with file(prefix + '.bib', 'wb') as f:
+        with open(prefix + '.bib', 'wb') as f:
             f.write(bib)
-        with file(prefix + '.tex', 'wb') as f:
+        with open(prefix + '.tex', 'wb') as f:
             f.write(latex_template % (prefix, style))
         compilepdf(prefix)
         if path.exists(prefix + '.pdf'):
@@ -94,7 +94,7 @@ def stacked(x, B, E):
 
 
 def find_entries(filename):
-    with file(filename, 'r') as f:
+    with open(filename, 'r') as f:
         c = f.read()
 
     open2close = {'(': ')', '{': '}'}
@@ -112,7 +112,7 @@ def find_entries(filename):
             yield Entry(raw)
         except PybtexError as e:
             if 'undefined macro' not in str(e):
-                print e
+                print(e)
 
 
 fields = defaultdict(list)
@@ -132,10 +132,10 @@ class Entry(object):
         entries = bibliography.entries
         assert len(entries) == 1, 'Entry is supposed to represent only one BibTex entry.'
 
-        self.key, self.entry = entries.items()[0]
+        self.key, self.entry = list(entries.items())[0]
         self.fields = self.entry.fields
 
-        for role, people in self.entry.persons.items():
+        for role, people in list(self.entry.persons.items()):
             self.fields[role] = people
 
         assert len(self.entry.persons) <= 2, 'ERROR: too people.'
@@ -144,16 +144,16 @@ class Entry(object):
             fields[k].append(self)
 
     def pprint(self):
-        print green % '<BibTeX key="%s">' % self.key
+        print(colors.green % '<BibTeX key="%s">' % self.key)
 
-        for k, v in self.fields.items():
-            print '    %s => %s' % (blue % k, v)
+        for k, v in list(self.fields.items()):
+            print('    %s => %s' % (colors.blue % k, v))
 
         for style in STYLES:
             mention = self.render(style).strip()
-            print mention
+            print(mention)
 
-        print green % '</BibTeX>'
+        print(colors.green % '</BibTeX>')
 
     def render(self, style='plain'):
         if style not in self.styles:
@@ -165,10 +165,10 @@ def main(f):
     os.system('mkdir -p tmp/bibhacks')
     for entry in take(10, find_entries(f)):
         entry.pprint()
-        print
+        print()
 
 if __name__ == '__main__':
     if len(sys.argv) == 2:
         main(sys.argv[1])
     else:
-        print 'usage %s <something.bib>' % sys.argv[0]
+        print('usage %s <something.bib>' % sys.argv[0])

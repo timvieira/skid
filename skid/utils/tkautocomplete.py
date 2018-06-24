@@ -1,4 +1,4 @@
-from Tkinter import Tk, Entry, Frame, Listbox, StringVar, ACTIVE, END, Frame, SUNKEN
+from tkinter import Tk, Entry, Frame, Listbox, StringVar, ACTIVE, END, Frame, SUNKEN
 
 
 class AutocompleteEntry(Entry):
@@ -22,7 +22,7 @@ class AutocompleteEntry(Entry):
         self.lb = None
 
     def enter(self, event):
-        print event
+        print(event)
 
     def changed(self, name, index, mode):
 
@@ -85,7 +85,7 @@ class AutocompleteEntry(Entry):
 
     def comparison(self):
         q = self.var.get()
-        q = unicode(q.decode('utf8'))
+        q = str(q.decode('utf8'))
         for hit in searcher.search(qp.parse(q), limit=50):
             if hit['author']:
                 yield '%s. "%s"' % (hit['author'], hit['title'])

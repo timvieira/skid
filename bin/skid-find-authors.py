@@ -31,10 +31,10 @@ def main(filename):
     hit.id = 0
 
     if filename.startswith('http'):
-        from arsenal.web.download import urlread
+        from arsenal.download import urlread
         [_,_,content] = urlread(filename)
     else:
-        content = file(filename).read()
+        content = open(filename).read()
 
     out = re.sub('(%s)' % '|'.join(sorted(ix.keys(), key=lambda x: (len(x), x))),
                  hit,
@@ -48,7 +48,7 @@ def main(filename):
     out = re.sub('(<body.*?>)', r'\1 %s' % stuff, out)
 
     if os.path.exists(filename):
-        with file('skid-' + filename, 'wb') as f:
+        with open('skid-' + filename, 'wb') as f:
             f.write(out)
 
     browser(out)

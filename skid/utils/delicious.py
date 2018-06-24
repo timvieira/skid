@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import sys
-from urllib import urlopen
+from urllib.request import urlopen
 from getpass import getpass
 from BeautifulSoup import BeautifulSoup
 
@@ -18,7 +18,7 @@ def delicious_export(username, filename='delicious_{username}.xml', password=Non
     content = urlopen(url).read()
     soup = BeautifulSoup(content)
 
-    with file(filename, 'wb') as f:
+    with open(filename, 'wb') as f:
         f.write(soup.prettify())
 
     return soup
@@ -27,6 +27,6 @@ def delicious_export(username, filename='delicious_{username}.xml', password=Non
 if __name__ == '__main__':
     try:
         x = len(delicious_export(*sys.argv[1:]).findAll('post'))
-        print 'retrieved', x, 'posts.'
+        print('retrieved', x, 'posts.')
     except TypeError:
-        print sys.argv[0], 'username [outfile] [password]'
+        print(sys.argv[0], 'username [outfile] [password]')

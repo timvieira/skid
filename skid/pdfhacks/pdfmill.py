@@ -14,23 +14,27 @@ the bottom of the lowest box above it.
 
 """
 
-from __future__ import division
 
-import re, os, sys, pprint, urllib
+
+import re, os, sys, pprint, urllib.request, urllib.parse, urllib.error
 from collections import Counter
 from arsenal.iterextras import groupby2
 #from arsenal.misc import ignore_error
-from arsenal.terminal import red, green, yellow
+from arsenal.terminal import colors 
 
 from skid.utils.text import remove_ligatures
 from skid.pdfhacks.conversion import pdf2image
 
+#try:
 # pdfminer
 from pdfminer.layout import LAParams, LTPage, LTTextLine
-from pdfminer.pdfparser import PDFParser, PDFSyntaxError, PDFDocument
+from pdfminer.pdfparser import PDFParser, PDFSyntaxError
+from pdfminer.pdfdocument import PDFDocument
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import PDFPageAggregator
-
+#except ImportError:
+#    #import warnings; warnings.warn('please install pdfminer')
+#    pass
 
 run_feature_extraction = 0
 
@@ -108,7 +112,7 @@ class MyItem(object):
     def __init__(self, item):
         assert not hasattr(item, 'attributes')
         self._item = item
-        self.text = re.sub('[^\x20-\x7E]', '', remove_ligatures(unicode(item.get_text()).strip())).encode('utf8')
+        self.text = re.sub('[^\x20-\x7E]', '', remove_ligatures(str(item.get_text()).strip()))
         self.yoffset = item.yoffset
 
         self.x0 = item.x0
@@ -140,11 +144,11 @@ class MyItem(object):
 
     def render_style(self):
         sty = self.style
-        return ' '.join('%s: %s;' % x for x in sty.items())
+        return ' '.join('%s: %s;' % x for x in list(sty.items()))
 
     @property
     def tooltip(self):
-        return '<pre>' + urllib.quote(pprint.pformat(self.attributes)) + '</pre>'
+        return '<pre>' + urllib.parse.quote(pprint.pformat(self.attributes)) + '</pre>'
 
 
 def gs(f, outdir):
@@ -155,49 +159,60 @@ def gs(f, outdir):
     p = imgdir + '/' + (fmt % 1)
 
     if not os.path.exists(p):
-        print >> sys.stderr, '[ghostscript]', f, '->', p
+        print('[ghostscript]', f, '->', p, file=sys.stderr)
         pdf2image(f, outputdir_fmt=imgdir, output_format=fmt,
                   moreopts='-dFirstPage=1 -dLastPage=1')
 
 
+
+
+from pdfminer.pdfparser import PDFParser
+from pdfminer.pdfdocument import PDFDocument
+from pdfminer.pdfpage import PDFPage
+from pdfminer.pdfpage import PDFTextExtractionNotAllowed
+from pdfminer.pdfinterp import PDFResourceManager
+from pdfminer.pdfinterp import PDFPageInterpreter
+from pdfminer.pdfdevice import PDFDevice
+
 def pdfminer(f):
 
+    # Open a PDF file.
     fp = open(f, 'rb')
+    # Create a PDF parser object associated with the file object.
     parser = PDFParser(fp)
-    doc = PDFDocument()
-    parser.set_document(doc)
-    try:
-        doc.set_parser(parser)
-    except PDFSyntaxError:
-        return
-
+    # Create a PDF document object that stores the document structure.
+    # Supply the password for initialization.
+    document = PDFDocument(parser)
+    # Check if the document allows text extraction. If not, abort.
+    if not document.is_extractable:
+        raise PDFTextExtractionNotAllowed
+    # Create a PDF resource manager object that stores shared resources.
     rsrcmgr = PDFResourceManager()
-
-    c = HTMLConverter(os.path.basename(f))
+    # Create a PDF device object.
+#    device = PDFDevice(rsrcmgr)
 
     laparams = LAParams(all_texts=True)
-
     device = PDFPageAggregator(rsrcmgr, laparams=laparams)
-    interpreter = PDFPageInterpreter(rsrcmgr, device)
-    for page in doc.get_pages():
-        worked = False
-#        with ignore_error():
-        try:
-            interpreter.process_page(page)
-            worked = True
-        except AssertionError:
-            pass
 
-        if not worked:
-            return
+
+    # Create a PDF interpreter object.
+    interpreter = PDFPageInterpreter(rsrcmgr, device)
+
+    converter = HTMLConverter(os.path.basename(f))
+
+    # Process each page contained in the document.
+    for page in PDFPage.create_pages(document):
+
+        interpreter.process_page(page)
+
         layout = device.get_result()
-        c.current_page = page
-        c.render(layout)
+        converter.current_page = page
+        converter.render(layout)
         break  # stop after first page.
 
-    c.add_features()
+    converter.add_features()
 
-    return c
+    return converter
 
 
 class HTMLConverter(object):
@@ -222,10 +237,10 @@ class HTMLConverter(object):
         df1 = df.set_index(['fontsize', 'fontname']).sort(ascending=False)
 
         for k,v in df.groupby(['fontsize', 'fontname'], sort=True):
-            print '-----'
-            print unicode(k).encode('utf8'), unicode(v).encode('utf8')
+            print('-----')
+            print(str(k).encode('utf8'), str(v).encode('utf8'))
 
-        print df1.to_string()
+        print(df1.to_string())
 
         from arsenal.debug import ip; ip()
 
@@ -250,7 +265,7 @@ class HTMLConverter(object):
 
         # fontsize frequency
         fontsize = Counter(x.fontsize for x in items)
-        freq = zip(fontsize.values(), fontsize.keys())
+        freq = list(zip(list(fontsize.values()), list(fontsize.keys())))
         freq.sort(reverse=True)
         rank = {k: rank + 1 for rank, (v, k) in enumerate(freq)}
         for x in items:
@@ -258,7 +273,7 @@ class HTMLConverter(object):
 
         # width frequency
         w = Counter(int(x.width) for x in items)
-        freq = zip(w.values(), w.keys())
+        freq = list(zip(list(w.values()), list(w.keys())))
         freq.sort(reverse=True)
         rank = {k: rank + 1 for rank, (v, k) in enumerate(freq)}
         for x in items:
@@ -414,11 +429,13 @@ function add_tooltips() {
 
 def extract_title(filename, extra=True):
 
+    print('extract title:', filename)
+
     EXPERIMENTAL_AUTHOR_EXTRACTION = 1
     if EXPERIMENTAL_AUTHOR_EXTRACTION:
         A = authors_set()
 
-    if not isinstance(filename, basestring):
+    if not isinstance(filename, str):
         pdf = filename
         filename = pdf.filename
     else:
@@ -427,8 +444,9 @@ def extract_title(filename, extra=True):
             pdf = pdfminer(filename)
         except KeyboardInterrupt:
             raise
-        except:
-            return
+#        except Exception as e:
+#            print('extract_title threw exception', e)
+#            return
 
     # check for skid-mark
 #    if os.path.exists(filename + '.d/notes.org'):
@@ -470,7 +488,7 @@ def extract_title(filename, extra=True):
     if title.isupper():
         title = title.title()
 
-    print yellow % title.encode('utf8')
+    print(colors.yellow % title)
 
     if extra:
 
@@ -485,23 +503,23 @@ def extract_title(filename, extra=True):
         #
         g = groupby2(page, key=lambda x: x.fontname)
 
-        freq = [(len(v), k, v) for k,v in g.iteritems()]
+        freq = [(len(v), k, v) for k,v in g.items()]
 
         freq.sort()
         for count, key, items in freq:
-            print
-            print red % count, green % key
+            print()
+            print(colors.red % count, colors.green % key)
             for x in items[:15]:
-                x = x.text.encode('utf8')
+                x = x.text
 
                 if EXPERIMENTAL_AUTHOR_EXTRACTION:
                     # similarity to existing list of authors
                     aa = [(sim(a, simplify(x), n=3), a) for a in A]
                     aa = [(s, a) for s, a in aa if s > 0.2]
                     aa.sort(reverse=1)
-                    print yellow % x, ('%s %s' % (red % '->', aa[:5])) if aa else ''
+                    print(colors.yellow % x, ('%s %s' % (colors.red % '->', aa[:5])) if aa else '')
                 else:
-                    print yellow % x
+                    print(colors.yellow % x)
 
 
         extract_year(freq)
@@ -528,9 +546,9 @@ def extract_year(freq):
 
         if len(year) == 1:
             [(snippet, year)] = year
-            print
-            print '%s %s\n%s' % (green % 'Year ->', red % year, yellow % snippet)
-            print
+            print()
+            print('%s %s\n%s' % (colors.green % 'Year ->', colors.red % year, colors.yellow % snippet))
+            print()
 
 
 def main(filenames):
@@ -543,19 +561,19 @@ def main(filenames):
 
         ff = ' file://' + filename
 
-        print
-        print red % ('#' + '_' *len(ff))
-        print red % ('#' + ff)
+        print()
+        print(colors.red % ('#' + '_' *len(ff)))
+        print(colors.red % ('#' + ff))
         try:
             pdf = pdfminer(filename)
         except KeyboardInterrupt:
             continue
         except:
             pdf = None
-            print yellow % 'ERROR'
+            print(colors.yellow % 'ERROR')
         else:
 
-            print yellow % unicode(extract_title(pdf)).encode('utf8')
+            print(colors.yellow % str(extract_title(pdf)))
 
             gs(filename, outdir)
             pages.append(pdf.pages[0])
@@ -571,21 +589,25 @@ def main(filenames):
         yoffset += p.height
 
     from mako.runtime import Context
-    with file(outfile, 'wb') as f:
+    with open(outfile, 'wb') as f:
         template().render_context(Context(f, pages=pages))
 
     if 0:
         import webbrowser
         webbrowser.open(outfile)
     else:
-        print 'wrote', outfile
+        print('wrote', outfile)
 
 
 from collections import defaultdict
 
 def simplify(x):
     # simplify name: remove single initial, lowercase, convert to ascii
-    return re.sub(r'\b[a-z]\.\s*', '', x.strip().lower()).encode('ascii', 'ignore')
+    if hasattr(x, 'encode'):
+        x = x.encode('ascii', 'ignore')
+    if hasattr(x, 'decode'):
+        x = x.decode('ascii', 'ignore')
+    return re.sub(r'\b[a-z]\.\s*', '', x.strip().lower())
 
 def shingles(a, n):
     return [a[i:i+n] for i in range(len(a)-n)]
@@ -618,7 +640,7 @@ def authors_set():
 if __name__ == '__main__':
 
     if len(sys.argv) < 2:
-        print 'usage %s <input-file>+' % sys.argv[0]
+        print('usage %s <input-file>+' % sys.argv[0])
         sys.exit(1)
 
     main(sys.argv[1:])

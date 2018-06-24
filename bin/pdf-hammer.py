@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from os import system
-from path import path
+from path import Path as path
 
 
 # TODO: check if text extraction is any good

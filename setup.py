@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 # TODO: some stuff in sandbox uses scikits-learn
 
 setup(name='skid',
-      version='1.2',
+      version='2',
       description='Skid: bookmarks, simply kept in directories',
       url='https://github.com/timvieira/skid/',
       packages= find_packages(),
@@ -15,6 +15,8 @@ setup(name='skid',
                'bin/ocr-pdf-searchable',
                'bin/ocr-pdf-extract-text',
                'skid/utils/gscholar.py'],
-      install_requires=['whoosh', 'pdfminer==20110515', 'pandas', 'chardet',
+      install_requires=['whoosh',
+                        'pandas', 'chardet',
+                        'pdfminer.six',
                         'latexcodec', 'nameparser', 'pybtex',
                         'path.py', 'arsenal'])

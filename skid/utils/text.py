@@ -34,14 +34,14 @@ def force_unicode(s, encoding='utf-8', errors='ignore'):
     'encoding' codec.
     """
     if s is None:
-        return u''
+        return ''
     try:
-        if not isinstance(s, basestring,):
+        if not isinstance(s, str,):
             if hasattr(s, '__unicode__'):
-                s = unicode(s)
+                s = str(s)
             else:
                 try:
-                    s = unicode(str(s), encoding, errors)
+                    s = str(str(s), encoding, errors)
                 except UnicodeEncodeError:
                     if not isinstance(s, Exception):
                         raise
@@ -52,7 +52,7 @@ def force_unicode(s, encoding='utf-8', errors='ignore'):
                     # approximation to what the Exception's standard str()
                     # output should be.
                     s = ' '.join(force_unicode(arg, encoding, errors) for arg in s)
-        elif not isinstance(s, unicode):
+        elif not isinstance(s, str):
             # Note: We use .decode() here, instead of unicode(s, encoding,
             # errors), so that if s is a SafeString, it ends up being a
             # SafeUnicode at the end.
@@ -67,7 +67,7 @@ def force_unicode(s, encoding='utf-8', errors='ignore'):
             # further exception by individually forcing the exception args
             # to unicode.
             s = ' '.join(force_unicode(arg, encoding, errors) for arg in s)
-    return unicode(s)
+    return str(s)
 
 
 def PRE(x):
@@ -76,13 +76,13 @@ def PRE(x):
 
 # native, HTML, default Unicode (Code page 850), Unicode combined Character, Windows-1250
 """
-_recodings = {'ae': ['ä', u'ä', '&auml;', '\u00E4', u'\u00E4', '\u0308a', '\xc3\xa4'],
-              'oe': ['ö', u'ö', '&ouml;', '\u00F6', u'\u00F6', '\u0308o', '\xc3\xb6'],
-              'ue': ['ü', u'ü', '&uuml;', '\u00FC', u'\u00FC', '\u0308u', '\xc3\xbc'],
-              'Ae': ['Ä', u'Ä', '&Auml;', '\u00C4', u'\u00C4', '\u0308A', '\xc3\x84'],
-              'Oe': ['Ö', u'Ö', '&Ouml;', '\u00D6', u'\u00D6', '\u0308O', '\xc3\x96'],
-              'Ue': ['Ü', u'Ü', '&Uuml;', '\u00DC', u'\u00DC', '\u0308U', '\xc3\x9c'],
-              'ss': ['ß', u'ß', '&szlig;', '\u00DF', u'\u00DF', '\xc3\x9f'],
+_recodings = {'ae': ['ä', u'ä', '&auml;', '\\u00E4', u'\\u00E4', '\\u0308a', '\xc3\xa4'],
+              'oe': ['ö', u'ö', '&ouml;', '\\u00F6', u'\\u00F6', '\\u0308o', '\xc3\xb6'],
+              'ue': ['ü', u'ü', '&uuml;', '\\u00FC', u'\\u00FC', '\\u0308u', '\xc3\xbc'],
+              'Ae': ['Ä', u'Ä', '&Auml;', '\\u00C4', u'\\u00C4', '\\u0308A', '\xc3\x84'],
+              'Oe': ['Ö', u'Ö', '&Ouml;', '\\u00D6', u'\\u00D6', '\\u0308O', '\xc3\x96'],
+              'Ue': ['Ü', u'Ü', '&Uuml;', '\\u00DC', u'\\u00DC', '\\u0308U', '\xc3\x9c'],
+              'ss': ['ß', u'ß', '&szlig;', '\\u00DF', u'\\u00DF', '\xc3\x9f'],
               'e': ['é', u'é', '\xc3\xa9'],
              }
 """
@@ -108,118 +108,118 @@ def htmltotext(x):
 import unicodedata
 def strip_accents(s):
     """ Transform accentuated unicode symbols into their simple counterpart. """
-    return u''.join(c for c in unicodedata.normalize('NFKD', s) if not unicodedata.combining(c))
+    return ''.join(c for c in unicodedata.normalize('NFKD', s) if not unicodedata.combining(c))
 
 # iso-8859-1
 LATIN2ASCII = {
     # uppercase
-    u'\u00c0': 'A`',
-    u'\u00c1': "A'",
-    u'\u00c2': 'A^',
-    u'\u00c3': 'A~',
-    u'\u00c4': 'A:',
-    u'\u00c5': 'A%',
-    u'\u00c6': 'AE',
-    u'\u00c7': 'C,',
-    u'\u00c8': 'E`',
-    u'\u00c9': "E'",
-    u'\u00ca': 'E^',
-    u'\u00cb': 'E:',
-    u'\u00cc': 'I`',
-    u'\u00cd': "I'",
-    u'\u00ce': 'I^',
-    u'\u00cf': 'I:',
-    u'\u00d0': "D'",
-    u'\u00d1': 'N~',
-    u'\u00d2': 'O`',
-    u'\u00d3': "O'",
-    u'\u00d4': 'O^',
-    u'\u00d5': 'O~',
-    u'\u00d6': 'O:',
-    u'\u00d8': 'O/',
-    u'\u00d9': 'U`',
-    u'\u00da': "U'",
-    u'\u00db': 'U~',
-    u'\u00dc': 'U:',
-    u'\u00dd': "Y'",
-    u'\u00df': 'ss',
+    '\u00c0': 'A`',
+    '\u00c1': "A'",
+    '\u00c2': 'A^',
+    '\u00c3': 'A~',
+    '\u00c4': 'A:',
+    '\u00c5': 'A%',
+    '\u00c6': 'AE',
+    '\u00c7': 'C,',
+    '\u00c8': 'E`',
+    '\u00c9': "E'",
+    '\u00ca': 'E^',
+    '\u00cb': 'E:',
+    '\u00cc': 'I`',
+    '\u00cd': "I'",
+    '\u00ce': 'I^',
+    '\u00cf': 'I:',
+    '\u00d0': "D'",
+    '\u00d1': 'N~',
+    '\u00d2': 'O`',
+    '\u00d3': "O'",
+    '\u00d4': 'O^',
+    '\u00d5': 'O~',
+    '\u00d6': 'O:',
+    '\u00d8': 'O/',
+    '\u00d9': 'U`',
+    '\u00da': "U'",
+    '\u00db': 'U~',
+    '\u00dc': 'U:',
+    '\u00dd': "Y'",
+    '\u00df': 'ss',
     # lowercase
-    u'\u00e0': 'a`',
-    u'\u00e1': "a'",
-    u'\u00e2': 'a^',
-    u'\u00e3': 'a~',
-    u'\u00e4': 'a:',
-    u'\u00e5': 'a%',
-    u'\u00e6': 'ae',
-    u'\u00e7': 'c,',
-    u'\u00e8': 'e`',
-    u'\u00e9': "e'",
-    u'\u00ea': 'e^',
-    u'\u00eb': 'e:',
-    u'\u00ec': 'i`',
-    u'\u00ed': "i'",
-    u'\u00ee': 'i^',
-    u'\u00ef': 'i:',
-    u'\u00f0': "d'",
-    u'\u00f1': 'n~',
-    u'\u00f2': 'o`',
-    u'\u00f3': "o'",
-    u'\u00f4': 'o^',
-    u'\u00f5': 'o~',
-    u'\u00f6': 'o:',
-    u'\u00f8': 'o/',
-    u'\u00f9': 'o`',
-    u'\u00fa': "u'",
-    u'\u00fb': 'u~',
-    u'\u00fc': 'u:',
-    u'\u00fd': "y'",
-    u'\u00ff': 'y:',
+    '\u00e0': 'a`',
+    '\u00e1': "a'",
+    '\u00e2': 'a^',
+    '\u00e3': 'a~',
+    '\u00e4': 'a:',
+    '\u00e5': 'a%',
+    '\u00e6': 'ae',
+    '\u00e7': 'c,',
+    '\u00e8': 'e`',
+    '\u00e9': "e'",
+    '\u00ea': 'e^',
+    '\u00eb': 'e:',
+    '\u00ec': 'i`',
+    '\u00ed': "i'",
+    '\u00ee': 'i^',
+    '\u00ef': 'i:',
+    '\u00f0': "d'",
+    '\u00f1': 'n~',
+    '\u00f2': 'o`',
+    '\u00f3': "o'",
+    '\u00f4': 'o^',
+    '\u00f5': 'o~',
+    '\u00f6': 'o:',
+    '\u00f8': 'o/',
+    '\u00f9': 'o`',
+    '\u00fa': "u'",
+    '\u00fb': 'u~',
+    '\u00fc': 'u:',
+    '\u00fd': "y'",
+    '\u00ff': 'y:',
 }
 
 
 LIGATURES_PAIRS = [
-    (u'ﬃ', 'ffi'),
-    (u'ﬀ', 'ff'),
-    (u'ﬁ', 'fi'),
-    (u'ﬂ', 'fl'),
+    ('ﬃ', 'ffi'),
+    ('ﬀ', 'ff'),
+    ('ﬁ', 'fi'),
+    ('ﬂ', 'fl'),
 
-    (u'—', '--'),
-    (u'–', '-'),
+    ('—', '--'),
+    ('–', '-'),
 
-    (u'“', '"'),
-    (u'”', '"'),
+    ('“', '"'),
+    ('”', '"'),
 
-    (u" ", " "),
-    (u"’", "'"),
-    (u"•", "*"),
-    (u"…", "..."),
+    (" ", " "),
+    ("’", "'"),
+    ("•", "*"),
+    ("…", "..."),
 
-    (u'\u00c6', 'AE'),
-    (u'\u00e6', 'ae'),
-    (u'\u0152', 'OE'),
-    (u'\u0153', 'oe'),
-    (u'\u0132', 'IJ'),
-    (u'\u0133', 'ij'),
-    (u'\u1d6b', 'ue'),
-    (u'\ufb00', 'ff'),
-    (u'\ufb01', 'fi'),
-    (u'\ufb02', 'fl'),
-    (u'\ufb03', 'ffi'),
-    (u'\ufb04', 'ffl'),
-    (u'\ufb05', 'ft'),
-    (u'\ufb06', 'st'),
+    ('\u00c6', 'AE'),
+    ('\u00e6', 'ae'),
+    ('\u0152', 'OE'),
+    ('\u0153', 'oe'),
+    ('\u0132', 'IJ'),
+    ('\u0133', 'ij'),
+    ('\u1d6b', 'ue'),
+    ('\ufb00', 'ff'),
+    ('\ufb01', 'fi'),
+    ('\ufb02', 'fl'),
+    ('\ufb03', 'ffi'),
+    ('\ufb04', 'ffl'),
+    ('\ufb05', 'ft'),
+    ('\ufb06', 'st'),
 ]
 
 LIGATURES_MAP = dict(LIGATURES_PAIRS)
 
-LIGATURES = re.compile(u'(%s)' % u'|'.join(k for k,v in LIGATURES_PAIRS))
+LIGATURES = re.compile('(%s)' % '|'.join(k for k,v in LIGATURES_PAIRS))
 
 
 #import unicodedata
 #>>> source = u'Mikael Håfström'
 #>>> unicodedata.normalize('NFKD', source).encode('ascii', 'ignore')
 def normalize(text):
-    u"""
+    """
     >>> normalize(u'Efﬁciently')
     u'Efficiently'
     """
@@ -228,7 +228,7 @@ def normalize(text):
 
 
 def remove_ligatures(text):
-    u"""
+    """
     >>> remove_ligatures(u'Efﬁciently')
     u'Efficiently'
     """
@@ -251,34 +251,34 @@ def remove_html_escapes(text):
 
 def remove_latin(text):
     text = text.encode('utf-8')
-    text = unicode(text)
+    text = str(text)
     # chars that ISO-8859-1 does not support
     for plain, funny_set in (
-                             ('"', u'“”'),
-                             ('-', u'\u2013\u2014\u2022'),
-                             ("'", u'\u2018\u2019'),
-                             ('', u'\ufffd\u2122\u2020'),
-                             ('...', u'\u2026'),
+                             ('"', '“”'),
+                             ('-', '\u2013\u2014\u2022'),
+                             ("'", '\u2018\u2019'),
+                             ('', '\ufffd\u2122\u2020'),
+                             ('...', '\u2026'),
 #                             ('i', u'\u012b'),
 #                             ('ã', u'\u0101'),
 #                             ('r', u'\u0159'),
 #                             ('Z',u'\u017d'),
 #                             ('z', u'\u017e'),
-                             ('EUR', u'\u20ac')):
+                             ('EUR', '\u20ac')):
         for funny in funny_set:
             orig = text
             text = text.replace(funny, plain)
             if orig != text:
-                print 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
-                print funny, '->', plain
-                print list(funny_set)
-                print text
-                print 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+                print('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+                print(funny, '->', plain)
+                print(list(funny_set))
+                print(text)
+                print('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
     return text
 
 def remove_accents(text):
-    text = unicode(text).encode('utf-8')
-    for plain, funny_set in (('a','áàâãäå\u0101'), ('e','éèêẽë'), ('i',"íìîĩï"), ('o','óòôõöø'),
+    text = str(text).encode('utf-8')
+    for plain, funny_set in (('a','áàâãäå\\u0101'), ('e','éèêẽë'), ('i',"íìîĩï"), ('o','óòôõöø'),
                              ('u',"úùûũü"), ('A','ÁÀÂÃÄÅ'), ('E','ÉÈÊẼË'), ('I',"ÍÌÎĨÏ"),
                              ('O','ÓÒÔÕÖØ'), ('U',"ÚÙÛŨÜ"), ('n',"ñ"), ('c',"ç"), ('N',"Ñ"),
                              ('C',"Ç"), ('d',"Þ"), ('ss',"ß"), ('ae',"æ"), ('oe','œ')):
@@ -296,7 +296,7 @@ Taken from scrapy
 """
 
 #import re
-from htmlentitydefs import name2codepoint
+from html.entities import name2codepoint
 
 def str_to_unicode(text, encoding=None):
     """Return the unicode representation of text in the given encoding. Unlike
@@ -309,7 +309,7 @@ def str_to_unicode(text, encoding=None):
         encoding = 'utf-8'
     if isinstance(text, str):
         return text.decode(encoding)
-    elif isinstance(text, unicode):
+    elif isinstance(text, str):
         return text
     else:
         raise TypeError('str_to_unicode must receive a str or unicode object, got %s' % type(text).__name__)
@@ -323,7 +323,7 @@ def unicode_to_str(text, encoding=None):
 
     if encoding is None:
         encoding = 'utf-8'
-    if isinstance(text, unicode):
+    if isinstance(text, str):
         return text.encode(encoding)
     elif isinstance(text, str):
         return text
@@ -376,11 +376,11 @@ def remove_entities(text, keep=(), remove_illegal=True, encoding='utf-8'):
                 number = name2codepoint.get(entity_body)
         if number is not None:
             try:
-                return unichr(number)
+                return chr(number)
             except ValueError:
                 pass
 
-        return u'' if remove_illegal else m.group(0)
+        return '' if remove_illegal else m.group(0)
 
     return _ent_re.sub(convert_entity, str_to_unicode(text, encoding))
 
@@ -400,7 +400,7 @@ def replace_tags(text, token='', encoding=None):
 
 def remove_comments(text, encoding=None):
     """ Remove HTML Comments. """
-    return re.sub('<!--.*?-->', u'', str_to_unicode(text, encoding), re.DOTALL)
+    return re.sub('<!--.*?-->', '', str_to_unicode(text, encoding), re.DOTALL)
 
 def remove_tags(text, which_ones=(), keep=(), encoding=None):
     """ Remove HTML Tags only.
@@ -424,7 +424,7 @@ def remove_tags(text, which_ones=(), keep=(), encoding=None):
 
     def remove_tag(m):
         tag = m.group(1)
-        return u'' if will_remove(tag) else m.group(0)
+        return '' if will_remove(tag) else m.group(0)
 
     regex = '</?([^ >/]+).*?>'
     retags = re.compile(regex, re.DOTALL | re.IGNORECASE)
@@ -441,11 +441,11 @@ def remove_tags_with_content(text, which_ones=(), encoding=None):
     if which_ones:
         tags = '|'.join([r'<%s.*?</%s>|<%s\s*/>' % (tag, tag, tag) for tag in which_ones])
         retags = re.compile(tags, re.DOTALL | re.IGNORECASE)
-        text = retags.sub(u'', text)
+        text = retags.sub('', text)
     return text
 
 
-def replace_escape_chars(text, which_ones=('\n', '\t', '\r'), replace_by=u'', \
+def replace_escape_chars(text, which_ones=('\n', '\t', '\r'), replace_by='', \
         encoding=None):
     """ Remove escape chars. Default : \\n, \\t, \\r
 
@@ -478,9 +478,9 @@ def unquote_markup(text, keep=(), remove_illegal=True, encoding=None):
         yield txt[offset:]
 
     text = str_to_unicode(text, encoding)
-    ret_text = u''
+    ret_text = ''
     for fragment in _get_fragments(text, _cdata_re):
-        if isinstance(fragment, basestring):
+        if isinstance(fragment, str):
             # it's not a CDATA (so we try to remove its entities)
             ret_text += remove_entities(fragment, keep=keep, remove_illegal=remove_illegal)
         else:
@@ -493,4 +493,4 @@ if __name__ == '__main__':
     import sys
     if sys.stdin.isatty():
         sys.exit(1)
-    print remove_ligatures(sys.stdin.read()).encode('ascii', 'ignore')
+    print(remove_ligatures(sys.stdin.read()).encode('ascii', 'ignore'))

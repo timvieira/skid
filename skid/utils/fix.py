@@ -13,7 +13,7 @@ def orphans():
         else:
             xs.add(x)
     for x in ds.symmetric_difference(xs):
-        print x
+        print(x)
 
 
 # TODO: how should we merge these documents?
@@ -21,23 +21,23 @@ def hash_collisions():
     "Find hash collisions in corpus."
     d = defaultdict(list)
     for x in glob(CACHE + '/*/data/hash'):
-        d[file(x).read().strip()].append(x)
-    for k,v in d.iteritems():
+        d[open(x).read().strip()].append(x)
+    for k,v in d.items():
         if len(v) > 1:
-            print k
+            print(k)
             v = [z[:-12] for z in v]
             for z in v:
-                print '  ', 'file://' + z
+                print('  ', 'file://' + z)
             notes = [f + '.d/notes.org' for f in v]
             assert len(v) == 2
 
 
 if __name__ == '__main__':
-    print 'hash collision (duplicate content)'
-    print '=================================='
+    print('hash collision (duplicate content)')
+    print('==================================')
     hash_collisions()
 
-    print
-    print 'orphans'
-    print '==================='
+    print()
+    print('orphans')
+    print('===================')
     orphans()

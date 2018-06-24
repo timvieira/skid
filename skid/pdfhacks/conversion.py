@@ -33,7 +33,7 @@ class file_specifier(object):
         self.relpath = os.path.relpath(path)
 
     def __repr__(self):
-        return 'file_specifier {\n%s\n}' % ('\n'.join(map('  %8s: %s'.__mod__, self.__dict__.iteritems())))
+        return 'file_specifier {\n%s\n}' % ('\n'.join(map('  %8s: %s'.__mod__, iter(list(self.__dict__.items())))))
 
 
 def pdftotext(pdf, output=None, verbose=False, usecached=True):
@@ -45,25 +45,25 @@ def pdftotext(pdf, output=None, verbose=False, usecached=True):
     # check if output directory exists
     if outdir and not os.path.exists(os.path.dirname(output)):
         if verbose:
-            print '[pdftotext] making directory "%s"' % outdir
+            print('[pdftotext] making directory "%s"' % outdir)
         os.makedirs(outdir)
     if usecached and os.path.exists(output):
         if verbose:
-            print '[pdftotext] "%s" cached.' % pdf
+            print('[pdftotext] "%s" cached.' % pdf)
     else:
         if verbose:
-            print '[pdftotext] processing "%s"' % pdf
+            print('[pdftotext] processing "%s"' % pdf)
         p = Popen(['pdftotext', pdf, output], stdout=None, stderr=None)     # TODO: error checking
         p.wait()
         if verbose:
             if p.returncode == 0:
-                print '[pdftotext] successfully processed "%s".' % (pdf,)
-                print '[pdftotext] wrote "%s".' % (output,)
+                print('[pdftotext] successfully processed "%s".' % (pdf,))
+                print('[pdftotext] wrote "%s".' % (output,))
             else:
-                print '[pdftotext] "%s" exited with status %s' % (pdf, p.returncode)
+                print('[pdftotext] "%s" exited with status %s' % (pdf, p.returncode))
     try:
         # return contents of output file
-        with file(output, 'r') as f:
+        with open(output, 'r') as f:
             return f.read()
     except IOError:
         return ''
@@ -136,13 +136,13 @@ def pdf2image(input_files, outputdir_fmt='{f.abspath}.d', output_format='{f.noex
         info['outputdir'] = outputdir
 
         if verbose:
-            print 'processing:', f.abspath
-            print '  * outputdir: ', outputdir
+            print('processing:', f.abspath)
+            print('  * outputdir: ', outputdir)
 
         if not os.path.exists(outputdir):
             if create_outputdir:
                 if verbose:
-                    print '  * created outputdir'
+                    print('  * created outputdir')
                 os.makedirs(outputdir)
             else:
                 raise OSError('Directory does not exists: %s' % outputdir)
@@ -151,8 +151,8 @@ def pdf2image(input_files, outputdir_fmt='{f.abspath}.d', output_format='{f.noex
         cmd = cmd.format(**info)
 
         if verbose:
-            print '  * System Call:'
-            print '   ', cmd
+            print('  * System Call:')
+            print('   ', cmd)
 
         if not testing:
             os.system(cmd)
@@ -163,4 +163,4 @@ if __name__ == '__main__':
     if len(sys.argv) == 2:
         pdf2image(sys.argv[1], outputdir_fmt='{f.noext}.d', verbose=True, testing=False)
     else:
-        print 'usage: %s <file>' % sys.argv[0]
+        print('usage: %s <file>' % sys.argv[0])

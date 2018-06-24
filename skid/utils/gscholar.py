@@ -1,109 +1,173 @@
 #!/usr/bin/env python
 
-# gscholar - Get bibtex entries from Goolge Scholar
-# Copyright (C) 2011  Bastian Venthur <venthur at debian org>
-#
-#   with some modifications by Tim Vieira.
-#
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation; either version 2
-# of the License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+"""
+Library to query Google Scholar.
 
+Call the method query with a string which contains the full search
+string. Query will return a list of citations.
 
-"""Library to query Google Scholar.
-
-Call the method query with a string which contains the full search string.
-Query will return a list of bibtex items.
 """
 
+try:
+    # python 2
+    from urllib2 import Request, urlopen, quote
+except ImportError:
+    # python 3
+    from urllib.request import Request, urlopen, quote
 
-import urllib2
+try:
+    # python 2
+    from htmlentitydefs import name2codepoint
+except ImportError:
+    # python 3
+    from html.entities import name2codepoint
+
 import re
-import hashlib
-import random
 import os
 import subprocess
 import logging
-from htmlentitydefs import name2codepoint
-from arsenal.fsutils import secure_filename
 
 
-# fake google id (looks like it is a 16 elements hex)
-google_id = hashlib.md5(str(random.random())).hexdigest()[:16]
-
-GOOGLE_SCHOLAR_URL = "http://scholar.google.com"
-# the cookie looks normally like:
-#        'Cookie' : 'GSP=ID=%s:CF=4' % google_id }
-# where CF is the format (e.g. bibtex). since we don't know the format yet, we
-# have to append it later
-HEADERS = {'User-Agent' : 'Mozilla/5.0',
-        'Cookie' : 'GSP=ID=%s' % google_id }
+GOOGLE_SCHOLAR_URL = "https://scholar.google.com"
+HEADERS = {'User-Agent': 'Mozilla/5.0'}
 
 FORMAT_BIBTEX = 4
+FORMAT_ENDNOTE = 3
+FORMAT_REFMAN = 2
+FORMAT_WENXIANWANG = 5
+
+
+logger = logging.getLogger(__name__)
 
 
 def query(searchstr, outformat=FORMAT_BIBTEX, allresults=False):
-    """Return a list of bibtex items."""
-    logging.debug("Query: %s" % searchstr)
-    searchstr = '/scholar?q='+urllib2.quote(searchstr)
+    """Query google scholar.
+
+    This method queries google scholar and returns a list of citations.
+
+    Parameters
+    ----------
+    searchstr : str
+        the query
+    outformat : int, optional
+        the output format of the citations. Default is bibtex.
+    allresults : bool, optional
+        return all results or only the first (i.e. best one)
+
+    Returns
+    -------
+    result : list of strings
+        the list with citations
+
+    """
+    logger.debug("Query: {sstring}".format(sstring=searchstr))
+    searchstr = '/scholar?q='+quote(searchstr)
     url = GOOGLE_SCHOLAR_URL + searchstr
     header = HEADERS
-    header['Cookie'] = header['Cookie'] + ":CF=%d" % outformat
-    request = urllib2.Request(url, headers=header)
-    response = urllib2.urlopen(request)
+    header['Cookie'] = "GSP=CF=%d" % outformat
+    request = Request(url, headers=header)
+    response = urlopen(request)
     html = response.read()
-    html.decode('ascii', 'ignore')
-
+    html = html.decode('utf8')
+    
     # grab the links
     tmp = get_links(html, outformat)
 
     # follow the bibtex links to get the bibtex entries
     result = list()
-    if allresults == False:
+    if not allresults:
         tmp = tmp[:1]
     for link in tmp:
-#        url = GOOGLE_SCHOLAR_URL+link
-        url = link
-        request = urllib2.Request(url, headers=header)
-        response = urllib2.urlopen(request)
+        url = GOOGLE_SCHOLAR_URL+link
+        request = Request(url, headers=header)
+        response = urlopen(request)
         bib = response.read()
+        bib = bib.decode('utf8')
         result.append(bib)
     return result
 
 
 def get_links(html, outformat):
-    """Return a list of reference links from the html."""
-    assert outformat == FORMAT_BIBTEX
-    refre = re.compile(r'<a href="([^"]*?/scholar\.bib\?[^"]*)')
+    """Return a list of reference links from the html.
+
+    Parameters
+    ----------
+    html : str
+    outformat : int
+        the output format of the citations
+
+    Returns
+    -------
+    List[str]
+        the links to the references
+
+    """
+    if outformat == FORMAT_BIBTEX:
+        refre = re.compile(r'<a href="https://scholar.googleusercontent.com(/scholar\.bib\?[^"]*)')
+    elif outformat == FORMAT_ENDNOTE:
+        refre = re.compile(r'<a href="https://scholar.googleusercontent.com(/scholar\.enw\?[^"]*)"')
+    elif outformat == FORMAT_REFMAN:
+        refre = re.compile(r'<a href="https://scholar.googleusercontent.com(/scholar\.ris\?[^"]*)"')
+    elif outformat == FORMAT_WENXIANWANG:
+        refre = re.compile(r'<a href="https://scholar.googleusercontent.com(/scholar\.ral\?[^"]*)"')
     reflist = refre.findall(html)
     # escape html entities
     reflist = [re.sub('&(%s);' % '|'.join(name2codepoint), lambda m:
-        unichr(name2codepoint[m.group(1)]), s) for s in reflist]
+                      chr(name2codepoint[m.group(1)]), s) for s in reflist]
     return reflist
 
 
-def convert_pdf_to_txt(pdf):
-    """Convert a pdf file to txet and return the text.
+def convert_pdf_to_txt(pdf, startpage=None):
+    """Convert a pdf file to text and return the text.
 
     This method requires pdftotext to be installed.
+
+    Parameters
+    ----------
+    pdf : str
+        path to pdf file
+    startpage : int, optional
+        the first page we try to convert
+
+    Returns
+    -------
+    str
+        the converted text
+
     """
-    stdout = subprocess.Popen(["pdftotext", "-q", pdf, "-"], stdout=subprocess.PIPE).communicate()[0]
+    if startpage is not None:
+        startpageargs = ['-f', str(startpage)]
+    else:
+        startpageargs = []
+    stdout = subprocess.Popen(["pdftotext", "-q"] + startpageargs + [pdf, "-"],
+                              stdout=subprocess.PIPE).communicate()[0]
+    # python2 and 3
+    if not isinstance(stdout, str):
+        stdout = stdout.decode()
     return stdout
 
 
-def pdflookup(pdf, allresults, outformat):
-    """Look a pdf up on google scholar and return bibtex items."""
-    txt = convert_pdf_to_txt(pdf)
+def pdflookup(pdf, allresults, outformat, startpage=None):
+    """Look a pdf up on google scholar and return bibtex items.
+
+    Paramters
+    ---------
+    pdf : str
+        path to the pdf file
+    allresults : bool
+        return all results or only the first (i.e. best one)
+    outformat : int
+        the output format of the citations
+    startpage : int
+        first page to start reading from
+
+    Returns
+    -------
+    List[str]
+        the list with citations
+
+    """
+    txt = convert_pdf_to_txt(pdf, startpage)
     # remove all non alphanumeric characters
     txt = re.sub("\W", " ", txt)
     words = txt.strip().split()[:20]
@@ -113,8 +177,18 @@ def pdflookup(pdf, allresults, outformat):
 
 
 def _get_bib_element(bibitem, element):
-    """Return element from bibitem or None."""
-    lst = [i.strip() for i in bibitem.split('\n')]
+    """Return element from bibitem or None.
+
+    Paramteters
+    -----------
+    bibitem :
+    element :
+
+    Returns
+    -------
+
+    """
+    lst = [i.strip() for i in bibitem.split("\n")]
     for i in lst:
         if i.startswith(element):
             value = i.split("=", 1)[-1]
@@ -128,88 +202,19 @@ def _get_bib_element(bibitem, element):
 
 
 def rename_file(pdf, bibitem):
-    """Attempt to rename pdf according to bibitem."""
+    """Attempt to rename pdf according to bibitem.
+
+    """
     year = _get_bib_element(bibitem, "year")
     author = _get_bib_element(bibitem, "author")
     if author:
-        author = author.split(",")[0].replace(' ','')
+        author = author.split(",")[0]
     title = _get_bib_element(bibitem, "title")
-
-    # pick one word for the title
-    title = title.strip().split()[0]
-
-    filename = secure_filename('%s%s%s.pdf' % (author, year[-2:], title))
+    l = [i for i in (year, author, title) if i]
+    filename = "-".join(l) + ".pdf"
     newfile = pdf.replace(os.path.basename(pdf), filename)
-    print
-    print "Will rename:"
-    print
-    print "  %s" % pdf
-    print
-    print "to"
-    print
-    print "  %s" % newfile
-    print
-    print "Proceed? [y/N]"
-    answer = raw_input()
-    if answer == 'y':
-        print "Renaming %s to %s" % (pdf, newfile)
-        os.rename(pdf, newfile)
-    else:
-        print "Aborting."
+    logger.info('Renaming {in_} to {out}'.format(in_=pdf, out=newfile))
+    os.rename(pdf, newfile)
 
 
-def main():
-    from argparse import ArgumentParser
-    parser = ArgumentParser()
-    parser.add_argument("-a", "--all", action="store_true",
-                        help="show all bibtex results")
-    parser.add_argument("-d", "--debug", action="store_true",
-                        help="show debugging output")
-    parser.add_argument("-r", "--rename", action="store_true",
-                        help="rename file (asks before doing it)")
-    parser.add_argument("-o", "--output",
-                        choices=('bibtex','endnote','refman','wenxianwang'),
-                        default="bibtex",
-                        help="Output format. [default: %(default)s]")
-
-    parser.add_argument('query', nargs='+')
-
-    args = parser.parse_args()
-
-    args.query = ' '.join(args.query)
-
-    if args.debug:
-        logging.basicConfig(level=logging.DEBUG)
-
-    outformat = FORMAT_BIBTEX
-
-    pdfmode = False
-    if os.path.exists(args.query):
-        logging.debug("File exist, assuming you want me to lookup the pdf: %r." % query)
-        pdfmode = True
-        biblist = pdflookup(args.query, all, outformat)
-    else:
-        logging.debug("Assuming you want me to lookup the query: %r." % query)
-        biblist = query(args.query, outformat, args.all)
-
-    if len(biblist) < 1:
-        print "No results found, try again with a different query!"
-        exit(1)
-
-    if args.all:
-        logging.debug("All results:")
-        for i in biblist:
-            print i
-    else:
-        logging.debug("First result:")
-        print biblist[0]
-
-    if args.rename:
-        if not pdfmode:
-            print "You asked me to rename the pdf but didn't tell me which file to rename, aborting."
-            exit(1)
-        else:
-            rename_file(args.query, biblist[0])
-
-if __name__ == "__main__":
-    main()
+print(query('VISUALIZING AND UNDERSTANDING RECURRENT NETWORKS', outformat=FORMAT_BIBTEX, allresults=False))

@@ -17,7 +17,7 @@ import re, os
 from skid.config import CACHE
 from skid.add import Document
 from collections import defaultdict
-from urllib import quote
+from urllib.parse import quote
 
 def simplify(x):
     # simplify name: remove single initial, lowercase, convert to ascii
@@ -41,29 +41,29 @@ def data():
 
 def top():
     ix, _ = data()
-    for author, ds in sorted(ix.items(), key=lambda x: len(x[1])):
-        print '%s (%s)' % (author, len(ds))
+    for author, ds in sorted(list(ix.items()), key=lambda x: len(x[1])):
+        print('%s (%s)' % (author, len(ds)))
         for d in ds:
-            print ' ', d.meta['title']
+            print(' ', d.meta['title'])
 
 
 def coauthors():
     _, docs = data()
-    with file('coauthors.dot', 'wb') as dot:
-        print >> dot, 'graph coauthors {'
+    with open('coauthors.dot', 'wb') as dot:
+        print('graph coauthors {', file=dot)
         for i, d in enumerate(docs):
-            print >> dot, '"%s" [shape=box,width=0.1];' % i
+            print('"%s" [shape=box,width=0.1];' % i, file=dot)
             for author in d.meta['author']:
                 author = simplify(author)
                 # if I don't add edges in both directions graphviz gives me a
                 # bipartite layout.
-                print >> dot, ('"%s" -- %s;' % (author, i)).encode('ascii', 'ignore')
-                print >> dot, ('%s -- "%s";' % (i, author)).encode('ascii', 'ignore')
-        print >> dot, '}'
+                print(('"%s" -- %s;' % (author, i)).encode('ascii', 'ignore'), file=dot)
+                print(('%s -- "%s";' % (i, author)).encode('ascii', 'ignore'), file=dot)
+        print('}', file=dot)
 
     os.system('dot -Tsvg coauthors.dot > coauthors.svg')
 
-    with file('coauthors.svg') as f:
+    with open('coauthors.svg') as f:
         svg = f.read()
 
     html = re.sub('^([\w\W]*)(<svg )', r'\2', svg)
@@ -81,7 +81,7 @@ def coauthors():
 
     html = p.sub(add_handle, html)
 
-    with file('coauthors.html','wb') as f:
+    with open('coauthors.html','wb') as f:
         f.write('<html><body>\n')
         f.write(html)
         f.write('</body></html>')
