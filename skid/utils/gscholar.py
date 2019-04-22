@@ -66,12 +66,36 @@ def query(searchstr, outformat=FORMAT_BIBTEX, allresults=False):
     header = HEADERS
     header['Cookie'] = "GSP=CF=%d" % outformat
     request = Request(url, headers=header)
-    response = urlopen(request)
-    html = response.read()
-    html = html.decode('utf8')
-    
+
+    import urllib
+    try:
+
+        response = urlopen(request)
+        html = response.read()
+        html = html.decode('utf8')
+
+    except urllib.error.HTTPError:
+        import sys, traceback
+        from arsenal import colors
+        etype, evalue, tb = sys.exc_info()
+        tb = '\n'.join(traceback.format_exception(etype, evalue, tb))
+
+        print(colors.red % '*'*80)
+        print(colors.red % tb)
+        print(colors.red % '*'*80)
+
+        return []
+
     # grab the links
     tmp = get_links(html, outformat)
+
+
+    with open('/tmp/gscholar.html', 'wb') as f:
+        f.write(html.encode('utf-8'))
+    print(f'[gscholar] wrote log: file://{f.name}')
+
+    if not tmp: print("Google thinks we're a robot")
+
 
     # follow the bibtex links to get the bibtex entries
     result = list()
@@ -217,4 +241,7 @@ def rename_file(pdf, bibitem):
     os.rename(pdf, newfile)
 
 
-print(query('VISUALIZING AND UNDERSTANDING RECURRENT NETWORKS', outformat=FORMAT_BIBTEX, allresults=False))
+if __name__ == '__main__':
+    #print(query('VISUALIZING AND UNDERSTANDING RECURRENT NETWORKS', outformat=FORMAT_BIBTEX, allresults=False))
+    #print(query('The Data Calculator: Data Structure Design and Cost Synthesis from First Principles and Learned Cost Models', outformat=FORMAT_BIBTEX, allresults=False))
+    print(query('learning to prune exploring the frontier of fast and accurate parsing', outformat=FORMAT_BIBTEX, allresults=False))

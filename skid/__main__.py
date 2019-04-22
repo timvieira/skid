@@ -149,7 +149,7 @@ def pager(name='none', always=False):
 
         try:
             #with open('/tmp/foo', 'wb') as f:
-            with NamedTemporaryFile(delete=0) as f:
+            with NamedTemporaryFile(delete=0, mode='w') as f:
                 sys.stdout = f
                 yield
         finally:
@@ -330,11 +330,8 @@ def main():
         p.add_argument('--hide', default='', help='display options')
 
         # TODO: pager temporarily disabled because of transition to python3
-#        p.add_argument('--pager', choices=('none', 'less', 'emacs'), default='less',
-#                       help='pager for results')
-        p.add_argument('--pager', choices=('none',), default='none',
+        p.add_argument('--pager', choices=('none', 'less', 'emacs'), default='less',
                        help='pager for results')
-
 
         p.add_argument('--format', choices=('standard', 'org'), default='standard',
                        help='output format')

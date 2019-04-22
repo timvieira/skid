@@ -308,8 +308,6 @@ def str_to_unicode(text, encoding=None):
     if encoding is None:
         encoding = 'utf-8'
     if isinstance(text, str):
-        return text.decode(encoding)
-    elif isinstance(text, str):
         return text
     else:
         raise TypeError('str_to_unicode must receive a str or unicode object, got %s' % type(text).__name__)

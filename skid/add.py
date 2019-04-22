@@ -245,6 +245,9 @@ def new_document(d, source, cached):
 
 
 def gscholar_bib(title):
+    #print('[WARNING] Google scholar search is currently disabled.')
+    #return # CURRENTLY DISABLED.
+
     # perform a Google scholar search based on the title.
     import urllib.request, urllib.error, urllib.parse
     from skid.utils import gscholar
@@ -369,7 +372,7 @@ class Document(object):
             # assume it's HTML
             x = re.findall('<title>(.*?)</title>', robust_read(self.cached), flags=re.I)
             if x:
-                return x[0].strip().encode('utf8')  # take the first title
+                return x[0].strip()  # take the first title
             else:
                 return ''   # TODO: maybe take first line of the file?
 
