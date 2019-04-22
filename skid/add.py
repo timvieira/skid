@@ -267,7 +267,7 @@ def gscholar_bib(title):
     for x in results:
         print(x)
 
-        x = x.decode('ascii', errors='ignore')
+        #x = x.decode('ascii', errors='ignore')
 
         try:
             b = bibtex.Parser().parse_stream(StringIO(x))
@@ -280,7 +280,10 @@ def gscholar_bib(title):
         #print colors.yellow % (dict(e.fields),)
         title = e.fields['title']
         year = e.fields.get('year', '')
-        author = ' ; '.join(str(HumanName(x)) for x in re.split(r'\band\b', e.fields['author']))
+
+        authors = e.persons['author']
+
+        author = ' ; '.join(str(HumanName(str(x))) for x in authors)
 
         #title = title.decode('latex')
         #author = author.decode('latex').replace('{','').replace('}','')
