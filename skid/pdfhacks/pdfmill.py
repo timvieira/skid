@@ -20,7 +20,7 @@ import re, os, sys, pprint, urllib.request, urllib.parse, urllib.error
 from collections import Counter
 from arsenal.iterextras import groupby2
 #from arsenal.misc import ignore_error
-from arsenal.terminal import colors 
+from arsenal.terminal import colors
 
 from skid.utils.text import remove_ligatures
 from skid.pdfhacks.conversion import pdf2image
@@ -615,6 +615,7 @@ def shingles(a, n):
 def sim(a, b, n):
     A = set(shingles(a, n=n))
     B = set(shingles(b, n=n))
+    if not A or not B: return 0.0
     return len(A & B) * 1.0 / len(A | B)
 
 # TODO: probably faster ways to do this using Whoosh index.
